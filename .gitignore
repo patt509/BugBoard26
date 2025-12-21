@@ -1,5 +1,5 @@
 # Visual Paradigm temp files
-.bak
-.bak*
-.lck
-.lck*
+*.bak*
+*.lck*
+vp.log
+~*
