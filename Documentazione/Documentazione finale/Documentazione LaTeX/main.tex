@@ -1,0 +1,76 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\title{Documentazione BugBoard26}
+\author{Luca Lucci}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Specifica dei Requisiti Software}
+
+\subsection{Glossario}
+% Inserire qui il glossario
+
+\subsection{Use Case Diagram}
+% Inserire qui il diagramma dei casi d'uso
+
+\subsection{Caratterizzazione Target Utenti}
+Il sistema BugBoard26 è progettato per servire diverse tipologie di utenti, ciascuna con competenze, esigenze e modalità d'uso specifiche.
+
+\subsubsection*{1. Sviluppatori e QA Tester (Utenti Operativi)}
+\begin{itemize}
+    \item \textbf{Esperienza Informatica:} Elevata; sono abituati a IDE, terminali e sistemi di versioning.
+    \item \textbf{Conoscenza del Dominio:} Media/Alta; comprendono perfettamente il ciclo di vita di un bug (TODO $\to$ Resolved).
+    \item \textbf{Frequenza d'uso:} Alta (uso quotidiano).
+    \item \textbf{Necessità:} Velocità nell'inserimento delle issue e possibilità di allegare prove tecniche come screenshot.
+\end{itemize}
+
+\subsubsection*{2. Team Leader e Admin (Utenti Gestionali)}
+\begin{itemize}
+    \item \textbf{Esperienza Informatica:} Elevata.
+    \item \textbf{Conoscenza del Dominio:} Massima; hanno la visione globale del progetto e delle priorità.
+    \item \textbf{Frequenza d'uso:} Alta.
+    \item \textbf{Necessità:} Strumenti di supervisione (Dashboard) e gestione dei permessi (rimozione duplicati, archiviazione, ecc\dots).
+\end{itemize}
+
+\subsubsection*{3. Stakeholder e Clienti (Utenti Osservatori)}
+\begin{itemize}
+    \item \textbf{Esperienza Informatica:} Variabile (spesso Bassa/Media).
+    \item \textbf{Conoscenza del Dominio:} Bassa/Media; interessati ai progressi macroscopici.
+    \item \textbf{Frequenza d'uso:} Bassa (settimanale o mensile).
+    \item \textbf{Necessità:} Una modalità "readonly" semplice che non permetta modifiche accidentali e offra report chiari.
+\end{itemize}
+
+\subsection{Requisiti Non-Funzionali e di Sistema}
+Questi requisiti definiscono le qualità del sistema e i vincoli tecnologici. Seguendo la traccia del progetto e le buone norme dell'Ingegneria del Software, possiamo categorizzarli come segue.
+
+\subsubsection*{Requisiti di Sistema (Vincoli della Traccia)}
+\begin{itemize}
+    \item \textbf{RNF\_01 - Architettura}: Il sistema deve essere distribuito, con Back-end e Front-end logicamente e fisicamente indipendenti.
+    \item \textbf{RNF\_02 - Tecnologia}: Entrambi i componenti devono essere realizzati con linguaggi di programmazione Object-Oriented.
+    \item \textbf{RNF\_03 - Comunicazione}: Il Front-end deve comunicare con il Back-end esclusivamente tramite API (es. REST) via rete.
+    \item \textbf{RNF\_04 - Deployment}: Il Back-end deve essere predisposto per l'esecuzione tramite container Docker.
+\end{itemize}
+
+\subsubsection*{Requisiti di Qualità (Proprietà Emergenti)}
+\begin{itemize}
+    \item \textbf{Sicurezza (Security):} Le password non devono essere salvate in chiaro nel database, ma tramite algoritmi di hashing sicuri (es. BCrypt). L'accesso alle API deve essere protetto da token di sessione (es. JWT) per garantire l'integrità dei dati.
+    
+    \item \textbf{Affidabilità e Robustezza (Reliability):} Il sistema deve gestire gli errori di rete tra client e server mostrando messaggi informativi e non interrompendo l'esecuzione (come previsto nei diagrammi di Cockburn).
+    
+    \item \textbf{Usabilità (Usability):} L'interfaccia deve essere intuitiva: un utente "Standard" deve essere in grado di creare una nuova issue in meno di 30 secondi dal primo accesso.
+\end{itemize}
+
+\subsection{Casi d'Uso: Formalizzazione e Mockup}
+% Formalizzazione Cockburn di 2 use case principali e visualizzazione mock up
+
+\end{document}
