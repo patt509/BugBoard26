@@ -29,6 +29,11 @@ public class IssueRepository {
                .getResultList();
    }
 
+   // Find a issue by its ID (mainly needed by the service layer)
+   public Issue findById(Long id) {
+      return em.find(Issue.class, id);
+   }
+
    // Dynamic filtering and search of issues (Requisito 3)
    public List<Issue> search(String title, PriorityLevel priority) {
       StringBuilder jpql = new StringBuilder("SELECT i FROM Issue i WHERE 1=1"); // Default query
