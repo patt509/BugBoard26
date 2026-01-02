@@ -9,6 +9,11 @@ public class PasswordHasher {
    //
    private static final int SALT_ROUNDS = 12;
 
+   // Private constructor to prevent instantiation
+   private PasswordHasher() {
+      throw new UnsupportedOperationException("Utility class cannot be instantiated");
+   }
+
    /**
     * Hashes a plain text password in BCrypt.
     * @param plainPassword The password to hash.

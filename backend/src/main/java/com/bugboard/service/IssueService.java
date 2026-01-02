@@ -10,9 +10,13 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @ApplicationScoped
 public class IssueService {
+
+   private static final Logger logger = Logger.getLogger(IssueService.class.getName());
 
    private final IssueRepository repository;
 
@@ -47,7 +51,8 @@ public class IssueService {
       repository.save(duplicate);
 
       // TODO: Optionally, notify users about the duplication (parte del Requisito 6)
-      System.out.println("LOG: Issue #" + duplicateIssueId + " marked as duplicate of Issue #" + originalIssueId);
+      logger.log(Level.INFO, "Issue #{0} marked as duplicate of Issue #{1}", 
+         new Object[]{duplicateIssueId, originalIssueId});
    }
 
    // Search issues with dynamic filters (support function)
@@ -57,15 +62,16 @@ public class IssueService {
       List<Issue> issues = repository.search(query, priority);
 
       // 2. Convert entities to DTOs
-      return issues.stream().map(issue -> new IssueDTO(
-              issue.getId(),
-              issue.getTitle(),
-              issue.getStatus().toString(),
-              issue.getPriority().toString(),
-              issue.getReporter().getUsername(),
-              issue.getCreatedAt(),
-              issue.getClosedAt(),
-              issue.getAttachmentPath()
-      )).toList();
+      return issues.stream().map(issue -> IssueDTO.builder()
+              .id(issue.getId())
+              .title(issue.getTitle())
+              .status(issue.getStatus().toString())
+              .priority(issue.getPriority().toString())
+              .reporterName(issue.getReporter().getUsername())
+              .createdAt(issue.getCreatedAt())
+              .closedAt(issue.getClosedAt())
+              .attachmentPath(issue.getAttachmentPath())
+              .build()
+      ).toList();
    }
 }
