@@ -21,14 +21,14 @@ public class Issue {
 
    // 2. CONSTRUCTOR
    public Issue(String title) {
-      // Initialize status to "TODO", and createdAt to current
-      // date and timeby default
-      this.status = IssueStatus.TODO;
-      this.createdAt = LocalDateTime.now();
       if (title == null || title.trim().length() < 10) {
          throw new IllegalArgumentException("Title must be at least 10 characters.");
       }
       this.title = title;
+      // Initialize default values
+      this.status = IssueStatus.TODO;
+      this.priority = PriorityLevel.MEDIUM;
+      this.createdAt = LocalDateTime.now();
    }
 
    // 3. GETTERS AND SETTERS
@@ -40,15 +40,28 @@ public class Issue {
       }
       this.title = title;
    }
+
    public String getDescription() { return description; }
    public void setDescription(String description) { this.description = description; }
+
    public Long getId() { return id; }
    public void setId(Long id) { this.id = id; }
+
    public IssueStatus getStatus() { return status; }
-   public void setStatus(IssueStatus status) { this.status = status; }
+   public void setStatus(IssueStatus status) {
+      // If the status is being set to CLOSED, we should record the closing time
+      if (status == IssueStatus.CLOSED && this.status != IssueStatus.CLOSED) {
+         this.closedAt = LocalDateTime.now();
+      }
+      // If the issue is being reopened, clear the closedAt timestamp
+      else if (status != IssueStatus.CLOSED) {
+         this.closedAt = null;
+      }
+      this.status = status; 
+   }
+
    public LocalDateTime getCreatedAt() { return createdAt; }
    public LocalDateTime getClosedAt() { return closedAt; }
-   public void setClosedAt(LocalDateTime closedAt) { this.closedAt = closedAt; }
 
    // 4. OTHER METHODS
    public void markAsDuplicateOf(Issue original) {
