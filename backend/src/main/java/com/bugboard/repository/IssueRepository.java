@@ -36,7 +36,7 @@ public class IssueRepository {
 
    // Dynamic filtering and search of issues (Requisito 3)
    public List<Issue> search(String title, PriorityLevel priority) {
-      StringBuilder jpql = new StringBuilder("SELECT i FROM Issue i WHERE 1=1"); // Default query
+      StringBuilder jpql = new StringBuilder("SELECT i FROM Issue i JOIN i.reporter u WHERE 1=1"); // Default query
 
       if (title != null && !title.trim().isEmpty()) {
          jpql.append(" AND (LOWER(i.title) LIKE LOWER(:title) OR LOWER(u.username) LIKE LOWER(:term))");
