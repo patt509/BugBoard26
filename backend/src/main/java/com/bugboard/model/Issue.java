@@ -1,6 +1,10 @@
 package com.bugboard.model;
 
-import java.time.LocalDateTime; // Library to manage date and time
+import com.bugboard.enums.IssueStatus;
+import com.bugboard.enums.PriorityLevel;
+import jakarta.persistence.*;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "issues")
@@ -59,6 +63,14 @@ public class Issue {
       this.title = title;
    }
 
+   public PriorityLevel getPriority() {
+      return priority;
+   }
+
+   public void setPriority(PriorityLevel priority) {
+      this.priority = priority;
+   }
+
    public String getDescription() { return description; }
    public void setDescription(String description) { this.description = description; }
 
@@ -76,6 +88,22 @@ public class Issue {
          this.closedAt = null;
       }
       this.status = status; 
+   }
+
+   public User getReporter() {
+      return reporter;
+   }
+
+   public Issue getOriginalIssue() {
+      return originalIssue;
+   }
+
+   public String getAttachmentPath() {
+      return attachmentPath;
+   }
+
+   public void setAttachmentPath(String attachmentPath) {
+      this.attachmentPath = attachmentPath;
    }
 
    public LocalDateTime getCreatedAt() { return createdAt; }

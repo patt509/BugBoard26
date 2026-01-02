@@ -5,6 +5,7 @@ import com.bugboard.repository.UserRepository;
 import com.bugboard.security.PasswordHasher;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+
 import java.util.Arrays;
 
 @ApplicationScoped
@@ -28,8 +29,13 @@ public class AuthService {
 
    // Login method
    public boolean authenticate(String email, char[] rawPassword) {
-      return userRepository.findByEmail(email)
-               .map(user -> PasswordHasher.verify(rawPassword, user.getPassword()))
-               .orElse(false); // User not found or password mismatch
+      try {
+         return userRepository.findByEmail(email)
+                 .map(user -> PasswordHasher.verify(new String(rawPassword), user.getPassword()))
+                 .orElse(false); // User not found or password mismatch
+      } finally {
+         // Clear password from memory for security
+         Arrays.fill(rawPassword, '\0');
+      }
    }
 }

@@ -1,11 +1,12 @@
 package com.bugboard.repository;
 
+import com.bugboard.enums.PriorityLevel;
 import com.bugboard.model.Issue;
-import com.bugboard.model.IssueStatus;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
+
 import java.util.List;
 
 @ApplicationScoped
@@ -35,7 +36,7 @@ public class IssueRepository {
    }
 
    // Dynamic filtering and search of issues (Requisito 3)
-   public List<Issue> search(String title, PriorityLevel priority) {
+   public List search(String title, PriorityLevel priority) {
       StringBuilder jpql = new StringBuilder("SELECT i FROM Issue i JOIN i.reporter u WHERE 1=1"); // Default query
 
       if (title != null && !title.trim().isEmpty()) {
@@ -47,10 +48,11 @@ public class IssueRepository {
 
       jpql.append(" ORDER BY i.createdAt DESC");
 
-      var query = em.createQuery(jpql.toString(), Issue.class);
+      jakarta.persistence.Query query = em.createQuery(jpql.toString());
 
       if (title != null && !title.trim().isEmpty()) {
          query.setParameter("title", "%" + title + "%");
+         query.setParameter("term", "%" + title + "%");
       }
       if (priority != null) {
          query.setParameter("priority", priority);
@@ -58,3 +60,4 @@ public class IssueRepository {
 
       return query.getResultList();
    }
+}

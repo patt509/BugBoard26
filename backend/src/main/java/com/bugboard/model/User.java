@@ -1,6 +1,8 @@
 package com.bugboard.model;
 
+import com.bugboard.enums.UserRole;
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
 // JPA annotations to map this class to a database table
@@ -38,6 +40,9 @@ public class User {
       this.isFirstLogin = true;
       this.createdAt = LocalDateTime.now();
    }
+
+   public User() {
+   } // Default constructor for JPA
 
    // GETTERS AND SETTERS
    public Long getId() { return id; }

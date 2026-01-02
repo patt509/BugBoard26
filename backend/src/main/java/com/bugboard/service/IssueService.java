@@ -1,12 +1,14 @@
 package com.bugboard.service;
 
+import com.bugboard.dto.IssueDTO;
+import com.bugboard.enums.PriorityLevel;
 import com.bugboard.model.Issue;
-import com.bugboard.model.PriorityLevel;
 import com.bugboard.model.User;
 import com.bugboard.repository.IssueRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+
 import java.util.List;
 
 @ApplicationScoped
@@ -15,7 +17,7 @@ public class IssueService {
    @Inject
    private IssueRepository repository;
 
-   // Create new issue
+   // Create a new issue
    @Transactional
    public void createIssue(String title, User reporter) {
       Issue issue = new Issue(title, reporter);
@@ -32,8 +34,8 @@ public class IssueService {
          throw new IllegalArgumentException("One or both issues not found.");
       }
 
-      // Call internal method to mark as duplicate
-      duplicate.markAsDuplicate(original);
+      // Call the internal method to mark as duplicate
+      duplicate.markAsDuplicateOf(original);
       repository.save(duplicate);
 
       // TODO: Optionally, notify users about the duplication (parte del Requisito 6)
@@ -41,7 +43,21 @@ public class IssueService {
    }
 
    // Search issues with dynamic filters (support function)
-   public List<Issue> searchIssues(String query, PriorityLevel priority) {
-      return repository.search(query, priority); // Call repository method
+   // Convert an object to DTO to pass it to the controller
+   public List<IssueDTO> searchIssues(String query, PriorityLevel priority) {
+      // 1. Take entities from the repository
+      List<Issue> issues = repository.search(query, priority);
+
+      // 2. Convert entities to DTOs
+      return issues.stream().map(issue -> new IssueDTO(
+              issue.getId(),
+              issue.getTitle(),
+              issue.getStatus().toString(),
+              issue.getPriority().toString(),
+              issue.getReporter().getUsername(),
+              issue.getCreatedAt(),
+              issue.getClosedAt(),
+              issue.getAttachmentPath()
+      )).toList();
    }
 }
