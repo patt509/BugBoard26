@@ -7,17 +7,17 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Path("/issues")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class IssueResource {
 
-    private static final Logger logger = LoggerFactory.getLogger(IssueResource.class);
+    private static final Logger logger = Logger.getLogger(IssueResource.class.getName());
 
     @Inject
     private IssueService issueService;
@@ -49,19 +49,19 @@ public class IssueResource {
             issueService.processDuplicate(duplicateId, originalId);
             return Response.ok().build();
         } catch (IllegalArgumentException e) {
-            logger.warn("Invalid argument for duplicate processing: {}", e.getMessage());
+            logger.log(Level.WARNING, "Invalid argument for duplicate processing: {0}", e.getMessage());
             return Response.status(Response.Status.NOT_FOUND)
                     .entity(e.getMessage())
                     .build();
         } catch (IllegalStateException e) {
-            logger.warn("Invalid state for duplicate processing: {}", e.getMessage());
+            logger.log(Level.WARNING, "Invalid state for duplicate processing: {0}", e.getMessage());
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(e.getMessage())
                     .build();
         } catch (Exception e) {
             // Log exception details for debugging
-            logger.error("Error processing duplicate request for duplicateId={}, originalId={}",
-                    duplicateId, originalId, e);
+            logger.log(Level.SEVERE, String.format("Error processing duplicate request for duplicateId=%d, originalId=%d",
+                    duplicateId, originalId), e);
             e.printStackTrace();
 
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
