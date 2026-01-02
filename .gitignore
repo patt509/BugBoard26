@@ -15,3 +15,8 @@ vp.log
 *.synctex.gz
 *.toc
 *.pdf
+
+# Build outputs
+target/
+build/
+
