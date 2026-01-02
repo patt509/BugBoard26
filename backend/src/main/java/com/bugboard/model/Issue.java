@@ -2,29 +2,47 @@ package com.bugboard.model;
 
 import java.time.LocalDateTime; // Library to manage date and time
 
+@Entity
+@Table(name = "issues")
 public class Issue {
    // 1. ATTRIBUTES
-   // We use encapsulation to protect the data (private access modifier)
+   @Id
+   @GeneratedValue(strategy = GenerationType.IDENTITY)
    private Long id;
+
+   @Column(nullable = false)
    private String title;
    private String description;
 
    // For Status and Priority, we can use enums to restrict values
+   @Enumerated(EnumType.STRING)
    private IssueStatus status;
+   @Enumerated(EnumType.STRING)
    private PriorityLevel priority;
 
-   // Pointer to original issue (in case of duplicates)
+   // User who reported the issue
+   @ManyToOne
+   @JoinColumn(name = "reporter_id", nullable = false)
+   private User reporter;
+
+   // In case this issue is marked as duplicate
+   @ManyToOne
+   @JoinColumn(name = "original_issue_id")
    private Issue originalIssue;
 
    private LocalDateTime createdAt;
    private LocalDateTime closedAt;
+   private String attachmentPath; // Requisito 7
+
+   protected Issue() {}// JPA requires a default constructor
 
    // 2. CONSTRUCTOR
-   public Issue(String title) {
+   public Issue(String title, User reporter) {
       if (title == null || title.trim().length() < 10) {
          throw new IllegalArgumentException("Title must be at least 10 characters.");
       }
       this.title = title;
+      this.reporter = reporter;
       // Initialize default values
       this.status = IssueStatus.TODO;
       this.priority = PriorityLevel.MEDIUM;

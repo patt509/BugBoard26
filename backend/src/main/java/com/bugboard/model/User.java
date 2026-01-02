@@ -27,6 +27,7 @@ public class User {
    private boolean isFirstLogin;
    private LocalDateTime createdAt;
 
+   // CONSTRUCTOR
    public User(String email, String password, UserRole role) {
       if (email == null || !email.contains("@")) {
          throw new IllegalArgumentException("Invalid email format.");
@@ -43,7 +44,7 @@ public class User {
 
    public String getUsername() { return username; }
    public void setUsername(String username) { this.username = username; }
-   
+
    public String getEmail() { return email; }
    public void setEmail(String email) { this.email = email; }
    
