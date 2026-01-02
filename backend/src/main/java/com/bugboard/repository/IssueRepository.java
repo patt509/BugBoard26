@@ -39,7 +39,7 @@ public class IssueRepository {
       StringBuilder jpql = new StringBuilder("SELECT i FROM Issue i WHERE 1=1"); // Default query
 
       if (title != null && !title.trim().isEmpty()) {
-         jpql.append(" AND LOWER(i.title) LIKE LOWER(:title)");
+         jpql.append(" AND (LOWER(i.title) LIKE LOWER(:title) OR LOWER(u.username) LIKE LOWER(:term))");
       }
       if (priority != null) {
          jpql.append(" AND LOWER(i.priority) = :priority");
