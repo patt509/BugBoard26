@@ -19,8 +19,12 @@ public class IssueResource {
 
     private static final Logger logger = Logger.getLogger(IssueResource.class.getName());
 
+    private final IssueService issueService;
+
     @Inject
-    private IssueService issueService;
+    public IssueResource(IssueService issueService) {
+        this.issueService = issueService;
+    }
 
     // Real-time search with dynamic filters
     @GET

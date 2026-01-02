@@ -14,8 +14,12 @@ import java.util.List;
 @ApplicationScoped
 public class IssueService {
 
+   private final IssueRepository repository;
+
    @Inject
-   private IssueRepository repository;
+   public IssueService(IssueRepository repository) {
+      this.repository = repository;
+   }
 
    // Create a new issue
    @Transactional

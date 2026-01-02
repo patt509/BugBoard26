@@ -11,8 +11,12 @@ import java.util.Arrays;
 @ApplicationScoped
 public class AuthService {
    
+   private final UserRepository userRepository;
+
    @Inject
-   private UserRepository userRepository;
+   public AuthService(UserRepository userRepository) {
+      this.userRepository = userRepository;
+   }
 
    // Method to register a new user
    public void registerUser(User user, char[] rawPassword) {
