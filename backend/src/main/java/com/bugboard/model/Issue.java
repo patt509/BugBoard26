@@ -75,7 +75,6 @@ public class Issue {
    public void setDescription(String description) { this.description = description; }
 
    public Long getId() { return id; }
-   public void setId(Long id) { this.id = id; }
 
    public IssueStatus getStatus() { return status; }
    public void setStatus(IssueStatus status) {
@@ -94,9 +93,9 @@ public class Issue {
       return reporter;
    }
 
-   public Issue getOriginalIssue() {
-      return originalIssue;
-   }
+      public Long getOriginalIssueId() {
+         return originalIssue != null ? originalIssue.getId() : null;
+      }
 
    public String getAttachmentPath() {
       return attachmentPath;

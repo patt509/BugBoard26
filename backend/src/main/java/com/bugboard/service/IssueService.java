@@ -27,6 +27,10 @@ public class IssueService {
    // Duplicate management by admins
    @Transactional
    public void processDuplicate(Long duplicateIssueId, Long originalIssueId) {
+        if (duplicateIssueId == null || originalIssueId == null) {
+          throw new IllegalArgumentException("Both duplicateId and originalId must be provided.");
+        }
+
       Issue duplicate = repository.findById(duplicateIssueId);
       Issue original = repository.findById(originalIssueId);
 

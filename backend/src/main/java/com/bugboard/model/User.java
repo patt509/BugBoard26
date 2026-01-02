@@ -51,10 +51,14 @@ public class User {
    public void setUsername(String username) { this.username = username; }
 
    public String getEmail() { return email; }
-   public void setEmail(String email) { this.email = email; }
    
    public String getPassword() { return password; }
-   public void setPassword(String password) { this.password = password; }
+      public void setPassword(String password) {
+         if (password == null || password.trim().isEmpty()) {
+            throw new IllegalArgumentException("Password cannot be empty.");
+         }
+         this.password = password;
+      }
 
    public UserRole getRole() { return role; }
    public void setRole(UserRole role) { this.role = role; }

@@ -39,12 +39,6 @@ public class IssueResource {
             @PathParam("id") Long duplicateId,
             @PathParam("originalId") Long originalId) {
 
-        if (duplicateId == null || originalId == null) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Both duplicateId and originalId must be provided.")
-                    .build();
-        }
-
         try {
             issueService.processDuplicate(duplicateId, originalId);
             return Response.ok().build();
@@ -62,7 +56,6 @@ public class IssueResource {
             // Log exception details for debugging
             logger.log(Level.SEVERE, String.format("Error processing duplicate request for duplicateId=%d, originalId=%d",
                     duplicateId, originalId), e);
-            e.printStackTrace();
 
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity("An unexpected error occurred: " + e.getMessage())

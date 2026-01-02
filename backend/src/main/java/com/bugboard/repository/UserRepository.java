@@ -16,7 +16,7 @@ public class UserRepository {
 
    @Transactional
    public void save(User user) {
-      em.persist(user);
+      em.merge(user);
    }
 
    public Optional<User> findByEmail(String email) {

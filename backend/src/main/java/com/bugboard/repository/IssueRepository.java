@@ -36,23 +36,22 @@ public class IssueRepository {
    }
 
    // Dynamic filtering and search of issues (Requisito 3)
-   public List search(String title, PriorityLevel priority) {
-      StringBuilder jpql = new StringBuilder("SELECT i FROM Issue i JOIN i.reporter u WHERE 1=1"); // Default query
+   public List<Issue> search(String term, PriorityLevel priority) {
+      StringBuilder jpql = new StringBuilder("SELECT i FROM Issue i JOIN i.reporter u WHERE 1=1");
 
-      if (title != null && !title.trim().isEmpty()) {
-         jpql.append(" AND (LOWER(i.title) LIKE LOWER(:title) OR LOWER(u.username) LIKE LOWER(:term))");
+      if (term != null && !term.trim().isEmpty()) {
+         jpql.append(" AND (LOWER(i.title) LIKE LOWER(:term) OR LOWER(u.username) LIKE LOWER(:term))");
       }
       if (priority != null) {
-         jpql.append(" AND LOWER(i.priority) = :priority");
+         jpql.append(" AND i.priority = :priority");
       }
 
       jpql.append(" ORDER BY i.createdAt DESC");
 
-      jakarta.persistence.Query query = em.createQuery(jpql.toString());
+      var query = em.createQuery(jpql.toString(), Issue.class);
 
-      if (title != null && !title.trim().isEmpty()) {
-         query.setParameter("title", "%" + title + "%");
-         query.setParameter("term", "%" + title + "%");
+      if (term != null && !term.trim().isEmpty()) {
+         query.setParameter("term", "%" + term + "%");
       }
       if (priority != null) {
          query.setParameter("priority", priority);
