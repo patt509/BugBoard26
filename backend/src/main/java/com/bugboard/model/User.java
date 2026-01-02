@@ -71,4 +71,9 @@ public class User {
       this.username = chosenUsername;
       this.isFirstLogin = false;
    }
+
+   // Quick admin check
+   public boolean isAdmin() {
+      return this.role == UserRole.ADMIN;
+   }
 }
