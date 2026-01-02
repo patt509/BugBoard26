@@ -10,8 +10,8 @@ public class Issue {
    private String description;
 
    // For Status and Priority, we can use enums to restrict values
-   public IssueStatus status;
-   public PriorityLevel priority;
+   private IssueStatus status;
+   private PriorityLevel priority;
 
    // Pointer to original issue (in case of duplicates)
    private Issue originalIssue;
@@ -25,6 +25,9 @@ public class Issue {
       // date and timeby default
       this.status = IssueStatus.TODO;
       this.createdAt = LocalDateTime.now();
+      if (title == null || title.trim().length() < 10) {
+         throw new IllegalArgumentException("Title must be at least 10 characters.");
+      }
       this.title = title;
    }
 
@@ -33,7 +36,7 @@ public class Issue {
    // In case someone wants to change the title later
    public void setTitle(String title) { 
       if (title == null || title.trim().length() < 10) {
-         throw new IllegfalArgumentException("Title must be at least 10 characters.");
+         throw new IllegalArgumentException("Title must be at least 10 characters.");
       }
       this.title = title;
    }
@@ -53,7 +56,7 @@ public class Issue {
          throw new IllegalArgumentException("Original issue is not valid.");
       }
 
-      if (this == original || (this.id != null && this.id.equals(original.getId))) {
+      if (this == original || (this.id != null && this.id.equals(original.getId()))) {
          throw new IllegalArgumentException("An issue cannot be a duplicate of itself.");
       }
 
