@@ -3,6 +3,8 @@
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{enumitem}
+\usepackage{tabularx}
+\usepackage{amssymb}
 
 \title{Documentazione BugBoard26}
 \author{Luca Lucci}
@@ -72,5 +74,47 @@ Questi requisiti definiscono le qualità del sistema e i vincoli tecnologici. Se
 
 \subsection{Casi d'Uso: Formalizzazione e Mockup}
 % Formalizzazione Cockburn di 2 use case principali e visualizzazione mock up
+
+\section{sezione 2}
+
+% ------------------------------------------------- % 
+\section{Formalizzazione R16}
+
+\begin{tabularx}{\textwidth}{|X|X|}
+    \hline
+    \multicolumn{2}{|l|}{\textbf{Class Name}: AdminController} \\ \hline
+    \multicolumn{2}{|l|}{\textbf{Superclasses}: RestController} \\ \hline
+    \multicolumn{2}{|l|}{\textbf{Subclasses}: None} \\ \hline
+    \textbf{Responsibilities} & \textbf{Collaborators} \\ \hline 
+    Expose endpoints for creating new user accounts (R1) & UserService \\ \hline 
+    Handle requests for the statistical dashboard (R7) & IssueService \\ \hline 
+    Trigger marking a bug as a duplicate (R16) & IssueService \\ \hline 
+    Validate administrator permissions for incoming requests & SecurityContext \\ \hline
+\end{tabularx}
+
+\begin{tabularx}{\textwidth}{|X|X|}
+    \hline
+    \multicolumn{2}{|l|}{\textbf{Class Name}: IssueService} \\ \hline
+    \multicolumn{2}{|l|}{\textbf{Superclasses}: None} \\ \hline
+    \multicolumn{2}{|l|}{\textbf{Subclasses}: None} \\ \hline
+    \textbf{Responsibilities} & \textbf{Collaborators} \\ \hline
+    Coordinate the saving of a new issue (R2) & IssueRepository, Issue \\ \hline 
+    Apply filters and sorting to the list (R3) & IssueRepository \\ \hline 
+    Process aggregate data for the dashboard (R7) & IssueRepository \\ \hline 
+    Perform keyword-based text search (R11) & IssueRepository \\ \hline 
+    Manage duplication logic and immediate closure (R16) & IssueRepository, Issue \\ \hline
+\end{tabularx}
+
+\begin{tabularx}{\textwidth}{|X|X|}
+    \hline
+    \multicolumn{2}{|l|}{\textbf{Class Name}: Issue} \\ \hline
+    \multicolumn{2}{|l|}{\textbf{Superclasses}: None} \\ \hline
+    \multicolumn{2}{|l|}{\textbf{Subclasses}: None} \\ \hline
+    \textbf{Responsibilities} & \textbf{Collaborators} \\ \hline
+    Maintain core data such as title, description, and type (R2) & None \\ \hline 
+    Manage internal state transitions from $\square$ TODO to CLOSED (or others) (R16) & None \\ \hline 
+    Maintain the reference to the original bug instance (R16) & Issue \\ \hline 
+    Validate integrity constraints and mandatory fields & None \\ \hline
+\end{tabularx}
 
 \end{document}
