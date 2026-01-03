@@ -1,8 +1,11 @@
 package com.bugboard.controller;
 
+import com.bugboard.dto.DashboardStatsDTO;
 import com.bugboard.dto.IssueDTO;
 import com.bugboard.enums.IssueStatus;
 import com.bugboard.enums.PriorityLevel;
+import com.bugboard.model.User;
+import com.bugboard.repository.UserRepository;
 import com.bugboard.service.IssueService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -10,9 +13,24 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * REST Controller for Issue management.
+ * 
+ * Public endpoints (all authenticated users):
+ * - GET /issues - View all issues on the board
+ * - GET /issues/search - Search with filters
+ * - GET /issues/{id} - View single issue details
+ * - POST /issues - Create new issue
+ * - PATCH /issues/{id}/status - Update issue status
+ * 
+ * Admin-only endpoints:
+ * - GET /issues/admin/dashboard - Real-time statistics dashboard
+ * - POST /issues/{id}/duplicate/{originalId} - Mark as duplicate
+ */
 @Path("/issues")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -21,74 +39,216 @@ public class IssueResource {
    private static final Logger logger = Logger.getLogger(IssueResource.class.getName());
 
    private final IssueService issueService;
+   private final UserRepository userRepository;
 
    @Inject
-   public IssueResource(IssueService issueService) {
+   public IssueResource(IssueService issueService, UserRepository userRepository) {
       this.issueService = issueService;
+      this.userRepository = userRepository;
    }
 
-   // Real-time search with dynamic filters
+   // ==================== PUBLIC ENDPOINTS (ALL USERS) ====================
+
+   /**
+    * Get all issues for the board view.
+    * Available to all authenticated users.
+    */
+   @GET
+   public Response getAllIssues() {
+      try {
+         List<IssueDTO> issues = issueService.getAllIssues();
+         return Response.ok(issues).build();
+      } catch (Exception e) {
+         logger.log(Level.SEVERE, "Error retrieving all issues", e);
+         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+            .entity(Map.of("error", "Error retrieving issues"))
+            .build();
+      }
+   }
+
+   /**
+    * Search issues with optional filters.
+    * Available to all authenticated users.
+    */
    @GET
    @Path("/search")
    public Response search(
          @QueryParam("term") String term,
-         @QueryParam("priority") PriorityLevel priority) {
-
-      List<IssueDTO> results = issueService.searchIssues(term, priority);
-      return Response.ok(results).build();
-   }
-
-   // Create a new issue from DTO
-   @POST
-   public Response create(IssueDTO issueDTO) {
+         @QueryParam("priority") PriorityLevel priority,
+         @QueryParam("status") IssueStatus status) {
       try {
-         Long id = issueService.createIssue(issueDTO, null);
-         return Response.status(Response.Status.CREATED).entity(id).build();
-      } catch (IllegalArgumentException e) {
-         // If the input data is invalid (title is too short, etc.)
-         return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+         List<IssueDTO> results = issueService.searchIssues(term, priority, status);
+         return Response.ok(results).build();
+      } catch (Exception e) {
+         logger.log(Level.SEVERE, "Error searching issues", e);
+         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+            .entity(Map.of("error", "Error searching issues"))
+            .build();
       }
    }
 
-   // Update the status of an issue
+   /**
+    * Get a single issue by ID.
+    */
+   @GET
+   @Path("/{id}")
+   public Response getIssueById(@PathParam("id") Long id) {
+      try {
+         IssueDTO issue = issueService.getIssueById(id);
+         return Response.ok(issue).build();
+      } catch (IllegalArgumentException e) {
+         return Response.status(Response.Status.NOT_FOUND)
+            .entity(Map.of("error", e.getMessage()))
+            .build();
+      } catch (Exception e) {
+         logger.log(Level.SEVERE, "Error retrieving issue", e);
+         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+            .entity(Map.of("error", "Error retrieving issue"))
+            .build();
+      }
+   }
+
+   /**
+    * Create a new issue.
+    */
+   @POST
+   public Response create(
+         @HeaderParam("X-User-Id") Long userId,
+         IssueDTO issueDTO) {
+      try {
+         User reporter = null;
+         if (userId != null) {
+            reporter = userRepository.findById(userId).orElse(null);
+         }
+         
+         Long id = issueService.createIssue(issueDTO, reporter);
+         return Response.status(Response.Status.CREATED)
+            .entity(Map.of("id", id, "message", "Issue created successfully"))
+            .build();
+      } catch (IllegalArgumentException e) {
+         return Response.status(Response.Status.BAD_REQUEST)
+            .entity(Map.of("error", e.getMessage()))
+            .build();
+      } catch (Exception e) {
+         logger.log(Level.SEVERE, "Error creating issue", e);
+         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+            .entity(Map.of("error", "Error creating issue"))
+            .build();
+      }
+   }
+
+   /**
+    * Update the status of an issue.
+    */
    @PATCH
    @Path("/{id}/status")
-   public Response updateStatus(@PathParam("id") Long id, @QueryParam("newStatus") IssueStatus newStatus) {
+   public Response updateStatus(
+         @PathParam("id") Long id, 
+         @QueryParam("newStatus") IssueStatus newStatus) {
       try {
+         if (newStatus == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+               .entity(Map.of("error", "newStatus parameter is required"))
+               .build();
+         }
+         
          issueService.updateStatus(id, newStatus);
-         return Response.ok().build();
+         return Response.ok(Map.of("message", "Status updated successfully")).build();
+      } catch (IllegalArgumentException e) {
+         return Response.status(Response.Status.NOT_FOUND)
+            .entity(Map.of("error", e.getMessage()))
+            .build();
       } catch (Exception e) {
-         return Response.status(Response.Status.NOT_FOUND).build();
+         logger.log(Level.SEVERE, "Error updating issue status", e);
+         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+            .entity(Map.of("error", "Error updating status"))
+            .build();
       }
    }
 
+   // ==================== ADMIN-ONLY ENDPOINTS ====================
+
+   /**
+    * Get real-time dashboard statistics.
+    * Only accessible by administrators.
+    */
+   @GET
+   @Path("/admin/dashboard")
+   public Response getDashboardStats(@HeaderParam("X-User-Id") Long adminId) {
+      try {
+         User admin = getAuthenticatedAdmin(adminId);
+         
+         DashboardStatsDTO stats = issueService.getDashboardStats();
+         return Response.ok(stats).build();
+      } catch (SecurityException e) {
+         return Response.status(Response.Status.FORBIDDEN)
+            .entity(Map.of("error", e.getMessage()))
+            .build();
+      } catch (Exception e) {
+         logger.log(Level.SEVERE, "Error retrieving dashboard stats", e);
+         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+            .entity(Map.of("error", "Error retrieving statistics"))
+            .build();
+      }
+   }
+
+   /**
+    * Mark an issue as duplicate of another.
+    * Only accessible by administrators.
+    */
    @POST
    @Path("/{id}/duplicate/{originalId}")
    public Response flagAsDuplicate(
+         @HeaderParam("X-User-Id") Long adminId,
          @PathParam("id") Long duplicateId,
          @PathParam("originalId") Long originalId) {
-
       try {
-         issueService.processDuplicate(duplicateId, originalId);
-         return Response.ok().build();
+         User admin = getAuthenticatedAdmin(adminId);
+         
+         issueService.processDuplicate(duplicateId, originalId, admin);
+         return Response.ok(Map.of(
+            "message", "Issue marked as duplicate successfully",
+            "duplicateId", duplicateId,
+            "originalId", originalId
+         )).build();
+      } catch (SecurityException e) {
+         return Response.status(Response.Status.FORBIDDEN)
+            .entity(Map.of("error", e.getMessage()))
+            .build();
       } catch (IllegalArgumentException e) {
          logger.log(Level.WARNING, "Invalid argument for duplicate processing: {0}", e.getMessage());
          return Response.status(Response.Status.NOT_FOUND)
-                  .entity(e.getMessage())
-                  .build();
+            .entity(Map.of("error", e.getMessage()))
+            .build();
       } catch (IllegalStateException e) {
          logger.log(Level.WARNING, "Invalid state for duplicate processing: {0}", e.getMessage());
          return Response.status(Response.Status.BAD_REQUEST)
-                  .entity(e.getMessage())
-                  .build();
+            .entity(Map.of("error", e.getMessage()))
+            .build();
       } catch (Exception e) {
-         // Log exception details for debugging
-         logger.log(Level.SEVERE, String.format("Error processing duplicate request for duplicateId=%d, originalId=%d",
-                  duplicateId, originalId), e);
-
+         logger.log(Level.SEVERE, String.format(
+            "Error processing duplicate request for duplicateId=%d, originalId=%d",
+            duplicateId, originalId), e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                  .entity("An unexpected error occurred: " + e.getMessage())
-                  .build();
+            .entity(Map.of("error", "An unexpected error occurred"))
+            .build();
       }
+   }
+
+   // ==================== HELPER METHODS ====================
+
+   private User getAuthenticatedAdmin(Long userId) {
+      if (userId == null) {
+         throw new SecurityException("Authentication required");
+      }
+
+      User user = userRepository.findById(userId)
+         .orElseThrow(() -> new SecurityException("User not found"));
+
+      if (!user.isAdmin()) {
+         throw new SecurityException("Admin privileges required");
+      }
+
+      return user;
    }
 }

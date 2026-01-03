@@ -12,6 +12,7 @@ public class IssueDTO {
    private LocalDateTime createdAt;
    private LocalDateTime closedAt;
    private String attachmentPath;
+   private Long originalIssueId; // If this issue is a duplicate, reference to original
 
    public IssueDTO() {}
 
@@ -25,6 +26,7 @@ public class IssueDTO {
       this.createdAt = builder.createdAt;
       this.closedAt = builder.closedAt;
       this.attachmentPath = builder.attachmentPath;
+      this.originalIssueId = builder.originalIssueId;
    }
 
    public static Builder builder() {
@@ -41,6 +43,7 @@ public class IssueDTO {
       private LocalDateTime createdAt;
       private LocalDateTime closedAt;
       private String attachmentPath;
+      private Long originalIssueId;
 
       public Builder id(Long id) {
          this.id = id;
@@ -87,6 +90,11 @@ public class IssueDTO {
          return this;
       }
 
+      public Builder originalIssueId(Long originalIssueId) {
+         this.originalIssueId = originalIssueId;
+         return this;
+      }
+
       public IssueDTO build() {
          return new IssueDTO(this);
       }
@@ -102,6 +110,7 @@ public class IssueDTO {
    public LocalDateTime getCreatedAt() { return createdAt; }
    public LocalDateTime getClosedAt() { return closedAt; }
    public String getAttachmentPath() { return attachmentPath; }
+   public Long getOriginalIssueId() { return originalIssueId; }
 
    // Setters
    public void setId(Long id) { this.id = id; }
@@ -113,4 +122,5 @@ public class IssueDTO {
    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
    public void setClosedAt(LocalDateTime closedAt) { this.closedAt = closedAt; }
    public void setAttachmentPath(String attachmentPath) { this.attachmentPath = attachmentPath; }
+   public void setOriginalIssueId(Long originalIssueId) { this.originalIssueId = originalIssueId; }
 }
