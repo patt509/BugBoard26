@@ -66,6 +66,37 @@ public class IssueService {
       repository.save(issue);
    }
 
+   // ==================== ATTACHMENT OPERATIONS ====================
+
+   /**
+    * Sets the attachment path for an issue.
+    * Called after the file has been saved by AttachmentService.
+    */
+   @Transactional
+   public void setAttachmentPath(Long issueId, String attachmentPath) {
+      Issue issue = repository.findById(issueId);
+      if (issue == null) {
+         throw new IllegalArgumentException("Issue not found");
+      }
+      issue.setAttachmentPath(attachmentPath);
+      repository.save(issue);
+   }
+
+   /**
+    * Removes the attachment from an issue.
+    */
+   @Transactional
+   public String removeAttachment(Long issueId) {
+      Issue issue = repository.findById(issueId);
+      if (issue == null) {
+         throw new IllegalArgumentException("Issue not found");
+      }
+      String oldPath = issue.getAttachmentPath();
+      issue.setAttachmentPath(null);
+      repository.save(issue);
+      return oldPath;
+   }
+
    // ==================== BOARD VIEW OPERATIONS ====================
 
    /**
