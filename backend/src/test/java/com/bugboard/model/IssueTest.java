@@ -12,7 +12,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Unit tests for the Issue model class.
- * Tests cover constructor validation, status transitions, and duplicate marking.
+ * Tests cover constructor validation, status transitions, and duplicate
+ * marking.
  */
 @DisplayName("Issue Model Tests")
 class IssueTest {
@@ -51,9 +52,8 @@ class IssueTest {
         void shouldThrowExceptionForShortTitle() {
             // Act & Assert
             IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> new Issue("Short", "Valid description", reporter)
-            );
+                    IllegalArgumentException.class,
+                    () -> new Issue("Short", "Valid description", reporter));
             assertEquals("Title must be at least 10 characters.", exception.getMessage());
         }
 
@@ -62,9 +62,8 @@ class IssueTest {
         void shouldThrowExceptionForNullTitle() {
             // Act & Assert
             assertThrows(
-                IllegalArgumentException.class,
-                () -> new Issue(null, "Valid description", reporter)
-            );
+                    IllegalArgumentException.class,
+                    () -> new Issue(null, "Valid description", reporter));
         }
 
         @Test
@@ -72,9 +71,8 @@ class IssueTest {
         void shouldThrowExceptionForEmptyDescription() {
             // Act & Assert
             IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> new Issue("Valid title for issue", "", reporter)
-            );
+                    IllegalArgumentException.class,
+                    () -> new Issue("Valid title for issue", "", reporter));
             assertEquals("Description cannot be empty.", exception.getMessage());
         }
 
@@ -83,9 +81,8 @@ class IssueTest {
         void shouldThrowExceptionForNullDescription() {
             // Act & Assert
             assertThrows(
-                IllegalArgumentException.class,
-                () -> new Issue("Valid title for issue", null, reporter)
-            );
+                    IllegalArgumentException.class,
+                    () -> new Issue("Valid title for issue", null, reporter));
         }
 
         @Test
@@ -110,7 +107,7 @@ class IssueTest {
         void shouldTransitionToInProgress() {
             // Arrange
             Issue issue = new Issue("Valid title for issue", "Description", reporter);
-            
+
             // Act
             issue.setStatus(IssueStatus.IN_PROGRESS);
 
@@ -124,7 +121,7 @@ class IssueTest {
         void shouldSetClosedAtWhenClosing() {
             // Arrange
             Issue issue = new Issue("Valid title for issue", "Description", reporter);
-            
+
             // Act
             issue.setStatus(IssueStatus.CLOSED);
 
@@ -140,7 +137,7 @@ class IssueTest {
             Issue issue = new Issue("Valid title for issue", "Description", reporter);
             issue.setStatus(IssueStatus.CLOSED);
             assertNotNull(issue.getClosedAt()); // Verify it was set
-            
+
             // Act - Reopen the issue
             issue.setStatus(IssueStatus.IN_PROGRESS);
 
@@ -154,16 +151,16 @@ class IssueTest {
         void shouldTransitionThroughAllStatuses() {
             // Arrange
             Issue issue = new Issue("Valid title for issue", "Description", reporter);
-            
+
             // Act & Assert - Full workflow
             assertEquals(IssueStatus.TODO, issue.getStatus());
-            
+
             issue.setStatus(IssueStatus.IN_PROGRESS);
             assertEquals(IssueStatus.IN_PROGRESS, issue.getStatus());
-            
+
             issue.setStatus(IssueStatus.RESOLVED);
             assertEquals(IssueStatus.RESOLVED, issue.getStatus());
-            
+
             issue.setStatus(IssueStatus.CLOSED);
             assertEquals(IssueStatus.CLOSED, issue.getStatus());
             assertNotNull(issue.getClosedAt());
@@ -182,10 +179,10 @@ class IssueTest {
             // Arrange
             Issue original = new Issue("Original issue title", "Original description", reporter);
             Issue duplicate = new Issue("Duplicate issue title", "Duplicate description", reporter);
-            
+
             // We need to simulate IDs being set (normally done by JPA)
             // For this test, we'll rely on object identity checks
-            
+
             // Act
             duplicate.markAsDuplicateOf(original);
 
@@ -202,9 +199,8 @@ class IssueTest {
 
             // Act & Assert
             IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> duplicate.markAsDuplicateOf(null)
-            );
+                    IllegalArgumentException.class,
+                    () -> duplicate.markAsDuplicateOf(null));
             assertEquals("Original issue is not valid.", exception.getMessage());
         }
 
@@ -216,9 +212,8 @@ class IssueTest {
 
             // Act & Assert
             IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> issue.markAsDuplicateOf(issue)
-            );
+                    IllegalArgumentException.class,
+                    () -> issue.markAsDuplicateOf(issue));
             assertEquals("An issue cannot be a duplicate of itself.", exception.getMessage());
         }
 
@@ -232,9 +227,8 @@ class IssueTest {
 
             // Act & Assert
             IllegalStateException exception = assertThrows(
-                IllegalStateException.class,
-                () -> duplicate.markAsDuplicateOf(original)
-            );
+                    IllegalStateException.class,
+                    () -> duplicate.markAsDuplicateOf(original));
             assertEquals("The issue is already closed.", exception.getMessage());
         }
     }
@@ -250,7 +244,7 @@ class IssueTest {
         void shouldUpdatePriority() {
             // Arrange
             Issue issue = new Issue("Valid title for issue", "Description", reporter);
-            
+
             // Act
             issue.setPriority(PriorityLevel.HIGH);
 
@@ -263,7 +257,7 @@ class IssueTest {
         void shouldSetPriorityToLow() {
             // Arrange
             Issue issue = new Issue("Valid title for issue", "Description", reporter);
-            
+
             // Act
             issue.setPriority(PriorityLevel.LOW);
 
@@ -283,7 +277,7 @@ class IssueTest {
         void shouldSetAttachmentPath() {
             // Arrange
             Issue issue = new Issue("Valid title for issue", "Description", reporter);
-            
+
             // Act
             issue.setAttachmentPath("/uploads/123/screenshot.png");
 
@@ -297,7 +291,7 @@ class IssueTest {
             // Arrange
             Issue issue = new Issue("Valid title for issue", "Description", reporter);
             issue.setAttachmentPath("/uploads/123/screenshot.png");
-            
+
             // Act
             issue.setAttachmentPath(null);
 
@@ -317,7 +311,7 @@ class IssueTest {
         void shouldUpdateTitle() {
             // Arrange
             Issue issue = new Issue("Original title here", "Description", reporter);
-            
+
             // Act
             issue.setTitle("New updated title here");
 
@@ -333,9 +327,8 @@ class IssueTest {
 
             // Act & Assert
             assertThrows(
-                IllegalArgumentException.class,
-                () -> issue.setTitle("Short")
-            );
+                    IllegalArgumentException.class,
+                    () -> issue.setTitle("Short"));
         }
     }
 }

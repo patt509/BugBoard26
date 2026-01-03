@@ -16,6 +16,7 @@ public class PasswordHasher {
 
    /**
     * Hashes a plain text password in BCrypt.
+    * 
     * @param plainPassword The password to hash.
     * @return The hashed password to save in the database.
     */
@@ -31,7 +32,8 @@ public class PasswordHasher {
 
    /**
     * Verifies a plain text password against a hashed password.
-    * @param plainPassword The plain text password to verify.
+    * 
+    * @param plainPassword  The plain text password to verify.
     * @param hashedPassword The hashed password from the database.
     * @return True if the passwords match, false otherwise.
     */

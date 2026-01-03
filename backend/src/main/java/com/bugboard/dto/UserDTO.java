@@ -14,7 +14,8 @@ public class UserDTO {
    private boolean firstLogin;
    private LocalDateTime createdAt;
 
-   public UserDTO() {}
+   public UserDTO() {
+   }
 
    private UserDTO(Builder builder) {
       this.id = builder.id;
@@ -73,18 +74,52 @@ public class UserDTO {
    }
 
    // Getters
-   public Long getId() { return id; }
-   public String getEmail() { return email; }
-   public String getUsername() { return username; }
-   public String getRole() { return role; }
-   public boolean isFirstLogin() { return firstLogin; }
-   public LocalDateTime getCreatedAt() { return createdAt; }
+   public Long getId() {
+      return id;
+   }
+
+   public String getEmail() {
+      return email;
+   }
+
+   public String getUsername() {
+      return username;
+   }
+
+   public String getRole() {
+      return role;
+   }
+
+   public boolean isFirstLogin() {
+      return firstLogin;
+   }
+
+   public LocalDateTime getCreatedAt() {
+      return createdAt;
+   }
 
    // Setters (per deserializzazione JSON)
-   public void setId(Long id) { this.id = id; }
-   public void setEmail(String email) { this.email = email; }
-   public void setUsername(String username) { this.username = username; }
-   public void setRole(String role) { this.role = role; }
-   public void setFirstLogin(boolean firstLogin) { this.firstLogin = firstLogin; }
-   public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+   public void setId(Long id) {
+      this.id = id;
+   }
+
+   public void setEmail(String email) {
+      this.email = email;
+   }
+
+   public void setUsername(String username) {
+      this.username = username;
+   }
+
+   public void setRole(String role) {
+      this.role = role;
+   }
+
+   public void setFirstLogin(boolean firstLogin) {
+      this.firstLogin = firstLogin;
+   }
+
+   public void setCreatedAt(LocalDateTime createdAt) {
+      this.createdAt = createdAt;
+   }
 }

@@ -8,20 +8,21 @@ import java.util.Map;
  */
 public class DashboardStatsDTO {
    private long totalIssues;
-   private long openIssues;         // TODO + IN_PROGRESS
-   private long resolvedIssues;     // RESOLVED
-   private long closedIssues;       // CLOSED
-   private long duplicateIssues;    // Issues marked as duplicate
-   
-   private Map<String, Long> issuesByStatus;      // Count per status
-   private Map<String, Long> issuesByPriority;    // Count per priority
+   private long openIssues; // TODO + IN_PROGRESS
+   private long resolvedIssues; // RESOLVED
+   private long closedIssues; // CLOSED
+   private long duplicateIssues; // Issues marked as duplicate
+
+   private Map<String, Long> issuesByStatus; // Count per status
+   private Map<String, Long> issuesByPriority; // Count per priority
    private Map<String, Long> issuesCreatedPerDay; // Last 7 days trend
-   
-   private double avgResolutionTimeHours;  // Average time to resolve
+
+   private double avgResolutionTimeHours; // Average time to resolve
    private long issuesCreatedToday;
    private long issuesClosedToday;
 
-   public DashboardStatsDTO() {}
+   public DashboardStatsDTO() {
+   }
 
    private DashboardStatsDTO(Builder builder) {
       this.totalIssues = builder.totalIssues;
@@ -115,15 +116,47 @@ public class DashboardStatsDTO {
    }
 
    // Getters
-   public long getTotalIssues() { return totalIssues; }
-   public long getOpenIssues() { return openIssues; }
-   public long getResolvedIssues() { return resolvedIssues; }
-   public long getClosedIssues() { return closedIssues; }
-   public long getDuplicateIssues() { return duplicateIssues; }
-   public Map<String, Long> getIssuesByStatus() { return issuesByStatus; }
-   public Map<String, Long> getIssuesByPriority() { return issuesByPriority; }
-   public Map<String, Long> getIssuesCreatedPerDay() { return issuesCreatedPerDay; }
-   public double getAvgResolutionTimeHours() { return avgResolutionTimeHours; }
-   public long getIssuesCreatedToday() { return issuesCreatedToday; }
-   public long getIssuesClosedToday() { return issuesClosedToday; }
+   public long getTotalIssues() {
+      return totalIssues;
+   }
+
+   public long getOpenIssues() {
+      return openIssues;
+   }
+
+   public long getResolvedIssues() {
+      return resolvedIssues;
+   }
+
+   public long getClosedIssues() {
+      return closedIssues;
+   }
+
+   public long getDuplicateIssues() {
+      return duplicateIssues;
+   }
+
+   public Map<String, Long> getIssuesByStatus() {
+      return issuesByStatus;
+   }
+
+   public Map<String, Long> getIssuesByPriority() {
+      return issuesByPriority;
+   }
+
+   public Map<String, Long> getIssuesCreatedPerDay() {
+      return issuesCreatedPerDay;
+   }
+
+   public double getAvgResolutionTimeHours() {
+      return avgResolutionTimeHours;
+   }
+
+   public long getIssuesCreatedToday() {
+      return issuesCreatedToday;
+   }
+
+   public long getIssuesClosedToday() {
+      return issuesClosedToday;
+   }
 }

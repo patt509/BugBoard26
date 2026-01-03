@@ -20,11 +20,14 @@ import java.util.logging.Logger;
  * REST Controller for authentication and user management.
  *
  * User flow:
- * 1. Admin creates user with POST /auth/admin/users -> receives temporary password
+ * 1. Admin creates user with POST /auth/admin/users -> receives temporary
+ * password
  * 2. Admin communicates credentials physically to the employee
  * 3. Employee logs in with POST /auth/login
- * 4. If firstLogin=true, employee chooses username with PUT /auth/profile/username
- * 5. If password forgotten, requests reset with POST /auth/password-reset-request
+ * 4. If firstLogin=true, employee chooses username with PUT
+ * /auth/profile/username
+ * 5. If password forgotten, requests reset with POST
+ * /auth/password-reset-request
  * 6. Admin sees requests with GET /auth/admin/password-reset-requests
  * 7. Admin processes request with POST /auth/admin/password-reset-requests/{id}
  */
@@ -48,6 +51,7 @@ public class AuthResource {
 
    /**
     * User login.
+    * 
     * @return UserDTO with firstLogin=true if username must be chosen
     */
    @POST
@@ -56,31 +60,30 @@ public class AuthResource {
       try {
          if (request.getEmail() == null || request.getPassword() == null) {
             return Response.status(Response.Status.BAD_REQUEST)
-               .entity(Map.of("error", "Email and password are required"))
-               .build();
+                  .entity(Map.of("error", "Email and password are required"))
+                  .build();
          }
 
          Optional<UserDTO> userOpt = authService.login(
-            request.getEmail(), 
-            request.getPassword().toCharArray()
-         );
+               request.getEmail(),
+               request.getPassword().toCharArray());
 
          if (userOpt.isEmpty()) {
             return Response.status(Response.Status.UNAUTHORIZED)
-               .entity(Map.of("error", "Invalid credentials"))
-               .build();
+                  .entity(Map.of("error", "Invalid credentials"))
+                  .build();
          }
 
          UserDTO user = userOpt.get();
-         
+
          // Se è il primo login, il client dovrà chiedere lo username
          return Response.ok(user).build();
 
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Login error", e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-            .entity(Map.of("error", "Internal server error"))
-            .build();
+               .entity(Map.of("error", "Internal server error"))
+               .build();
       }
    }
 
@@ -90,20 +93,20 @@ public class AuthResource {
    @PUT
    @Path("/profile/username")
    public Response setUsername(
-         @HeaderParam("X-User-Id") Long userId, 
+         @HeaderParam("X-User-Id") Long userId,
          Map<String, String> body) {
       try {
          if (userId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-               .entity(Map.of("error", "User not authenticated"))
-               .build();
+                  .entity(Map.of("error", "User not authenticated"))
+                  .build();
          }
 
          String username = body.get("username");
          if (username == null || username.trim().isEmpty()) {
             return Response.status(Response.Status.BAD_REQUEST)
-               .entity(Map.of("error", "Username is required"))
-               .build();
+                  .entity(Map.of("error", "Username is required"))
+                  .build();
          }
 
          UserDTO updatedUser = authService.finalizeProfile(userId, username.trim());
@@ -111,17 +114,17 @@ public class AuthResource {
 
       } catch (IllegalArgumentException e) {
          return Response.status(Response.Status.BAD_REQUEST)
-            .entity(Map.of("error", e.getMessage()))
-            .build();
+               .entity(Map.of("error", e.getMessage()))
+               .build();
       } catch (IllegalStateException e) {
          return Response.status(Response.Status.CONFLICT)
-            .entity(Map.of("error", e.getMessage()))
-            .build();
+               .entity(Map.of("error", e.getMessage()))
+               .build();
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error setting username", e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-            .entity(Map.of("error", "Internal server error"))
-            .build();
+               .entity(Map.of("error", "Internal server error"))
+               .build();
       }
    }
 
@@ -135,30 +138,28 @@ public class AuthResource {
          String email = body.get("email");
          if (email == null || email.trim().isEmpty()) {
             return Response.status(Response.Status.BAD_REQUEST)
-               .entity(Map.of("error", "Email is required"))
-               .build();
+                  .entity(Map.of("error", "Email is required"))
+                  .build();
          }
 
          authService.requestPasswordReset(email.trim());
-         
+
          return Response.ok(Map.of(
-            "message", "Password reset request submitted. An administrator will process your request."
-         )).build();
+               "message", "Password reset request submitted. An administrator will process your request.")).build();
 
       } catch (IllegalArgumentException e) {
          // Non rivelare se l'email esiste o meno per sicurezza
          return Response.ok(Map.of(
-            "message", "If the email exists, a password reset request has been submitted."
-         )).build();
+               "message", "If the email exists, a password reset request has been submitted.")).build();
       } catch (IllegalStateException e) {
          return Response.status(Response.Status.CONFLICT)
-            .entity(Map.of("error", "A reset request is already pending for this account."))
-            .build();
+               .entity(Map.of("error", "A reset request is already pending for this account."))
+               .build();
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error requesting password reset", e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-            .entity(Map.of("error", "Internal server error"))
-            .build();
+               .entity(Map.of("error", "Internal server error"))
+               .build();
       }
    }
 
@@ -166,6 +167,7 @@ public class AuthResource {
 
    /**
     * Admin creates a new user.
+    * 
     * @return the temporary password to communicate physically to the employee
     */
    @POST
@@ -178,8 +180,8 @@ public class AuthResource {
 
          if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
             return Response.status(Response.Status.BAD_REQUEST)
-               .entity(Map.of("error", "Email is required"))
-               .build();
+                  .entity(Map.of("error", "Email is required"))
+                  .build();
          }
 
          UserRole role = UserRole.USER; // Default
@@ -188,35 +190,34 @@ public class AuthResource {
                role = UserRole.valueOf(request.getRole().toUpperCase());
             } catch (IllegalArgumentException e) {
                return Response.status(Response.Status.BAD_REQUEST)
-                  .entity(Map.of("error", "Invalid role. Use USER or ADMIN"))
-                  .build();
+                     .entity(Map.of("error", "Invalid role. Use USER or ADMIN"))
+                     .build();
             }
          }
 
          String tempPassword = authService.createUser(request.getEmail().trim(), role, admin);
 
          return Response.status(Response.Status.CREATED)
-            .entity(Map.of(
-               "message", "User created successfully",
-               "email", request.getEmail(),
-               "temporaryPassword", tempPassword,
-               "note", "Communicate this password to the employee in person"
-            ))
-            .build();
+               .entity(Map.of(
+                     "message", "User created successfully",
+                     "email", request.getEmail(),
+                     "temporaryPassword", tempPassword,
+                     "note", "Communicate this password to the employee in person"))
+               .build();
 
       } catch (SecurityException e) {
          return Response.status(Response.Status.FORBIDDEN)
-            .entity(Map.of("error", e.getMessage()))
-            .build();
+               .entity(Map.of("error", e.getMessage()))
+               .build();
       } catch (IllegalArgumentException e) {
          return Response.status(Response.Status.BAD_REQUEST)
-            .entity(Map.of("error", e.getMessage()))
-            .build();
+               .entity(Map.of("error", e.getMessage()))
+               .build();
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error creating user", e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-            .entity(Map.of("error", "Internal server error"))
-            .build();
+               .entity(Map.of("error", "Internal server error"))
+               .build();
       }
    }
 
@@ -234,18 +235,19 @@ public class AuthResource {
 
       } catch (SecurityException e) {
          return Response.status(Response.Status.FORBIDDEN)
-            .entity(Map.of("error", e.getMessage()))
-            .build();
+               .entity(Map.of("error", e.getMessage()))
+               .build();
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error getting reset requests", e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-            .entity(Map.of("error", "Internal server error"))
-            .build();
+               .entity(Map.of("error", "Internal server error"))
+               .build();
       }
    }
 
    /**
     * Admin processes a password reset request (approves or rejects).
+    * 
     * @return the new temporary password if approved
     */
    @POST
@@ -260,41 +262,39 @@ public class AuthResource {
          Boolean approve = body.get("approve");
          if (approve == null) {
             return Response.status(Response.Status.BAD_REQUEST)
-               .entity(Map.of("error", "Field 'approve' (true/false) is required"))
-               .build();
+                  .entity(Map.of("error", "Field 'approve' (true/false) is required"))
+                  .build();
          }
 
          String newPassword = authService.processPasswordResetRequest(requestId, approve, admin);
 
          if (approve) {
             return Response.ok(Map.of(
-               "message", "Password reset approved",
-               "newTemporaryPassword", newPassword,
-               "note", "Communicate this password to the employee in person"
-            )).build();
+                  "message", "Password reset approved",
+                  "newTemporaryPassword", newPassword,
+                  "note", "Communicate this password to the employee in person")).build();
          } else {
             return Response.ok(Map.of(
-               "message", "Password reset request rejected"
-            )).build();
+                  "message", "Password reset request rejected")).build();
          }
 
       } catch (SecurityException e) {
          return Response.status(Response.Status.FORBIDDEN)
-            .entity(Map.of("error", e.getMessage()))
-            .build();
+               .entity(Map.of("error", e.getMessage()))
+               .build();
       } catch (IllegalArgumentException e) {
          return Response.status(Response.Status.NOT_FOUND)
-            .entity(Map.of("error", e.getMessage()))
-            .build();
+               .entity(Map.of("error", e.getMessage()))
+               .build();
       } catch (IllegalStateException e) {
          return Response.status(Response.Status.CONFLICT)
-            .entity(Map.of("error", e.getMessage()))
-            .build();
+               .entity(Map.of("error", e.getMessage()))
+               .build();
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error processing reset request", e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-            .entity(Map.of("error", "Internal server error"))
-            .build();
+               .entity(Map.of("error", "Internal server error"))
+               .build();
       }
    }
 
@@ -312,24 +312,23 @@ public class AuthResource {
          String newPassword = authService.resetUserPassword(userId, admin);
 
          return Response.ok(Map.of(
-            "message", "Password reset successfully",
-            "newTemporaryPassword", newPassword,
-            "note", "Communicate this password to the employee in person"
-         )).build();
+               "message", "Password reset successfully",
+               "newTemporaryPassword", newPassword,
+               "note", "Communicate this password to the employee in person")).build();
 
       } catch (SecurityException e) {
          return Response.status(Response.Status.FORBIDDEN)
-            .entity(Map.of("error", e.getMessage()))
-            .build();
+               .entity(Map.of("error", e.getMessage()))
+               .build();
       } catch (IllegalArgumentException e) {
          return Response.status(Response.Status.NOT_FOUND)
-            .entity(Map.of("error", e.getMessage()))
-            .build();
+               .entity(Map.of("error", e.getMessage()))
+               .build();
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error resetting password", e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-            .entity(Map.of("error", "Internal server error"))
-            .build();
+               .entity(Map.of("error", "Internal server error"))
+               .build();
       }
    }
 
@@ -341,7 +340,7 @@ public class AuthResource {
       }
 
       User user = userRepository.findById(userId)
-         .orElseThrow(() -> new SecurityException("User not found"));
+            .orElseThrow(() -> new SecurityException("User not found"));
 
       if (!user.isAdmin()) {
          throw new SecurityException("Admin privileges required");

@@ -30,10 +30,10 @@ public class PasswordResetRequestRepository {
     */
    public List<PasswordResetRequest> findAllPending() {
       return em.createQuery(
-         "SELECT r FROM PasswordResetRequest r WHERE r.status = :status ORDER BY r.requestedAt ASC",
-         PasswordResetRequest.class)
-         .setParameter("status", PasswordResetRequest.RequestStatus.PENDING)
-         .getResultList();
+            "SELECT r FROM PasswordResetRequest r WHERE r.status = :status ORDER BY r.requestedAt ASC",
+            PasswordResetRequest.class)
+            .setParameter("status", PasswordResetRequest.RequestStatus.PENDING)
+            .getResultList();
    }
 
    /**
@@ -41,11 +41,11 @@ public class PasswordResetRequestRepository {
     */
    public boolean hasPendingRequest(User user) {
       Long count = em.createQuery(
-         "SELECT COUNT(r) FROM PasswordResetRequest r WHERE r.user = :user AND r.status = :status",
-         Long.class)
-         .setParameter("user", user)
-         .setParameter("status", PasswordResetRequest.RequestStatus.PENDING)
-         .getSingleResult();
+            "SELECT COUNT(r) FROM PasswordResetRequest r WHERE r.user = :user AND r.status = :status",
+            Long.class)
+            .setParameter("user", user)
+            .setParameter("status", PasswordResetRequest.RequestStatus.PENDING)
+            .getSingleResult();
       return count > 0;
    }
 }

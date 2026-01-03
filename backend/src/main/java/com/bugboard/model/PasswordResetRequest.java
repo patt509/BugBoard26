@@ -13,9 +13,9 @@ import java.time.LocalDateTime;
 public class PasswordResetRequest {
 
    public enum RequestStatus {
-      PENDING,    // Waiting for admin to process
-      COMPLETED,  // Admin has reset the password
-      REJECTED    // Admin has rejected the request
+      PENDING, // Waiting for admin to process
+      COMPLETED, // Admin has reset the password
+      REJECTED // Admin has rejected the request
    }
 
    @Id
@@ -38,7 +38,8 @@ public class PasswordResetRequest {
    @JoinColumn(name = "processed_by_admin_id")
    private User processedByAdmin;
 
-   protected PasswordResetRequest() {} // JPA
+   protected PasswordResetRequest() {
+   } // JPA
 
    public PasswordResetRequest(User user) {
       if (user == null) {
@@ -50,12 +51,29 @@ public class PasswordResetRequest {
    }
 
    // Getters
-   public Long getId() { return id; }
-   public User getUser() { return user; }
-   public LocalDateTime getRequestedAt() { return requestedAt; }
-   public RequestStatus getStatus() { return status; }
-   public LocalDateTime getProcessedAt() { return processedAt; }
-   public User getProcessedByAdmin() { return processedByAdmin; }
+   public Long getId() {
+      return id;
+   }
+
+   public User getUser() {
+      return user;
+   }
+
+   public LocalDateTime getRequestedAt() {
+      return requestedAt;
+   }
+
+   public RequestStatus getStatus() {
+      return status;
+   }
+
+   public LocalDateTime getProcessedAt() {
+      return processedAt;
+   }
+
+   public User getProcessedByAdmin() {
+      return processedByAdmin;
+   }
 
    // Business methods
    public void markAsCompleted(User admin) {

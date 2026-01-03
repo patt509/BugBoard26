@@ -30,7 +30,7 @@ public class IssueRepository {
    // Show all issues in the main board (Requisito 3)
    public List<Issue> findAll() {
       return em.createQuery("SELECT i FROM Issue i ORDER BY i.createdAt DESC", Issue.class)
-               .getResultList();
+            .getResultList();
    }
 
    // Find an issue by its ID (mainly needed by the service layer)
@@ -43,7 +43,8 @@ public class IssueRepository {
       StringBuilder jpql = new StringBuilder("SELECT i FROM Issue i LEFT JOIN i.reporter u WHERE 1=1");
 
       if (term != null && !term.trim().isEmpty()) {
-         jpql.append(" AND (LOWER(i.title) LIKE LOWER(:term) OR LOWER(i.description) LIKE LOWER(:term) OR LOWER(u.username) LIKE LOWER(:term))");
+         jpql.append(
+               " AND (LOWER(i.title) LIKE LOWER(:term) OR LOWER(i.description) LIKE LOWER(:term) OR LOWER(u.username) LIKE LOWER(:term))");
       }
       if (priority != null) {
          jpql.append(" AND i.priority = :priority");
@@ -78,44 +79,44 @@ public class IssueRepository {
 
    public long countAll() {
       return em.createQuery("SELECT COUNT(i) FROM Issue i", Long.class)
-               .getSingleResult();
+            .getSingleResult();
    }
 
    public long countByStatus(IssueStatus status) {
       return em.createQuery("SELECT COUNT(i) FROM Issue i WHERE i.status = :status", Long.class)
-               .setParameter("status", status)
-               .getSingleResult();
+            .setParameter("status", status)
+            .getSingleResult();
    }
 
    public long countByPriority(PriorityLevel priority) {
       return em.createQuery("SELECT COUNT(i) FROM Issue i WHERE i.priority = :priority", Long.class)
-               .setParameter("priority", priority)
-               .getSingleResult();
+            .setParameter("priority", priority)
+            .getSingleResult();
    }
 
    public long countDuplicates() {
       return em.createQuery("SELECT COUNT(i) FROM Issue i WHERE i.originalIssue IS NOT NULL", Long.class)
-               .getSingleResult();
+            .getSingleResult();
    }
 
    public long countCreatedToday() {
       LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
       return em.createQuery("SELECT COUNT(i) FROM Issue i WHERE i.createdAt >= :startOfDay", Long.class)
-               .setParameter("startOfDay", startOfDay)
-               .getSingleResult();
+            .setParameter("startOfDay", startOfDay)
+            .getSingleResult();
    }
 
    public long countClosedToday() {
       LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
       return em.createQuery("SELECT COUNT(i) FROM Issue i WHERE i.closedAt >= :startOfDay", Long.class)
-               .setParameter("startOfDay", startOfDay)
-               .getSingleResult();
+            .setParameter("startOfDay", startOfDay)
+            .getSingleResult();
    }
 
    public long countCreatedSince(LocalDateTime since) {
       return em.createQuery("SELECT COUNT(i) FROM Issue i WHERE i.createdAt >= :since", Long.class)
-               .setParameter("since", since)
-               .getSingleResult();
+            .setParameter("since", since)
+            .getSingleResult();
    }
 
    /**
@@ -124,12 +125,13 @@ public class IssueRepository {
     */
    public List<Object[]> getIssuesCreatedPerDaySince(LocalDateTime since) {
       return em.createQuery(
-         "SELECT FUNCTION('DATE', i.createdAt) as day, COUNT(i) " +
-         "FROM Issue i WHERE i.createdAt >= :since " +
-         "GROUP BY FUNCTION('DATE', i.createdAt) " +
-         "ORDER BY day ASC", Object[].class)
-         .setParameter("since", since)
-         .getResultList();
+            "SELECT FUNCTION('DATE', i.createdAt) as day, COUNT(i) " +
+                  "FROM Issue i WHERE i.createdAt >= :since " +
+                  "GROUP BY FUNCTION('DATE', i.createdAt) " +
+                  "ORDER BY day ASC",
+            Object[].class)
+            .setParameter("since", since)
+            .getResultList();
    }
 
    /**
@@ -138,17 +140,17 @@ public class IssueRepository {
    public Double getAverageResolutionTimeHours() {
       // Only count issues that have both createdAt and closedAt
       List<Issue> closedIssues = em.createQuery(
-         "SELECT i FROM Issue i WHERE i.closedAt IS NOT NULL AND i.createdAt IS NOT NULL", 
-         Issue.class)
-         .getResultList();
-      
+            "SELECT i FROM Issue i WHERE i.closedAt IS NOT NULL AND i.createdAt IS NOT NULL",
+            Issue.class)
+            .getResultList();
+
       if (closedIssues.isEmpty()) {
          return 0.0;
       }
 
       double totalHours = closedIssues.stream()
-         .mapToDouble(i -> java.time.Duration.between(i.getCreatedAt(), i.getClosedAt()).toHours())
-         .sum();
+            .mapToDouble(i -> java.time.Duration.between(i.getCreatedAt(), i.getClosedAt()).toHours())
+            .sum();
 
       return totalHours / closedIssues.size();
    }

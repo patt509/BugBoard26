@@ -53,9 +53,8 @@ class PasswordHasherTest {
         void shouldThrowExceptionForNullPassword() {
             // Act & Assert
             IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> PasswordHasher.hash(null)
-            );
+                    IllegalArgumentException.class,
+                    () -> PasswordHasher.hash(null));
             assertEquals("Password cannot be null.", exception.getMessage());
         }
 
@@ -221,10 +220,10 @@ class PasswordHasherTest {
 
             // Old password should no longer work with new hash
             assertFalse(PasswordHasher.verify(oldPassword, newHash));
-            
+
             // New password should work with new hash
             assertTrue(PasswordHasher.verify(newPassword, newHash));
-            
+
             // Old password should still work with old hash (for audit purposes)
             assertTrue(PasswordHasher.verify(oldPassword, oldHash));
         }

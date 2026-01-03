@@ -45,11 +45,11 @@ public class IssueService {
    public Long createIssue(IssueDTO dto, User reporter) {
       // Service creates the entity from the DTO
       Issue issue = new Issue(dto.getTitle(), dto.getDescription(), reporter);
-      
+
       if (dto.getPriority() != null) {
          issue.setPriority(PriorityLevel.valueOf(dto.getPriority()));
       }
-      
+
       repository.save(issue);
       return issue.getId();
    }
@@ -60,8 +60,9 @@ public class IssueService {
       if (issue == null) {
          throw new IllegalArgumentException("Issue not found");
       }
-      
-      // Issue.java handles automatically setting closedAt when status changes to CLOSED
+
+      // Issue.java handles automatically setting closedAt when status changes to
+      // CLOSED
       issue.setStatus(newStatus);
       repository.save(issue);
    }
@@ -160,8 +161,8 @@ public class IssueService {
       duplicate.markAsDuplicateOf(original);
       repository.save(duplicate);
 
-      logger.log(Level.INFO, "Admin {0} marked Issue #{1} as duplicate of Issue #{2}", 
-         new Object[]{admin.getEmail(), duplicateIssueId, originalIssueId});
+      logger.log(Level.INFO, "Admin {0} marked Issue #{1} as duplicate of Issue #{2}",
+            new Object[] { admin.getEmail(), duplicateIssueId, originalIssueId });
    }
 
    // Overload for backward compatibility (will be deprecated)
@@ -181,8 +182,8 @@ public class IssueService {
       duplicate.markAsDuplicateOf(original);
       repository.save(duplicate);
 
-      logger.log(Level.INFO, "Issue #{0} marked as duplicate of Issue #{1}", 
-         new Object[]{duplicateIssueId, originalIssueId});
+      logger.log(Level.INFO, "Issue #{0} marked as duplicate of Issue #{1}",
+            new Object[] { duplicateIssueId, originalIssueId });
    }
 
    // ==================== ADMIN DASHBOARD STATISTICS ====================
@@ -208,7 +209,7 @@ public class IssueService {
       LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
       Map<String, Long> issuesCreatedPerDay = new LinkedHashMap<>();
       DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-      
+
       List<Object[]> dailyData = repository.getIssuesCreatedPerDaySince(sevenDaysAgo);
       for (Object[] row : dailyData) {
          String date = row[0].toString();
@@ -217,48 +218,48 @@ public class IssueService {
       }
 
       // Calculate open issues (TODO + IN_PROGRESS)
-      long openIssues = repository.countByStatus(IssueStatus.TODO) + 
-                        repository.countByStatus(IssueStatus.IN_PROGRESS);
+      long openIssues = repository.countByStatus(IssueStatus.TODO) +
+            repository.countByStatus(IssueStatus.IN_PROGRESS);
 
       return DashboardStatsDTO.builder()
-         .totalIssues(repository.countAll())
-         .openIssues(openIssues)
-         .resolvedIssues(repository.countByStatus(IssueStatus.RESOLVED))
-         .closedIssues(repository.countByStatus(IssueStatus.CLOSED))
-         .duplicateIssues(repository.countDuplicates())
-         .issuesByStatus(issuesByStatus)
-         .issuesByPriority(issuesByPriority)
-         .issuesCreatedPerDay(issuesCreatedPerDay)
-         .avgResolutionTimeHours(repository.getAverageResolutionTimeHours())
-         .issuesCreatedToday(repository.countCreatedToday())
-         .issuesClosedToday(repository.countClosedToday())
-         .build();
+            .totalIssues(repository.countAll())
+            .openIssues(openIssues)
+            .resolvedIssues(repository.countByStatus(IssueStatus.RESOLVED))
+            .closedIssues(repository.countByStatus(IssueStatus.CLOSED))
+            .duplicateIssues(repository.countDuplicates())
+            .issuesByStatus(issuesByStatus)
+            .issuesByPriority(issuesByPriority)
+            .issuesCreatedPerDay(issuesCreatedPerDay)
+            .avgResolutionTimeHours(repository.getAverageResolutionTimeHours())
+            .issuesCreatedToday(repository.countCreatedToday())
+            .issuesClosedToday(repository.countClosedToday())
+            .build();
    }
 
    // ==================== PRIVATE HELPER METHODS ====================
 
    private List<IssueDTO> convertToDTO(List<Issue> issues) {
       return issues.stream()
-         .map(this::convertSingleToDTO)
-         .toList();
+            .map(this::convertSingleToDTO)
+            .toList();
    }
 
    private IssueDTO convertSingleToDTO(Issue issue) {
-      String reporterName = issue.getReporter() != null 
-         ? issue.getReporter().getUsername() 
-         : "Unknown";
+      String reporterName = issue.getReporter() != null
+            ? issue.getReporter().getUsername()
+            : "Unknown";
 
       return IssueDTO.builder()
-         .id(issue.getId())
-         .title(issue.getTitle())
-         .description(issue.getDescription())
-         .status(issue.getStatus().toString())
-         .priority(issue.getPriority().toString())
-         .reporterName(reporterName)
-         .createdAt(issue.getCreatedAt())
-         .closedAt(issue.getClosedAt())
-         .attachmentPath(issue.getAttachmentPath())
-         .originalIssueId(issue.getOriginalIssueId())
-         .build();
+            .id(issue.getId())
+            .title(issue.getTitle())
+            .description(issue.getDescription())
+            .status(issue.getStatus().toString())
+            .priority(issue.getPriority().toString())
+            .reporterName(reporterName)
+            .createdAt(issue.getCreatedAt())
+            .closedAt(issue.getClosedAt())
+            .attachmentPath(issue.getAttachmentPath())
+            .originalIssueId(issue.getOriginalIssueId())
+            .build();
    }
 }

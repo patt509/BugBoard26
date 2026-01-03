@@ -24,15 +24,13 @@ public class AttachmentService {
    // Configuration constants
    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
-      "image/jpeg",
-      "image/jpg", 
-      "image/png"
-   );
+         "image/jpeg",
+         "image/jpg",
+         "image/png");
    private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
-      ".jpg",
-      ".jpeg",
-      ".png"
-   );
+         ".jpg",
+         ".jpeg",
+         ".png");
 
    // Base directory for storing attachments
    private static final String UPLOAD_DIR = "uploads/attachments";
@@ -40,15 +38,15 @@ public class AttachmentService {
    /**
     * Validates and saves an attachment file.
     * 
-    * @param inputStream The file input stream
-    * @param fileName Original file name
-    * @param contentType MIME type of the file
-    * @param fileSize Size of the file in bytes
+    * @param inputStream  The file input stream
+    * @param fileName     Original file name
+    * @param contentType  MIME type of the file
+    * @param fileSize     Size of the file in bytes
     * @param subDirectory Subdirectory (e.g., "issues" or "comments")
-    * @param entityId ID of the entity (issue or comment)
+    * @param entityId     ID of the entity (issue or comment)
     * @return The relative path where the file was saved
     * @throws IllegalArgumentException if validation fails
-    * @throws IOException if file cannot be saved
+    * @throws IOException              if file cannot be saved
     */
    public String saveAttachment(
          InputStream inputStream,
@@ -61,7 +59,7 @@ public class AttachmentService {
       // Validate file size
       if (fileSize > MAX_FILE_SIZE) {
          throw new IllegalArgumentException(
-            String.format("File size exceeds maximum allowed size of %d MB", MAX_FILE_SIZE / (1024 * 1024)));
+               String.format("File size exceeds maximum allowed size of %d MB", MAX_FILE_SIZE / (1024 * 1024)));
       }
 
       if (fileSize <= 0) {
@@ -71,14 +69,14 @@ public class AttachmentService {
       // Validate content type
       if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
          throw new IllegalArgumentException(
-            "Invalid file type. Only JPG and PNG images are allowed.");
+               "Invalid file type. Only JPG and PNG images are allowed.");
       }
 
       // Validate file extension
       String extension = getFileExtension(fileName);
       if (!ALLOWED_EXTENSIONS.contains(extension.toLowerCase())) {
          throw new IllegalArgumentException(
-            "Invalid file extension. Only .jpg, .jpeg, and .png are allowed.");
+               "Invalid file extension. Only .jpg, .jpeg, and .png are allowed.");
       }
 
       // Generate unique filename to prevent overwrites and path traversal
@@ -94,9 +92,9 @@ public class AttachmentService {
 
       // Return relative path for storage in database
       String relativePath = subDirectory + "/" + entityId + "/" + uniqueFileName;
-      
+
       logger.log(Level.INFO, "Attachment saved: {0}", relativePath);
-      
+
       return relativePath;
    }
 
@@ -114,11 +112,11 @@ public class AttachmentService {
       try {
          Path filePath = Paths.get(UPLOAD_DIR, relativePath);
          boolean deleted = Files.deleteIfExists(filePath);
-         
+
          if (deleted) {
             logger.log(Level.INFO, "Attachment deleted: {0}", relativePath);
          }
-         
+
          return deleted;
       } catch (IOException e) {
          logger.log(Level.WARNING, "Failed to delete attachment: " + relativePath, e);
@@ -153,7 +151,7 @@ public class AttachmentService {
    public void validateAttachment(String contentType, long fileSize, String fileName) {
       if (fileSize > MAX_FILE_SIZE) {
          throw new IllegalArgumentException(
-            String.format("File size exceeds maximum allowed size of %d MB", MAX_FILE_SIZE / (1024 * 1024)));
+               String.format("File size exceeds maximum allowed size of %d MB", MAX_FILE_SIZE / (1024 * 1024)));
       }
 
       if (fileSize <= 0) {
@@ -162,13 +160,13 @@ public class AttachmentService {
 
       if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
          throw new IllegalArgumentException(
-            "Invalid file type. Only JPG and PNG images are allowed.");
+               "Invalid file type. Only JPG and PNG images are allowed.");
       }
 
       String extension = getFileExtension(fileName);
       if (!ALLOWED_EXTENSIONS.contains(extension.toLowerCase())) {
          throw new IllegalArgumentException(
-            "Invalid file extension. Only .jpg, .jpeg, and .png are allowed.");
+               "Invalid file extension. Only .jpg, .jpeg, and .png are allowed.");
       }
    }
 
@@ -182,10 +180,10 @@ public class AttachmentService {
    }
 
    private String generateUniqueFileName(Long entityId, String extension) {
-      return String.format("%d_%s%s", 
-         entityId, 
-         UUID.randomUUID().toString().substring(0, 8),
-         extension.toLowerCase());
+      return String.format("%d_%s%s",
+            entityId,
+            UUID.randomUUID().toString().substring(0, 8),
+            extension.toLowerCase());
    }
 
    // Getters for configuration (useful for API documentation)

@@ -40,9 +40,8 @@ class UserTest {
         void shouldThrowExceptionForNullEmail() {
             // Act & Assert
             IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> new User(null, "password", UserRole.USER)
-            );
+                    IllegalArgumentException.class,
+                    () -> new User(null, "password", UserRole.USER));
             assertEquals("Invalid email format.", exception.getMessage());
         }
 
@@ -51,9 +50,8 @@ class UserTest {
         void shouldThrowExceptionForInvalidEmail() {
             // Act & Assert
             IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> new User("invalidemail.com", "password", UserRole.USER)
-            );
+                    IllegalArgumentException.class,
+                    () -> new User("invalidemail.com", "password", UserRole.USER));
             assertEquals("Invalid email format.", exception.getMessage());
         }
 
@@ -80,7 +78,7 @@ class UserTest {
         void shouldFinalizeProfileWithValidUsername() {
             // Arrange
             User user = new User("test@example.com", "password", UserRole.USER);
-            
+
             // Act
             user.finalizeProfile("JohnDoe");
 
@@ -98,9 +96,8 @@ class UserTest {
 
             // Act & Assert
             IllegalStateException exception = assertThrows(
-                IllegalStateException.class,
-                () -> user.finalizeProfile("NewUsername")
-            );
+                    IllegalStateException.class,
+                    () -> user.finalizeProfile("NewUsername"));
             assertEquals("Profile has already been finalized.", exception.getMessage());
         }
 
@@ -112,9 +109,8 @@ class UserTest {
 
             // Act & Assert
             IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> user.finalizeProfile("AB")
-            );
+                    IllegalArgumentException.class,
+                    () -> user.finalizeProfile("AB"));
             assertEquals("Username must be at least 3 characters.", exception.getMessage());
         }
 
@@ -126,9 +122,8 @@ class UserTest {
 
             // Act & Assert
             assertThrows(
-                IllegalArgumentException.class,
-                () -> user.finalizeProfile(null)
-            );
+                    IllegalArgumentException.class,
+                    () -> user.finalizeProfile(null));
         }
 
         @Test
@@ -139,9 +134,8 @@ class UserTest {
 
             // Act & Assert
             assertThrows(
-                IllegalArgumentException.class,
-                () -> user.finalizeProfile("   ")
-            );
+                    IllegalArgumentException.class,
+                    () -> user.finalizeProfile("   "));
         }
     }
 
@@ -156,7 +150,7 @@ class UserTest {
         void shouldUpdatePassword() {
             // Arrange
             User user = new User("test@example.com", "oldPassword", UserRole.USER);
-            
+
             // Act
             user.setPassword("newSecurePassword");
 
@@ -172,9 +166,8 @@ class UserTest {
 
             // Act & Assert
             assertThrows(
-                IllegalArgumentException.class,
-                () -> user.setPassword(null)
-            );
+                    IllegalArgumentException.class,
+                    () -> user.setPassword(null));
         }
 
         @Test
@@ -185,9 +178,8 @@ class UserTest {
 
             // Act & Assert
             IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> user.setPassword("   ")
-            );
+                    IllegalArgumentException.class,
+                    () -> user.setPassword("   "));
             assertEquals("Password cannot be empty.", exception.getMessage());
         }
     }
@@ -223,7 +215,7 @@ class UserTest {
         void shouldChangeUserRole() {
             // Arrange
             User user = new User("test@example.com", "pass", UserRole.USER);
-            
+
             // Act
             user.setRole(UserRole.ADMIN);
 

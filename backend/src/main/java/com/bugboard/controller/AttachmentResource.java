@@ -2,7 +2,6 @@ package com.bugboard.controller;
 
 import com.bugboard.model.Comment;
 import com.bugboard.model.Issue;
-import com.bugboard.model.User;
 import com.bugboard.repository.CommentRepository;
 import com.bugboard.repository.IssueRepository;
 import com.bugboard.repository.UserRepository;
@@ -85,16 +84,16 @@ public class AttachmentResource {
          // Verify user is authenticated
          if (userId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-               .entity(Map.of("error", "Authentication required"))
-               .build();
+                  .entity(Map.of("error", "Authentication required"))
+                  .build();
          }
 
          // Verify issue exists
          Issue issue = issueRepository.findById(issueId);
          if (issue == null) {
             return Response.status(Response.Status.NOT_FOUND)
-               .entity(Map.of("error", "Issue not found"))
-               .build();
+                  .entity(Map.of("error", "Issue not found"))
+                  .build();
          }
 
          // Extract actual content type from multipart header if needed
@@ -110,28 +109,27 @@ public class AttachmentResource {
 
          // Save new attachment
          String relativePath = attachmentService.saveAttachment(
-            fileInputStream, fileName, actualContentType, fileSize, "issues", issueId);
+               fileInputStream, fileName, actualContentType, fileSize, "issues", issueId);
 
          // Update issue with new attachment path
          issueService.setAttachmentPath(issueId, relativePath);
 
-         logger.log(Level.INFO, "User {0} uploaded attachment to issue {1}", 
-            new Object[]{userId, issueId});
+         logger.log(Level.INFO, "User {0} uploaded attachment to issue {1}",
+               new Object[] { userId, issueId });
 
          return Response.ok(Map.of(
-            "message", "Attachment uploaded successfully",
-            "path", relativePath
-         )).build();
+               "message", "Attachment uploaded successfully",
+               "path", relativePath)).build();
 
       } catch (IllegalArgumentException e) {
          return Response.status(Response.Status.BAD_REQUEST)
-            .entity(Map.of("error", e.getMessage()))
-            .build();
+               .entity(Map.of("error", e.getMessage()))
+               .build();
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error uploading issue attachment", e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-            .entity(Map.of("error", "Error uploading attachment"))
-            .build();
+               .entity(Map.of("error", "Error uploading attachment"))
+               .build();
       }
    }
 
@@ -147,21 +145,21 @@ public class AttachmentResource {
       try {
          if (userId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-               .entity(Map.of("error", "Authentication required"))
-               .build();
+                  .entity(Map.of("error", "Authentication required"))
+                  .build();
          }
 
          Issue issue = issueRepository.findById(issueId);
          if (issue == null) {
             return Response.status(Response.Status.NOT_FOUND)
-               .entity(Map.of("error", "Issue not found"))
-               .build();
+                  .entity(Map.of("error", "Issue not found"))
+                  .build();
          }
 
          if (issue.getAttachmentPath() == null) {
             return Response.status(Response.Status.NOT_FOUND)
-               .entity(Map.of("error", "No attachment found"))
-               .build();
+                  .entity(Map.of("error", "No attachment found"))
+                  .build();
          }
 
          // Delete file and clear path
@@ -173,8 +171,8 @@ public class AttachmentResource {
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error deleting issue attachment", e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-            .entity(Map.of("error", "Error deleting attachment"))
-            .build();
+               .entity(Map.of("error", "Error deleting attachment"))
+               .build();
       }
    }
 
@@ -183,42 +181,42 @@ public class AttachmentResource {
     */
    @GET
    @Path("/issues/{issueId}")
-   @Produces({"image/jpeg", "image/png"})
+   @Produces({ "image/jpeg", "image/png" })
    public Response getIssueAttachment(@PathParam("issueId") Long issueId) {
       try {
          Issue issue = issueRepository.findById(issueId);
          if (issue == null) {
             return Response.status(Response.Status.NOT_FOUND)
-               .entity("Issue not found")
-               .build();
+                  .entity("Issue not found")
+                  .build();
          }
 
          if (issue.getAttachmentPath() == null) {
             return Response.status(Response.Status.NOT_FOUND)
-               .entity("No attachment found")
-               .build();
+                  .entity("No attachment found")
+                  .build();
          }
 
          java.nio.file.Path filePath = attachmentService.getAttachmentPath(issue.getAttachmentPath());
          if (!Files.exists(filePath)) {
             return Response.status(Response.Status.NOT_FOUND)
-               .entity("Attachment file not found")
-               .build();
+                  .entity("Attachment file not found")
+                  .build();
          }
 
          String contentType = Files.probeContentType(filePath);
          byte[] fileContent = Files.readAllBytes(filePath);
 
          return Response.ok(fileContent)
-            .header("Content-Type", contentType)
-            .header("Content-Disposition", "inline; filename=\"" + filePath.getFileName() + "\"")
-            .build();
+               .header("Content-Type", contentType)
+               .header("Content-Disposition", "inline; filename=\"" + filePath.getFileName() + "\"")
+               .build();
 
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error retrieving issue attachment", e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-            .entity("Error retrieving attachment")
-            .build();
+               .entity("Error retrieving attachment")
+               .build();
       }
    }
 
@@ -242,15 +240,15 @@ public class AttachmentResource {
       try {
          if (userId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-               .entity(Map.of("error", "Authentication required"))
-               .build();
+                  .entity(Map.of("error", "Authentication required"))
+                  .build();
          }
 
          Comment comment = commentRepository.findById(commentId).orElse(null);
          if (comment == null) {
             return Response.status(Response.Status.NOT_FOUND)
-               .entity(Map.of("error", "Comment not found"))
-               .build();
+                  .entity(Map.of("error", "Comment not found"))
+                  .build();
          }
 
          String actualContentType = extractContentType(contentType);
@@ -263,29 +261,28 @@ public class AttachmentResource {
 
          // Save new attachment
          String relativePath = attachmentService.saveAttachment(
-            fileInputStream, fileName, actualContentType, fileSize, "comments", commentId);
+               fileInputStream, fileName, actualContentType, fileSize, "comments", commentId);
 
          // Update comment with new attachment path
          comment.setAttachmentPath(relativePath);
          commentRepository.save(comment);
 
-         logger.log(Level.INFO, "User {0} uploaded attachment to comment {1}", 
-            new Object[]{userId, commentId});
+         logger.log(Level.INFO, "User {0} uploaded attachment to comment {1}",
+               new Object[] { userId, commentId });
 
          return Response.ok(Map.of(
-            "message", "Attachment uploaded successfully",
-            "path", relativePath
-         )).build();
+               "message", "Attachment uploaded successfully",
+               "path", relativePath)).build();
 
       } catch (IllegalArgumentException e) {
          return Response.status(Response.Status.BAD_REQUEST)
-            .entity(Map.of("error", e.getMessage()))
-            .build();
+               .entity(Map.of("error", e.getMessage()))
+               .build();
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error uploading comment attachment", e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-            .entity(Map.of("error", "Error uploading attachment"))
-            .build();
+               .entity(Map.of("error", "Error uploading attachment"))
+               .build();
       }
    }
 
@@ -301,21 +298,21 @@ public class AttachmentResource {
       try {
          if (userId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-               .entity(Map.of("error", "Authentication required"))
-               .build();
+                  .entity(Map.of("error", "Authentication required"))
+                  .build();
          }
 
          Comment comment = commentRepository.findById(commentId).orElse(null);
          if (comment == null) {
             return Response.status(Response.Status.NOT_FOUND)
-               .entity(Map.of("error", "Comment not found"))
-               .build();
+                  .entity(Map.of("error", "Comment not found"))
+                  .build();
          }
 
          if (comment.getAttachmentPath() == null) {
             return Response.status(Response.Status.NOT_FOUND)
-               .entity(Map.of("error", "No attachment found"))
-               .build();
+                  .entity(Map.of("error", "No attachment found"))
+                  .build();
          }
 
          // Delete file and clear path
@@ -328,8 +325,8 @@ public class AttachmentResource {
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error deleting comment attachment", e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-            .entity(Map.of("error", "Error deleting attachment"))
-            .build();
+               .entity(Map.of("error", "Error deleting attachment"))
+               .build();
       }
    }
 
@@ -338,42 +335,42 @@ public class AttachmentResource {
     */
    @GET
    @Path("/comments/{commentId}")
-   @Produces({"image/jpeg", "image/png"})
+   @Produces({ "image/jpeg", "image/png" })
    public Response getCommentAttachment(@PathParam("commentId") Long commentId) {
       try {
          Comment comment = commentRepository.findById(commentId).orElse(null);
          if (comment == null) {
             return Response.status(Response.Status.NOT_FOUND)
-               .entity("Comment not found")
-               .build();
+                  .entity("Comment not found")
+                  .build();
          }
 
          if (comment.getAttachmentPath() == null) {
             return Response.status(Response.Status.NOT_FOUND)
-               .entity("No attachment found")
-               .build();
+                  .entity("No attachment found")
+                  .build();
          }
 
          java.nio.file.Path filePath = attachmentService.getAttachmentPath(comment.getAttachmentPath());
          if (!Files.exists(filePath)) {
             return Response.status(Response.Status.NOT_FOUND)
-               .entity("Attachment file not found")
-               .build();
+                  .entity("Attachment file not found")
+                  .build();
          }
 
          String mimeType = Files.probeContentType(filePath);
          byte[] fileContent = Files.readAllBytes(filePath);
 
          return Response.ok(fileContent)
-            .header("Content-Type", mimeType)
-            .header("Content-Disposition", "inline; filename=\"" + filePath.getFileName() + "\"")
-            .build();
+               .header("Content-Type", mimeType)
+               .header("Content-Disposition", "inline; filename=\"" + filePath.getFileName() + "\"")
+               .build();
 
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error retrieving comment attachment", e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-            .entity("Error retrieving attachment")
-            .build();
+               .entity("Error retrieving attachment")
+               .build();
       }
    }
 
@@ -386,11 +383,10 @@ public class AttachmentResource {
    @Path("/info")
    public Response getAttachmentInfo() {
       return Response.ok(Map.of(
-         "maxFileSizeBytes", attachmentService.getMaxFileSize(),
-         "maxFileSizeMB", attachmentService.getMaxFileSize() / (1024 * 1024),
-         "allowedContentTypes", attachmentService.getAllowedContentTypes(),
-         "allowedExtensions", attachmentService.getAllowedExtensions()
-      )).build();
+            "maxFileSizeBytes", attachmentService.getMaxFileSize(),
+            "maxFileSizeMB", attachmentService.getMaxFileSize() / (1024 * 1024),
+            "allowedContentTypes", attachmentService.getAllowedContentTypes(),
+            "allowedExtensions", attachmentService.getAllowedExtensions())).build();
    }
 
    // ==================== HELPER METHODS ====================

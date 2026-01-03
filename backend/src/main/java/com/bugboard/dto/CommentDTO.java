@@ -15,7 +15,8 @@ public class CommentDTO {
    private LocalDateTime updatedAt;
    private String attachmentPath;
 
-   public CommentDTO() {}
+   public CommentDTO() {
+   }
 
    private CommentDTO(Builder builder) {
       this.id = builder.id;
@@ -88,22 +89,68 @@ public class CommentDTO {
    }
 
    // Getters
-   public Long getId() { return id; }
-   public String getText() { return text; }
-   public Long getIssueId() { return issueId; }
-   public Long getAuthorId() { return authorId; }
-   public String getAuthorUsername() { return authorUsername; }
-   public LocalDateTime getCreatedAt() { return createdAt; }
-   public LocalDateTime getUpdatedAt() { return updatedAt; }
-   public String getAttachmentPath() { return attachmentPath; }
+   public Long getId() {
+      return id;
+   }
+
+   public String getText() {
+      return text;
+   }
+
+   public Long getIssueId() {
+      return issueId;
+   }
+
+   public Long getAuthorId() {
+      return authorId;
+   }
+
+   public String getAuthorUsername() {
+      return authorUsername;
+   }
+
+   public LocalDateTime getCreatedAt() {
+      return createdAt;
+   }
+
+   public LocalDateTime getUpdatedAt() {
+      return updatedAt;
+   }
+
+   public String getAttachmentPath() {
+      return attachmentPath;
+   }
 
    // Setters
-   public void setId(Long id) { this.id = id; }
-   public void setText(String text) { this.text = text; }
-   public void setIssueId(Long issueId) { this.issueId = issueId; }
-   public void setAuthorId(Long authorId) { this.authorId = authorId; }
-   public void setAuthorUsername(String authorUsername) { this.authorUsername = authorUsername; }
-   public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-   public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
-   public void setAttachmentPath(String attachmentPath) { this.attachmentPath = attachmentPath; }
+   public void setId(Long id) {
+      this.id = id;
+   }
+
+   public void setText(String text) {
+      this.text = text;
+   }
+
+   public void setIssueId(Long issueId) {
+      this.issueId = issueId;
+   }
+
+   public void setAuthorId(Long authorId) {
+      this.authorId = authorId;
+   }
+
+   public void setAuthorUsername(String authorUsername) {
+      this.authorUsername = authorUsername;
+   }
+
+   public void setCreatedAt(LocalDateTime createdAt) {
+      this.createdAt = createdAt;
+   }
+
+   public void setUpdatedAt(LocalDateTime updatedAt) {
+      this.updatedAt = updatedAt;
+   }
+
+   public void setAttachmentPath(String attachmentPath) {
+      this.attachmentPath = attachmentPath;
+   }
 }

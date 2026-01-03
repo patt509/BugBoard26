@@ -25,7 +25,7 @@ public class AuthService {
    private static final Logger logger = Logger.getLogger(AuthService.class.getName());
    private static final String TEMP_PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
    private static final int TEMP_PASSWORD_LENGTH = 12;
-   
+
    private final UserRepository userRepository;
    private final PasswordResetRequestRepository resetRequestRepository;
 
@@ -39,10 +39,11 @@ public class AuthService {
 
    /**
     * Creates a new user (only admin can call this method).
-    * Generates a temporary password that the admin will communicate physically to the employee.
+    * Generates a temporary password that the admin will communicate physically to
+    * the employee.
     * 
-    * @param email email of the new user
-    * @param role user role
+    * @param email     email of the new user
+    * @param role      user role
     * @param adminUser the admin creating the user
     * @return the generated temporary password (to be communicated to the employee)
     */
@@ -66,8 +67,8 @@ public class AuthService {
       User newUser = new User(email, hashedPassword, role);
       userRepository.save(newUser);
 
-      logger.log(Level.INFO, "Admin {0} created new user with email {1}", 
-         new Object[]{adminUser.getEmail(), email});
+      logger.log(Level.INFO, "Admin {0} created new user with email {1}",
+            new Object[] { adminUser.getEmail(), email });
 
       // Return the temporary password (admin will communicate it physically)
       return tempPassword;
@@ -75,6 +76,7 @@ public class AuthService {
 
    /**
     * Admin resets a user's password.
+    * 
     * @return the new temporary password
     */
    @Transactional
@@ -84,26 +86,27 @@ public class AuthService {
       }
 
       User user = userRepository.findById(userId)
-         .orElseThrow(() -> new IllegalArgumentException("User not found."));
+            .orElseThrow(() -> new IllegalArgumentException("User not found."));
 
       // Generate new temporary password
       String newTempPassword = generateTemporaryPassword();
       String hashedPassword = PasswordHasher.hash(newTempPassword);
-      
+
       user.setPassword(hashedPassword);
       user.setFirstLogin(true); // Force username choice on next login
       userRepository.save(user);
 
-      logger.log(Level.INFO, "Admin {0} reset password for user {1}", 
-         new Object[]{adminUser.getEmail(), user.getEmail()});
+      logger.log(Level.INFO, "Admin {0} reset password for user {1}",
+            new Object[] { adminUser.getEmail(), user.getEmail() });
 
       return newTempPassword;
    }
 
    /**
     * Admin processes a password reset request.
+    * 
     * @param requestId request ID
-    * @param approve true to approve (resets password), false to reject
+    * @param approve   true to approve (resets password), false to reject
     * @return the new password if approved, null if rejected
     */
    @Transactional
@@ -113,7 +116,7 @@ public class AuthService {
       }
 
       PasswordResetRequest request = resetRequestRepository.findById(requestId)
-         .orElseThrow(() -> new IllegalArgumentException("Reset request not found."));
+            .orElseThrow(() -> new IllegalArgumentException("Reset request not found."));
 
       if (!request.isPending()) {
          throw new IllegalStateException("Request has already been processed.");
@@ -127,8 +130,8 @@ public class AuthService {
       } else {
          request.markAsRejected(adminUser);
          resetRequestRepository.save(request);
-         logger.log(Level.INFO, "Admin {0} rejected password reset for user {1}", 
-            new Object[]{adminUser.getEmail(), request.getUser().getEmail()});
+         logger.log(Level.INFO, "Admin {0} rejected password reset for user {1}",
+               new Object[] { adminUser.getEmail(), request.getUser().getEmail() });
          return null;
       }
    }
@@ -138,15 +141,15 @@ public class AuthService {
     */
    public List<PasswordResetRequestDTO> getPendingResetRequests() {
       return resetRequestRepository.findAllPending().stream()
-         .map(req -> PasswordResetRequestDTO.builder()
-            .id(req.getId())
-            .userId(req.getUser().getId())
-            .userEmail(req.getUser().getEmail())
-            .username(req.getUser().getUsername())
-            .requestedAt(req.getRequestedAt())
-            .status(req.getStatus().toString())
-            .build())
-         .toList();
+            .map(req -> PasswordResetRequestDTO.builder()
+                  .id(req.getId())
+                  .userId(req.getUser().getId())
+                  .userEmail(req.getUser().getEmail())
+                  .username(req.getUser().getUsername())
+                  .requestedAt(req.getRequestedAt())
+                  .status(req.getStatus().toString())
+                  .build())
+            .toList();
    }
 
    // ==================== USER OPERATIONS ====================
@@ -157,27 +160,27 @@ public class AuthService {
    public Optional<UserDTO> login(String email, char[] rawPassword) {
       try {
          Optional<User> userOpt = userRepository.findByEmail(email);
-         
+
          if (userOpt.isEmpty()) {
             return Optional.empty();
          }
 
          User user = userOpt.get();
          boolean passwordValid = PasswordHasher.verify(new String(rawPassword), user.getPassword());
-         
+
          if (!passwordValid) {
             return Optional.empty();
          }
 
          // Return the DTO with user info (including if it's first login)
          return Optional.of(UserDTO.builder()
-            .id(user.getId())
-            .email(user.getEmail())
-            .username(user.getUsername())
-            .role(user.getRole().toString())
-            .firstLogin(user.isFirstLogin())
-            .createdAt(user.getCreatedAt())
-            .build());
+               .id(user.getId())
+               .email(user.getEmail())
+               .username(user.getUsername())
+               .role(user.getRole().toString())
+               .firstLogin(user.isFirstLogin())
+               .createdAt(user.getCreatedAt())
+               .build());
 
       } finally {
          // Clear password from memory
@@ -196,20 +199,20 @@ public class AuthService {
       }
 
       User user = userRepository.findById(userId)
-         .orElseThrow(() -> new IllegalArgumentException("User not found."));
+            .orElseThrow(() -> new IllegalArgumentException("User not found."));
 
       // Usa il metodo del domain model che gestisce la logica
       user.finalizeProfile(chosenUsername);
       userRepository.save(user);
 
       return UserDTO.builder()
-         .id(user.getId())
-         .email(user.getEmail())
-         .username(user.getUsername())
-         .role(user.getRole().toString())
-         .firstLogin(user.isFirstLogin())
-         .createdAt(user.getCreatedAt())
-         .build();
+            .id(user.getId())
+            .email(user.getEmail())
+            .username(user.getUsername())
+            .role(user.getRole().toString())
+            .firstLogin(user.isFirstLogin())
+            .createdAt(user.getCreatedAt())
+            .build();
    }
 
    /**
@@ -219,7 +222,7 @@ public class AuthService {
    @Transactional
    public void requestPasswordReset(String email) {
       User user = userRepository.findByEmail(email)
-         .orElseThrow(() -> new IllegalArgumentException("Email not found."));
+            .orElseThrow(() -> new IllegalArgumentException("Email not found."));
 
       // Verifica che non ci sia già una richiesta pendente
       if (resetRequestRepository.hasPendingRequest(user)) {
@@ -256,8 +259,8 @@ public class AuthService {
    public boolean authenticate(String email, char[] rawPassword) {
       try {
          return userRepository.findByEmail(email)
-                 .map(user -> PasswordHasher.verify(new String(rawPassword), user.getPassword()))
-                 .orElse(false);
+               .map(user -> PasswordHasher.verify(new String(rawPassword), user.getPassword()))
+               .orElse(false);
       } finally {
          Arrays.fill(rawPassword, '\0');
       }

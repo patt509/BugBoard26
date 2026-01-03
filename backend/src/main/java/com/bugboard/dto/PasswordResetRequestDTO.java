@@ -13,7 +13,8 @@ public class PasswordResetRequestDTO {
    private LocalDateTime requestedAt;
    private String status;
 
-   public PasswordResetRequestDTO() {}
+   public PasswordResetRequestDTO() {
+   }
 
    private PasswordResetRequestDTO(Builder builder) {
       this.id = builder.id;
@@ -72,10 +73,27 @@ public class PasswordResetRequestDTO {
    }
 
    // Getters
-   public Long getId() { return id; }
-   public Long getUserId() { return userId; }
-   public String getUserEmail() { return userEmail; }
-   public String getUsername() { return username; }
-   public LocalDateTime getRequestedAt() { return requestedAt; }
-   public String getStatus() { return status; }
+   public Long getId() {
+      return id;
+   }
+
+   public Long getUserId() {
+      return userId;
+   }
+
+   public String getUserEmail() {
+      return userEmail;
+   }
+
+   public String getUsername() {
+      return username;
+   }
+
+   public LocalDateTime getRequestedAt() {
+      return requestedAt;
+   }
+
+   public String getStatus() {
+      return status;
+   }
 }

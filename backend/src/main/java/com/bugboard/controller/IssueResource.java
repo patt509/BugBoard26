@@ -61,8 +61,8 @@ public class IssueResource {
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error retrieving all issues", e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-            .entity(Map.of("error", "Error retrieving issues"))
-            .build();
+               .entity(Map.of("error", "Error retrieving issues"))
+               .build();
       }
    }
 
@@ -82,8 +82,8 @@ public class IssueResource {
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error searching issues", e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-            .entity(Map.of("error", "Error searching issues"))
-            .build();
+               .entity(Map.of("error", "Error searching issues"))
+               .build();
       }
    }
 
@@ -98,13 +98,13 @@ public class IssueResource {
          return Response.ok(issue).build();
       } catch (IllegalArgumentException e) {
          return Response.status(Response.Status.NOT_FOUND)
-            .entity(Map.of("error", e.getMessage()))
-            .build();
+               .entity(Map.of("error", e.getMessage()))
+               .build();
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error retrieving issue", e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-            .entity(Map.of("error", "Error retrieving issue"))
-            .build();
+               .entity(Map.of("error", "Error retrieving issue"))
+               .build();
       }
    }
 
@@ -120,20 +120,20 @@ public class IssueResource {
          if (userId != null) {
             reporter = userRepository.findById(userId).orElse(null);
          }
-         
+
          Long id = issueService.createIssue(issueDTO, reporter);
          return Response.status(Response.Status.CREATED)
-            .entity(Map.of("id", id, "message", "Issue created successfully"))
-            .build();
+               .entity(Map.of("id", id, "message", "Issue created successfully"))
+               .build();
       } catch (IllegalArgumentException e) {
          return Response.status(Response.Status.BAD_REQUEST)
-            .entity(Map.of("error", e.getMessage()))
-            .build();
+               .entity(Map.of("error", e.getMessage()))
+               .build();
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error creating issue", e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-            .entity(Map.of("error", "Error creating issue"))
-            .build();
+               .entity(Map.of("error", "Error creating issue"))
+               .build();
       }
    }
 
@@ -143,26 +143,26 @@ public class IssueResource {
    @PATCH
    @Path("/{id}/status")
    public Response updateStatus(
-         @PathParam("id") Long id, 
+         @PathParam("id") Long id,
          @QueryParam("newStatus") IssueStatus newStatus) {
       try {
          if (newStatus == null) {
             return Response.status(Response.Status.BAD_REQUEST)
-               .entity(Map.of("error", "newStatus parameter is required"))
-               .build();
+                  .entity(Map.of("error", "newStatus parameter is required"))
+                  .build();
          }
-         
+
          issueService.updateStatus(id, newStatus);
          return Response.ok(Map.of("message", "Status updated successfully")).build();
       } catch (IllegalArgumentException e) {
          return Response.status(Response.Status.NOT_FOUND)
-            .entity(Map.of("error", e.getMessage()))
-            .build();
+               .entity(Map.of("error", e.getMessage()))
+               .build();
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error updating issue status", e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-            .entity(Map.of("error", "Error updating status"))
-            .build();
+               .entity(Map.of("error", "Error updating status"))
+               .build();
       }
    }
 
@@ -177,18 +177,18 @@ public class IssueResource {
    public Response getDashboardStats(@HeaderParam("X-User-Id") Long adminId) {
       try {
          User admin = getAuthenticatedAdmin(adminId);
-         
+
          DashboardStatsDTO stats = issueService.getDashboardStats();
          return Response.ok(stats).build();
       } catch (SecurityException e) {
          return Response.status(Response.Status.FORBIDDEN)
-            .entity(Map.of("error", e.getMessage()))
-            .build();
+               .entity(Map.of("error", e.getMessage()))
+               .build();
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error retrieving dashboard stats", e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-            .entity(Map.of("error", "Error retrieving statistics"))
-            .build();
+               .entity(Map.of("error", "Error retrieving statistics"))
+               .build();
       }
    }
 
@@ -204,34 +204,33 @@ public class IssueResource {
          @PathParam("originalId") Long originalId) {
       try {
          User admin = getAuthenticatedAdmin(adminId);
-         
+
          issueService.processDuplicate(duplicateId, originalId, admin);
          return Response.ok(Map.of(
-            "message", "Issue marked as duplicate successfully",
-            "duplicateId", duplicateId,
-            "originalId", originalId
-         )).build();
+               "message", "Issue marked as duplicate successfully",
+               "duplicateId", duplicateId,
+               "originalId", originalId)).build();
       } catch (SecurityException e) {
          return Response.status(Response.Status.FORBIDDEN)
-            .entity(Map.of("error", e.getMessage()))
-            .build();
+               .entity(Map.of("error", e.getMessage()))
+               .build();
       } catch (IllegalArgumentException e) {
          logger.log(Level.WARNING, "Invalid argument for duplicate processing: {0}", e.getMessage());
          return Response.status(Response.Status.NOT_FOUND)
-            .entity(Map.of("error", e.getMessage()))
-            .build();
+               .entity(Map.of("error", e.getMessage()))
+               .build();
       } catch (IllegalStateException e) {
          logger.log(Level.WARNING, "Invalid state for duplicate processing: {0}", e.getMessage());
          return Response.status(Response.Status.BAD_REQUEST)
-            .entity(Map.of("error", e.getMessage()))
-            .build();
+               .entity(Map.of("error", e.getMessage()))
+               .build();
       } catch (Exception e) {
          logger.log(Level.SEVERE, String.format(
-            "Error processing duplicate request for duplicateId=%d, originalId=%d",
-            duplicateId, originalId), e);
+               "Error processing duplicate request for duplicateId=%d, originalId=%d",
+               duplicateId, originalId), e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-            .entity(Map.of("error", "An unexpected error occurred"))
-            .build();
+               .entity(Map.of("error", "An unexpected error occurred"))
+               .build();
       }
    }
 
@@ -243,7 +242,7 @@ public class IssueResource {
       }
 
       User user = userRepository.findById(userId)
-         .orElseThrow(() -> new SecurityException("User not found"));
+            .orElseThrow(() -> new SecurityException("User not found"));
 
       if (!user.isAdmin()) {
          throw new SecurityException("Admin privileges required");

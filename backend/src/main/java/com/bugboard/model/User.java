@@ -45,28 +45,52 @@ public class User {
    } // Default constructor for JPA
 
    // GETTERS AND SETTERS
-   public Long getId() { return id; }
+   public Long getId() {
+      return id;
+   }
 
-   public String getUsername() { return username; }
-   public void setUsername(String username) { this.username = username; }
+   public String getUsername() {
+      return username;
+   }
 
-   public String getEmail() { return email; }
-   
-   public String getPassword() { return password; }
-      public void setPassword(String password) {
-         if (password == null || password.trim().isEmpty()) {
-            throw new IllegalArgumentException("Password cannot be empty.");
-         }
-         this.password = password;
+   public void setUsername(String username) {
+      this.username = username;
+   }
+
+   public String getEmail() {
+      return email;
+   }
+
+   public String getPassword() {
+      return password;
+   }
+
+   public void setPassword(String password) {
+      if (password == null || password.trim().isEmpty()) {
+         throw new IllegalArgumentException("Password cannot be empty.");
       }
+      this.password = password;
+   }
 
-   public UserRole getRole() { return role; }
-   public void setRole(UserRole role) { this.role = role; }
+   public UserRole getRole() {
+      return role;
+   }
 
-   public boolean isFirstLogin() { return isFirstLogin; }
-   public void setFirstLogin(boolean firstLogin) { isFirstLogin = firstLogin; }
+   public void setRole(UserRole role) {
+      this.role = role;
+   }
 
-   public LocalDateTime getCreatedAt() { return createdAt; }
+   public boolean isFirstLogin() {
+      return isFirstLogin;
+   }
+
+   public void setFirstLogin(boolean firstLogin) {
+      isFirstLogin = firstLogin;
+   }
+
+   public LocalDateTime getCreatedAt() {
+      return createdAt;
+   }
 
    // OTHER METHODS
    // Method to finalize profile on first login

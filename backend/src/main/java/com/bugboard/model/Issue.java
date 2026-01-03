@@ -38,7 +38,8 @@ public class Issue {
    private LocalDateTime closedAt;
    private String attachmentPath; // Requisito 7
 
-   protected Issue() {}// JPA requires a default constructor
+   protected Issue() {
+   }// JPA requires a default constructor
 
    // 2. CONSTRUCTOR
    public Issue(String title, String description, User reporter) {
@@ -58,9 +59,12 @@ public class Issue {
    }
 
    // 3. GETTERS AND SETTERS
-   public String getTitle() { return title; }
+   public String getTitle() {
+      return title;
+   }
+
    // In case someone wants to change the title later
-   public void setTitle(String title) { 
+   public void setTitle(String title) {
       if (title == null || title.trim().length() < 10) {
          throw new IllegalArgumentException("Title must be at least 10 characters.");
       }
@@ -75,12 +79,22 @@ public class Issue {
       this.priority = priority;
    }
 
-   public String getDescription() { return description; }
-   public void setDescription(String description) { this.description = description; }
+   public String getDescription() {
+      return description;
+   }
 
-   public Long getId() { return id; }
+   public void setDescription(String description) {
+      this.description = description;
+   }
 
-   public IssueStatus getStatus() { return status; }
+   public Long getId() {
+      return id;
+   }
+
+   public IssueStatus getStatus() {
+      return status;
+   }
+
    public void setStatus(IssueStatus status) {
       // If the status is being set to CLOSED, we should record the closing time
       if (status == IssueStatus.CLOSED && this.status != IssueStatus.CLOSED) {
@@ -90,16 +104,16 @@ public class Issue {
       else if (status != IssueStatus.CLOSED) {
          this.closedAt = null;
       }
-      this.status = status; 
+      this.status = status;
    }
 
    public User getReporter() {
       return reporter;
    }
 
-      public Long getOriginalIssueId() {
-         return originalIssue != null ? originalIssue.getId() : null;
-      }
+   public Long getOriginalIssueId() {
+      return originalIssue != null ? originalIssue.getId() : null;
+   }
 
    public String getAttachmentPath() {
       return attachmentPath;
@@ -109,8 +123,13 @@ public class Issue {
       this.attachmentPath = attachmentPath;
    }
 
-   public LocalDateTime getCreatedAt() { return createdAt; }
-   public LocalDateTime getClosedAt() { return closedAt; }
+   public LocalDateTime getCreatedAt() {
+      return createdAt;
+   }
+
+   public LocalDateTime getClosedAt() {
+      return closedAt;
+   }
 
    // 4. OTHER METHODS
    public void markAsDuplicateOf(Issue original) {

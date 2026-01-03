@@ -31,7 +31,8 @@ public class Comment {
 
    private String attachmentPath; // Max 1 attachment per comment
 
-   protected Comment() {} // JPA
+   protected Comment() {
+   } // JPA
 
    public Comment(String text, Issue issue, User author) {
       if (text == null || text.trim().isEmpty()) {
@@ -54,13 +55,33 @@ public class Comment {
    }
 
    // Getters
-   public Long getId() { return id; }
-   public String getText() { return text; }
-   public Issue getIssue() { return issue; }
-   public User getAuthor() { return author; }
-   public LocalDateTime getCreatedAt() { return createdAt; }
-   public LocalDateTime getUpdatedAt() { return updatedAt; }
-   public String getAttachmentPath() { return attachmentPath; }
+   public Long getId() {
+      return id;
+   }
+
+   public String getText() {
+      return text;
+   }
+
+   public Issue getIssue() {
+      return issue;
+   }
+
+   public User getAuthor() {
+      return author;
+   }
+
+   public LocalDateTime getCreatedAt() {
+      return createdAt;
+   }
+
+   public LocalDateTime getUpdatedAt() {
+      return updatedAt;
+   }
+
+   public String getAttachmentPath() {
+      return attachmentPath;
+   }
 
    // Setters with validation
    public void setText(String text) {

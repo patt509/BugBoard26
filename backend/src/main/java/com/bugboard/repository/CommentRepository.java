@@ -39,10 +39,10 @@ public class CommentRepository {
     */
    public List<Comment> findByIssueId(Long issueId) {
       return em.createQuery(
-         "SELECT c FROM Comment c WHERE c.issue.id = :issueId ORDER BY c.createdAt ASC", 
-         Comment.class)
-         .setParameter("issueId", issueId)
-         .getResultList();
+            "SELECT c FROM Comment c WHERE c.issue.id = :issueId ORDER BY c.createdAt ASC",
+            Comment.class)
+            .setParameter("issueId", issueId)
+            .getResultList();
    }
 
    /**
@@ -50,9 +50,9 @@ public class CommentRepository {
     */
    public long countByIssueId(Long issueId) {
       return em.createQuery(
-         "SELECT COUNT(c) FROM Comment c WHERE c.issue.id = :issueId", 
-         Long.class)
-         .setParameter("issueId", issueId)
-         .getSingleResult();
+            "SELECT COUNT(c) FROM Comment c WHERE c.issue.id = :issueId",
+            Long.class)
+            .setParameter("issueId", issueId)
+            .getSingleResult();
    }
 }

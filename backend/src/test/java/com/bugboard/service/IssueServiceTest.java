@@ -48,10 +48,10 @@ class IssueServiceTest {
     void setUp() {
         reporter = new User("reporter@company.com", "password", UserRole.USER);
         reporter.finalizeProfile("Reporter");
-        
+
         admin = new User("admin@company.com", "password", UserRole.ADMIN);
         admin.finalizeProfile("AdminUser");
-        
+
         sampleIssue = new Issue("Sample issue title here", "Sample description", reporter);
     }
 
@@ -70,7 +70,7 @@ class IssueServiceTest {
             // Assert
             ArgumentCaptor<Issue> issueCaptor = ArgumentCaptor.forClass(Issue.class);
             verify(repository).save(issueCaptor.capture());
-            
+
             Issue savedIssue = issueCaptor.getValue();
             assertEquals("Valid title for the issue", savedIssue.getTitle());
             assertEquals("Description", savedIssue.getDescription());
@@ -84,10 +84,10 @@ class IssueServiceTest {
         void shouldCreateIssueFromDTO() {
             // Arrange
             IssueDTO dto = IssueDTO.builder()
-                .title("Issue title from DTO")
-                .description("Description from DTO")
-                .priority("HIGH")
-                .build();
+                    .title("Issue title from DTO")
+                    .description("Description from DTO")
+                    .priority("HIGH")
+                    .build();
 
             // Act
             issueService.createIssue(dto, reporter);
@@ -95,7 +95,7 @@ class IssueServiceTest {
             // Assert
             ArgumentCaptor<Issue> issueCaptor = ArgumentCaptor.forClass(Issue.class);
             verify(repository).save(issueCaptor.capture());
-            
+
             Issue savedIssue = issueCaptor.getValue();
             assertEquals("Issue title from DTO", savedIssue.getTitle());
             assertEquals(PriorityLevel.HIGH, savedIssue.getPriority());
@@ -106,9 +106,9 @@ class IssueServiceTest {
         void shouldUseDefaultPriorityWhenNotSpecified() {
             // Arrange
             IssueDTO dto = IssueDTO.builder()
-                .title("Issue without priority")
-                .description("Description")
-                .build();
+                    .title("Issue without priority")
+                    .description("Description")
+                    .build();
 
             // Act
             issueService.createIssue(dto, reporter);
@@ -116,7 +116,7 @@ class IssueServiceTest {
             // Assert
             ArgumentCaptor<Issue> issueCaptor = ArgumentCaptor.forClass(Issue.class);
             verify(repository).save(issueCaptor.capture());
-            
+
             assertEquals(PriorityLevel.MEDIUM, issueCaptor.getValue().getPriority());
         }
     }
@@ -149,9 +149,8 @@ class IssueServiceTest {
 
             // Act & Assert
             IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> issueService.updateStatus(999L, IssueStatus.IN_PROGRESS)
-            );
+                    IllegalArgumentException.class,
+                    () -> issueService.updateStatus(999L, IssueStatus.IN_PROGRESS));
             assertEquals("Issue not found", exception.getMessage());
         }
     }
@@ -215,9 +214,8 @@ class IssueServiceTest {
 
             // Act & Assert
             assertThrows(
-                IllegalArgumentException.class,
-                () -> issueService.getIssueById(999L)
-            );
+                    IllegalArgumentException.class,
+                    () -> issueService.getIssueById(999L));
         }
     }
 
@@ -233,7 +231,7 @@ class IssueServiceTest {
             // Arrange
             Issue matchingIssue = new Issue("Matching issue title", "Description", reporter);
             when(repository.search("search", PriorityLevel.HIGH, IssueStatus.TODO))
-                .thenReturn(Collections.singletonList(matchingIssue));
+                    .thenReturn(Collections.singletonList(matchingIssue));
 
             // Act
             List<IssueDTO> results = issueService.searchIssues("search", PriorityLevel.HIGH, IssueStatus.TODO);
@@ -248,7 +246,7 @@ class IssueServiceTest {
         void shouldSearchWithPartialFilters() {
             // Arrange
             when(repository.search("keyword", PriorityLevel.LOW, null))
-                .thenReturn(Collections.emptyList());
+                    .thenReturn(Collections.emptyList());
 
             // Act
             List<IssueDTO> results = issueService.searchIssues("keyword", PriorityLevel.LOW, null);
@@ -270,7 +268,7 @@ class IssueServiceTest {
             // Arrange
             Issue original = new Issue("Original issue title", "Description", reporter);
             Issue duplicate = new Issue("Duplicate issue title", "Description", reporter);
-            
+
             when(repository.findById(1L)).thenReturn(duplicate);
             when(repository.findById(2L)).thenReturn(original);
 
@@ -287,9 +285,8 @@ class IssueServiceTest {
         void nonAdminShouldNotMarkDuplicate() {
             // Act & Assert
             SecurityException exception = assertThrows(
-                SecurityException.class,
-                () -> issueService.processDuplicate(1L, 2L, reporter)
-            );
+                    SecurityException.class,
+                    () -> issueService.processDuplicate(1L, 2L, reporter));
             assertEquals("Only administrators can mark issues as duplicate.", exception.getMessage());
         }
 
@@ -298,9 +295,8 @@ class IssueServiceTest {
         void shouldThrowExceptionForNullAdmin() {
             // Act & Assert
             assertThrows(
-                SecurityException.class,
-                () -> issueService.processDuplicate(1L, 2L, null)
-            );
+                    SecurityException.class,
+                    () -> issueService.processDuplicate(1L, 2L, null));
         }
 
         @Test
@@ -308,14 +304,12 @@ class IssueServiceTest {
         void shouldThrowExceptionForNullIds() {
             // Act & Assert
             assertThrows(
-                IllegalArgumentException.class,
-                () -> issueService.processDuplicate(null, 2L, admin)
-            );
-            
+                    IllegalArgumentException.class,
+                    () -> issueService.processDuplicate(null, 2L, admin));
+
             assertThrows(
-                IllegalArgumentException.class,
-                () -> issueService.processDuplicate(1L, null, admin)
-            );
+                    IllegalArgumentException.class,
+                    () -> issueService.processDuplicate(1L, null, admin));
         }
 
         @Test
@@ -327,9 +321,8 @@ class IssueServiceTest {
 
             // Act & Assert
             assertThrows(
-                IllegalArgumentException.class,
-                () -> issueService.processDuplicate(1L, 2L, admin)
-            );
+                    IllegalArgumentException.class,
+                    () -> issueService.processDuplicate(1L, 2L, admin));
         }
     }
 
@@ -377,9 +370,8 @@ class IssueServiceTest {
 
             // Act & Assert
             assertThrows(
-                IllegalArgumentException.class,
-                () -> issueService.setAttachmentPath(999L, "/path")
-            );
+                    IllegalArgumentException.class,
+                    () -> issueService.setAttachmentPath(999L, "/path"));
         }
     }
 

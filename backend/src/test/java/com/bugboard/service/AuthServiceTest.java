@@ -68,11 +68,11 @@ class AuthServiceTest {
             // Assert
             assertNotNull(tempPassword);
             assertEquals(12, tempPassword.length(), "Temporary password should be 12 characters");
-            
+
             // Verify user was saved
             ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
             verify(userRepository).save(userCaptor.capture());
-            
+
             User savedUser = userCaptor.getValue();
             assertEquals(newUserEmail, savedUser.getEmail());
             assertEquals(UserRole.USER, savedUser.getRole());
@@ -84,11 +84,10 @@ class AuthServiceTest {
         void nonAdminShouldNotCreateUser() {
             // Act & Assert
             SecurityException exception = assertThrows(
-                SecurityException.class,
-                () -> authService.createUser("new@company.com", UserRole.USER, employeeUser)
-            );
+                    SecurityException.class,
+                    () -> authService.createUser("new@company.com", UserRole.USER, employeeUser));
             assertEquals("Only administrators can create users.", exception.getMessage());
-            
+
             // Verify no user was saved
             verify(userRepository, never()).save(any());
         }
@@ -102,9 +101,8 @@ class AuthServiceTest {
 
             // Act & Assert
             IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> authService.createUser(existingEmail, UserRole.USER, adminUser)
-            );
+                    IllegalArgumentException.class,
+                    () -> authService.createUser(existingEmail, UserRole.USER, adminUser));
             assertEquals("Email already registered.", exception.getMessage());
         }
     }
@@ -121,11 +119,11 @@ class AuthServiceTest {
             // Arrange
             String email = "user@company.com";
             String password = "correctPassword";
-            
+
             // Create user with a real BCrypt hash
             User user = new User(email, com.bugboard.security.PasswordHasher.hash(password), UserRole.USER);
             user.finalizeProfile("TestUser");
-            
+
             when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
 
             // Act
@@ -143,7 +141,7 @@ class AuthServiceTest {
             // Arrange
             String email = "user@company.com";
             User user = new User(email, com.bugboard.security.PasswordHasher.hash("correctPassword"), UserRole.USER);
-            
+
             when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
 
             // Act
@@ -174,7 +172,7 @@ class AuthServiceTest {
             String password = "tempPassword";
             User user = new User(email, com.bugboard.security.PasswordHasher.hash(password), UserRole.USER);
             // User hasn't finalized profile yet, so isFirstLogin = true
-            
+
             when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
 
             // Act
@@ -199,7 +197,7 @@ class AuthServiceTest {
             Long userId = 1L;
             String chosenUsername = "UniqueUser";
             User user = new User("user@company.com", "hash", UserRole.USER);
-            
+
             when(userRepository.existsByUsername(chosenUsername)).thenReturn(false);
             when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
@@ -221,9 +219,8 @@ class AuthServiceTest {
 
             // Act & Assert
             IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> authService.finalizeProfile(1L, takenUsername)
-            );
+                    IllegalArgumentException.class,
+                    () -> authService.finalizeProfile(1L, takenUsername));
             assertEquals("Username already taken.", exception.getMessage());
         }
 
@@ -236,9 +233,8 @@ class AuthServiceTest {
 
             // Act & Assert
             assertThrows(
-                IllegalArgumentException.class,
-                () -> authService.finalizeProfile(999L, "SomeUsername")
-            );
+                    IllegalArgumentException.class,
+                    () -> authService.finalizeProfile(999L, "SomeUsername"));
         }
     }
 
@@ -254,7 +250,7 @@ class AuthServiceTest {
             // Arrange
             Long userId = 1L;
             User targetUser = new User("target@company.com", "oldHash", UserRole.USER);
-            
+
             when(userRepository.findById(userId)).thenReturn(Optional.of(targetUser));
 
             // Act
@@ -272,9 +268,8 @@ class AuthServiceTest {
         void nonAdminShouldNotResetPassword() {
             // Act & Assert
             SecurityException exception = assertThrows(
-                SecurityException.class,
-                () -> authService.resetUserPassword(1L, employeeUser)
-            );
+                    SecurityException.class,
+                    () -> authService.resetUserPassword(1L, employeeUser));
             assertEquals("Only administrators can reset passwords.", exception.getMessage());
         }
 
@@ -286,9 +281,8 @@ class AuthServiceTest {
 
             // Act & Assert
             assertThrows(
-                IllegalArgumentException.class,
-                () -> authService.resetUserPassword(999L, adminUser)
-            );
+                    IllegalArgumentException.class,
+                    () -> authService.resetUserPassword(999L, adminUser));
         }
     }
 
@@ -304,7 +298,7 @@ class AuthServiceTest {
             // Arrange
             String email = "user@company.com";
             User user = new User(email, "hash", UserRole.USER);
-            
+
             when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
             when(resetRequestRepository.hasPendingRequest(user)).thenReturn(false);
 
@@ -312,10 +306,9 @@ class AuthServiceTest {
             authService.requestPasswordReset(email);
 
             // Assert
-            ArgumentCaptor<PasswordResetRequest> requestCaptor = 
-                ArgumentCaptor.forClass(PasswordResetRequest.class);
+            ArgumentCaptor<PasswordResetRequest> requestCaptor = ArgumentCaptor.forClass(PasswordResetRequest.class);
             verify(resetRequestRepository).save(requestCaptor.capture());
-            
+
             PasswordResetRequest savedRequest = requestCaptor.getValue();
             assertEquals(user, savedRequest.getUser());
         }
@@ -326,15 +319,14 @@ class AuthServiceTest {
             // Arrange
             String email = "user@company.com";
             User user = new User(email, "hash", UserRole.USER);
-            
+
             when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
             when(resetRequestRepository.hasPendingRequest(user)).thenReturn(true);
 
             // Act & Assert
             IllegalStateException exception = assertThrows(
-                IllegalStateException.class,
-                () -> authService.requestPasswordReset(email)
-            );
+                    IllegalStateException.class,
+                    () -> authService.requestPasswordReset(email));
             assertEquals("A password reset request is already pending.", exception.getMessage());
         }
 
@@ -346,9 +338,8 @@ class AuthServiceTest {
 
             // Act & Assert
             assertThrows(
-                IllegalArgumentException.class,
-                () -> authService.requestPasswordReset("nonexistent@company.com")
-            );
+                    IllegalArgumentException.class,
+                    () -> authService.requestPasswordReset("nonexistent@company.com"));
         }
     }
 }
