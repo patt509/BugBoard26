@@ -26,7 +26,7 @@ public class PasswordResetRequestRepository {
    }
 
    /**
-    * Trova tutte le richieste pendenti (per la dashboard admin)
+    * Find all pending requests (for admin dashboard)
     */
    public List<PasswordResetRequest> findAllPending() {
       return em.createQuery(
@@ -37,7 +37,8 @@ public class PasswordResetRequestRepository {
    }
 
    /**
-    * Verifica se l'utente ha già una richiesta pendente
+    * Check if the user already has a pending request
+    */
     */
    public boolean hasPendingRequest(User user) {
       Long count = em.createQuery(

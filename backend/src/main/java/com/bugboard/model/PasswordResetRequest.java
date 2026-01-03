@@ -4,18 +4,18 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 /**
- * Entity per le richieste di reset password.
- * Quando un utente richiede il reset, viene creata una entry qui
- * che l'admin può visualizzare e gestire dal suo portale.
+ * Entity for password reset requests.
+ * When a user requests a password reset, an entry is created here
+ * that the admin can view and manage from their portal.
  */
 @Entity
 @Table(name = "password_reset_requests")
 public class PasswordResetRequest {
 
    public enum RequestStatus {
-      PENDING,    // In attesa che l'admin la gestisca
-      COMPLETED,  // L'admin ha resettato la password
-      REJECTED    // L'admin ha rifiutato la richiesta
+      PENDING,    // Waiting for admin to process
+      COMPLETED,  // Admin has reset the password
+      REJECTED    // Admin has rejected the request
    }
 
    @Id

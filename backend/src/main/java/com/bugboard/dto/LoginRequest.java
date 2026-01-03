@@ -1,8 +1,8 @@
 package com.bugboard.dto;
 
 /**
- * DTO per le richieste di login.
- * Contiene email e password in chiaro (da validare lato server).
+ * DTO for login requests.
+ * Contains email and password in plain text (to be validated server-side).
  */
 public class LoginRequest {
    private String email;

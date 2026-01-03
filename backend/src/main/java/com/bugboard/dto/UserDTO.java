@@ -3,8 +3,8 @@ package com.bugboard.dto;
 import java.time.LocalDateTime;
 
 /**
- * DTO per il trasferimento dati utente.
- * Non espone mai la password hashata.
+ * DTO for user data transfer.
+ * Never exposes the hashed password.
  */
 public class UserDTO {
    private Long id;

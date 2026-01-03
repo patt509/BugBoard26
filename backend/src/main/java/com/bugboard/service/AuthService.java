@@ -38,44 +38,44 @@ public class AuthService {
    // ==================== ADMIN OPERATIONS ====================
 
    /**
-    * Crea un nuovo utente (solo admin può chiamare questo metodo).
-    * Genera una password temporanea che l'admin comunicherà fisicamente al dipendente.
+    * Creates a new user (only admin can call this method).
+    * Generates a temporary password that the admin will communicate physically to the employee.
     * 
-    * @param email email del nuovo utente
-    * @param role ruolo dell'utente
-    * @param adminUser l'admin che sta creando l'utente
-    * @return la password temporanea generata (da comunicare al dipendente)
+    * @param email email of the new user
+    * @param role user role
+    * @param adminUser the admin creating the user
+    * @return the generated temporary password (to be communicated to the employee)
     */
    @Transactional
    public String createUser(String email, UserRole role, User adminUser) {
-      // Verifica che chi chiama sia admin
+      // Verify that the caller is admin
       if (!adminUser.isAdmin()) {
          throw new SecurityException("Only administrators can create users.");
       }
 
-      // Verifica che l'email non sia già registrata
+      // Verify that the email is not already registered
       if (userRepository.existsByEmail(email)) {
          throw new IllegalArgumentException("Email already registered.");
       }
 
-      // Genera password temporanea
+      // Generate temporary password
       String tempPassword = generateTemporaryPassword();
       String hashedPassword = PasswordHasher.hash(tempPassword);
 
-      // Crea e salva l'utente
+      // Create and save the user
       User newUser = new User(email, hashedPassword, role);
       userRepository.save(newUser);
 
       logger.log(Level.INFO, "Admin {0} created new user with email {1}", 
          new Object[]{adminUser.getEmail(), email});
 
-      // Ritorna la password temporanea (l'admin la comunicherà fisicamente)
+      // Return the temporary password (admin will communicate it physically)
       return tempPassword;
    }
 
    /**
-    * Admin resetta la password di un utente.
-    * @return la nuova password temporanea
+    * Admin resets a user's password.
+    * @return the new temporary password
     */
    @Transactional
    public String resetUserPassword(Long userId, User adminUser) {
@@ -86,12 +86,12 @@ public class AuthService {
       User user = userRepository.findById(userId)
          .orElseThrow(() -> new IllegalArgumentException("User not found."));
 
-      // Genera nuova password temporanea
+      // Generate new temporary password
       String newTempPassword = generateTemporaryPassword();
       String hashedPassword = PasswordHasher.hash(newTempPassword);
       
       user.setPassword(hashedPassword);
-      user.setFirstLogin(true); // Forza la scelta di un nuovo username al prossimo login
+      user.setFirstLogin(true); // Force username choice on next login
       userRepository.save(user);
 
       logger.log(Level.INFO, "Admin {0} reset password for user {1}", 
@@ -101,10 +101,10 @@ public class AuthService {
    }
 
    /**
-    * Admin processa una richiesta di reset password.
-    * @param requestId ID della richiesta
-    * @param approve true per approvare (resetta la password), false per rifiutare
-    * @return la nuova password se approvata, null se rifiutata
+    * Admin processes a password reset request.
+    * @param requestId request ID
+    * @param approve true to approve (resets password), false to reject
+    * @return the new password if approved, null if rejected
     */
    @Transactional
    public String processPasswordResetRequest(Long requestId, boolean approve, User adminUser) {
@@ -122,7 +122,7 @@ public class AuthService {
       if (approve) {
          request.markAsCompleted(adminUser);
          resetRequestRepository.save(request);
-         // Resetta effettivamente la password
+         // Actually reset the password
          return resetUserPassword(request.getUser().getId(), adminUser);
       } else {
          request.markAsRejected(adminUser);
@@ -134,7 +134,7 @@ public class AuthService {
    }
 
    /**
-    * Ottiene tutte le richieste di reset password pendenti (per dashboard admin).
+    * Gets all pending password reset requests (for admin dashboard).
     */
    public List<PasswordResetRequestDTO> getPendingResetRequests() {
       return resetRequestRepository.findAllPending().stream()
@@ -152,7 +152,7 @@ public class AuthService {
    // ==================== USER OPERATIONS ====================
 
    /**
-    * Login utente. Ritorna i dati utente se le credenziali sono corrette.
+    * User login. Returns user data if credentials are correct.
     */
    public Optional<UserDTO> login(String email, char[] rawPassword) {
       try {
@@ -169,7 +169,7 @@ public class AuthService {
             return Optional.empty();
          }
 
-         // Ritorna il DTO con le info dell'utente (incluso se è il primo login)
+         // Return the DTO with user info (including if it's first login)
          return Optional.of(UserDTO.builder()
             .id(user.getId())
             .email(user.getEmail())
@@ -186,7 +186,7 @@ public class AuthService {
    }
 
    /**
-    * Imposta lo username scelto dall'utente al primo login.
+    * Sets the username chosen by the user on first login.
     */
    @Transactional
    public UserDTO finalizeProfile(Long userId, String chosenUsername) {
@@ -213,8 +213,8 @@ public class AuthService {
    }
 
    /**
-    * Utente richiede il reset della password.
-    * Crea una notifica per l'admin.
+    * User requests password reset.
+    * Creates a notification for the admin.
     */
    @Transactional
    public void requestPasswordReset(String email) {

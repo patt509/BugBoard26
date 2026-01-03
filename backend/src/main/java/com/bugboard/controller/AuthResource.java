@@ -17,16 +17,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * REST Controller per l'autenticazione e gestione utenti.
- * 
- * Flusso utente:
- * 1. Admin crea utente con POST /auth/admin/users -> riceve password temporanea
- * 2. Admin comunica fisicamente le credenziali al dipendente
- * 3. Dipendente fa login con POST /auth/login
- * 4. Se firstLogin=true, dipendente sceglie username con PUT /auth/profile/username
- * 5. Se dimentica password, richiede reset con POST /auth/password-reset-request
- * 6. Admin vede richieste con GET /auth/admin/password-reset-requests
- * 7. Admin processa richiesta con POST /auth/admin/password-reset-requests/{id}
+ * REST Controller for authentication and user management.
+ *
+ * User flow:
+ * 1. Admin creates user with POST /auth/admin/users -> receives temporary password
+ * 2. Admin communicates credentials physically to the employee
+ * 3. Employee logs in with POST /auth/login
+ * 4. If firstLogin=true, employee chooses username with PUT /auth/profile/username
+ * 5. If password forgotten, requests reset with POST /auth/password-reset-request
+ * 6. Admin sees requests with GET /auth/admin/password-reset-requests
+ * 7. Admin processes request with POST /auth/admin/password-reset-requests/{id}
  */
 @Path("/auth")
 @Produces(MediaType.APPLICATION_JSON)
@@ -47,8 +47,8 @@ public class AuthResource {
    // ==================== USER ENDPOINTS ====================
 
    /**
-    * Login utente.
-    * @return UserDTO con firstLogin=true se deve scegliere lo username
+    * User login.
+    * @return UserDTO with firstLogin=true if username must be chosen
     */
    @POST
    @Path("/login")
@@ -85,7 +85,7 @@ public class AuthResource {
    }
 
    /**
-    * Imposta lo username al primo login.
+    * Sets username on first login.
     */
    @PUT
    @Path("/profile/username")
@@ -126,7 +126,7 @@ public class AuthResource {
    }
 
    /**
-    * Richiedi reset password (crea notifica per admin).
+    * Request password reset (creates notification for admin).
     */
    @POST
    @Path("/password-reset-request")
@@ -165,8 +165,8 @@ public class AuthResource {
    // ==================== ADMIN ENDPOINTS ====================
 
    /**
-    * Admin crea un nuovo utente.
-    * @return la password temporanea da comunicare fisicamente al dipendente
+    * Admin creates a new user.
+    * @return the temporary password to communicate physically to the employee
     */
    @POST
    @Path("/admin/users")
@@ -221,7 +221,7 @@ public class AuthResource {
    }
 
    /**
-    * Admin visualizza le richieste di reset password pendenti.
+    * Admin views pending password reset requests.
     */
    @GET
    @Path("/admin/password-reset-requests")
@@ -245,8 +245,8 @@ public class AuthResource {
    }
 
    /**
-    * Admin processa una richiesta di reset password (approva o rifiuta).
-    * @return la nuova password temporanea se approvata
+    * Admin processes a password reset request (approves or rejects).
+    * @return the new temporary password if approved
     */
    @POST
    @Path("/admin/password-reset-requests/{requestId}")
@@ -299,7 +299,7 @@ public class AuthResource {
    }
 
    /**
-    * Admin resetta direttamente la password di un utente.
+    * Admin directly resets a user's password.
     */
    @POST
    @Path("/admin/users/{userId}/reset-password")

@@ -3,7 +3,7 @@ package com.bugboard.dto;
 import java.time.LocalDateTime;
 
 /**
- * DTO per visualizzare le richieste di reset password (lato admin).
+ * DTO for displaying password reset requests (admin side).
  */
 public class PasswordResetRequestDTO {
    private Long id;
