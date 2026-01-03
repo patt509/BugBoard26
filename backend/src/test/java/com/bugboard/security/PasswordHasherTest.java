@@ -6,12 +6,37 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.lang.reflect.Constructor;
+
 /**
  * Unit tests for the PasswordHasher utility class.
  * Tests cover hashing, verification, and edge cases.
  */
 @DisplayName("PasswordHasher Tests")
 class PasswordHasherTest {
+
+    // ==================== CONSTRUCTOR TESTS ====================
+
+    @Nested
+    @DisplayName("Constructor Tests")
+    class ConstructorTests {
+
+        @Test
+        @DisplayName("Should throw exception when trying to instantiate utility class")
+        void shouldThrowExceptionWhenInstantiating() throws Exception {
+            // Act & Assert
+            java.lang.reflect.InvocationTargetException exception = assertThrows(
+                    java.lang.reflect.InvocationTargetException.class,
+                    () -> {
+                        Constructor<PasswordHasher> constructor = PasswordHasher.class.getDeclaredConstructor();
+                        constructor.setAccessible(true);
+                        constructor.newInstance();
+                    });
+
+            assertTrue(exception.getCause() instanceof UnsupportedOperationException);
+            assertEquals("Utility class cannot be instantiated", exception.getCause().getMessage());
+        }
+    }
 
     // ==================== HASH TESTS ====================
 
