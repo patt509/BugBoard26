@@ -41,11 +41,15 @@ public class Issue {
    protected Issue() {}// JPA requires a default constructor
 
    // 2. CONSTRUCTOR
-   public Issue(String title, User reporter) {
+   public Issue(String title, String description, User reporter) {
       if (title == null || title.trim().length() < 10) {
          throw new IllegalArgumentException("Title must be at least 10 characters.");
       }
+      if (description == null || description.trim().isEmpty()) {
+         throw new IllegalArgumentException("Description cannot be empty.");
+      }
       this.title = title;
+      this.description = description;
       this.reporter = reporter;
       // Initialize default values
       this.status = IssueStatus.TODO;

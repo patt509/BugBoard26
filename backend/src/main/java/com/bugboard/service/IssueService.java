@@ -32,6 +32,29 @@ public class IssueService {
       repository.save(issue);
    }
 
+   @Transactional
+   public Long createIssue(IssueDTO dto, User reporter) {
+      // Service creates the entity from the DTO
+      Issue issue = new Issue(dto.getTitle(), dto.getDescription(), reporter);
+      
+      if (dto.getPriority() != null) {
+         issue.setPriority(PriorityLevel.valueOf(dto.getPriority()));
+      }
+      
+      repository.save(issue);
+      return issue.getId();
+   }
+
+   @Transactional
+   public void updateStatus(Long id, IssueStatus newStatus) {
+      Issue issue = repository.findById(id);
+      if (issue == null) throw new IllegalArgumentException("Issue non trovata");
+      
+      // Issue.java should handle automatically setting closedAt when status changes to CLOSED
+      issue.setStatus(newStatus);
+      repository.save(issue);
+   }
+
    // Duplicate management by admins
    @Transactional
    public void processDuplicate(Long duplicateIssueId, Long originalIssueId) {
