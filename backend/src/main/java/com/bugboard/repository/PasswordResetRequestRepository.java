@@ -39,7 +39,6 @@ public class PasswordResetRequestRepository {
    /**
     * Check if the user already has a pending request
     */
-    */
    public boolean hasPendingRequest(User user) {
       Long count = em.createQuery(
          "SELECT COUNT(r) FROM PasswordResetRequest r WHERE r.user = :user AND r.status = :status",
