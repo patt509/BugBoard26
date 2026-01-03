@@ -1,6 +1,7 @@
 package com.bugboard.controller;
 
 import com.bugboard.dto.IssueDTO;
+import com.bugboard.enums.IssueStatus;
 import com.bugboard.enums.PriorityLevel;
 import com.bugboard.service.IssueService;
 import jakarta.inject.Inject;
@@ -55,7 +56,7 @@ public class IssueResource {
    public Response updateStatus(@PathParam("id") Long id, @QueryParam("newStatus") IssueStatus newStatus) {
       try {
          issueService.updateStatus(id, newStatus);
-         return Response.ok.build();
+         return Response.ok().build();
       } catch (Exception e) {
          return Response.status(Response.Status.NOT_FOUND).build();
       }

@@ -1,6 +1,7 @@
 package com.bugboard.service;
 
 import com.bugboard.dto.IssueDTO;
+import com.bugboard.enums.IssueStatus;
 import com.bugboard.enums.PriorityLevel;
 import com.bugboard.model.Issue;
 import com.bugboard.model.User;
@@ -25,11 +26,12 @@ public class IssueService {
       this.repository = repository;
    }
 
-   // Create a new issue
+   // Create a new issue with minimal parameters
    @Transactional
-   public void createIssue(String title, User reporter) {
-      Issue issue = new Issue(title, reporter);
+   public Long createIssue(String title, String description, User reporter) {
+      Issue issue = new Issue(title, description, reporter);
       repository.save(issue);
+      return issue.getId();
    }
 
    @Transactional

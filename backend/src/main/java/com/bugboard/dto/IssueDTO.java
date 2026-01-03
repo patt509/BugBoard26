@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 public class IssueDTO {
    private Long id;
    private String title;
+   private String description;
    private String status;
    private String priority;
    private String reporterName;
@@ -17,6 +18,7 @@ public class IssueDTO {
    private IssueDTO(Builder builder) {
       this.id = builder.id;
       this.title = builder.title;
+      this.description = builder.description;
       this.status = builder.status;
       this.priority = builder.priority;
       this.reporterName = builder.reporterName;
@@ -32,6 +34,7 @@ public class IssueDTO {
    public static class Builder {
       private Long id;
       private String title;
+      private String description;
       private String status;
       private String priority;
       private String reporterName;
@@ -46,6 +49,11 @@ public class IssueDTO {
 
       public Builder title(String title) {
          this.title = title;
+         return this;
+      }
+
+      public Builder description(String description) {
+         this.description = description;
          return this;
       }
 
@@ -87,6 +95,7 @@ public class IssueDTO {
    // Getters
    public Long getId() { return id; }
    public String getTitle() { return title; }
+   public String getDescription() { return description; }
    public String getStatus() { return status; }
    public String getPriority() { return priority; }
    public String getReporterName() { return reporterName; }
@@ -97,6 +106,7 @@ public class IssueDTO {
    // Setters
    public void setId(Long id) { this.id = id; }
    public void setTitle(String title) { this.title = title; }
+   public void setDescription(String description) { this.description = description; }
    public void setStatus(String status) { this.status = status; }
    public void setPriority(String priority) { this.priority = priority; }
    public void setReporterName(String reporterName) { this.reporterName = reporterName; }
