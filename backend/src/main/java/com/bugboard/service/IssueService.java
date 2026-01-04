@@ -142,15 +142,10 @@ public class IssueService {
     */
    @Transactional
    public void processDuplicate(Long duplicateIssueId, Long originalIssueId, User admin) {
-      // TODO: this will probably be impossible because the user view won't not show
-      // the "Flag as Duplicate" button in the issue details modal
       if (admin == null || !admin.isAdmin()) {
          throw new SecurityException("Only administrators can mark issues as duplicate.");
       }
-      
-      // TODO: this too will probably be impossible because the modal will not allow
-      // the admin to submit without selecting the original issue. The duplicate issue
-      // is already known because we're in its context.
+
       if (duplicateIssueId == null || originalIssueId == null) {
          throw new IllegalArgumentException("Both duplicateId and originalId must be provided.");
       }

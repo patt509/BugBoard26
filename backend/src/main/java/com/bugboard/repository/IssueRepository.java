@@ -18,6 +18,7 @@ public class IssueRepository {
    @PersistenceContext
    private EntityManager em;
 
+   // Save or update an issue using JPA persistence methods
    @Transactional
    public void save(Issue issue) {
       if (issue.getId() == null) {
