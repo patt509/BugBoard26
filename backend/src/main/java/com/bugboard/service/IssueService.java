@@ -165,27 +165,6 @@ public class IssueService {
             new Object[] { admin.getEmail(), duplicateIssueId, originalIssueId });
    }
 
-   // Overload for backward compatibility (will be deprecated)
-   @Transactional
-   public void processDuplicate(Long duplicateIssueId, Long originalIssueId) {
-      if (duplicateIssueId == null || originalIssueId == null) {
-         throw new IllegalArgumentException("Both duplicateId and originalId must be provided.");
-      }
-
-      Issue duplicate = repository.findById(duplicateIssueId);
-      Issue original = repository.findById(originalIssueId);
-
-      if (duplicate == null || original == null) {
-         throw new IllegalArgumentException("One or both issues not found.");
-      }
-
-      duplicate.markAsDuplicateOf(original);
-      repository.save(duplicate);
-
-      logger.log(Level.INFO, "Issue #{0} marked as duplicate of Issue #{1}",
-            new Object[] { duplicateIssueId, originalIssueId });
-   }
-
    // ==================== ADMIN DASHBOARD STATISTICS ====================
 
    /**
