@@ -142,6 +142,8 @@ public class IssueService {
     */
    @Transactional
    public void processDuplicate(Long duplicateIssueId, Long originalIssueId, User admin) {
+      // TODO: this will probably be impossible because the user view won't not show
+      // the "Flag as Duplicate" button in the issue details modal
       if (admin == null || !admin.isAdmin()) {
          throw new SecurityException("Only administrators can mark issues as duplicate.");
       }
