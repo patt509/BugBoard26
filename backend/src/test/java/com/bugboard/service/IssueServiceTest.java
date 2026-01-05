@@ -16,7 +16,7 @@ import com.bugboard.model.Issue;
 import com.bugboard.model.User;
 import com.bugboard.repository.IssueRepository;
 
-@RunWith(MockitoJUnitRunner.class) // Using Mockito test runner (mandatory for JUnit 4)
+@RunWith(MockitoJUnitRunner.class) // Lenient runner to avoid unnecessary stubbing errors
 public class IssueServiceTest {
    
    @Mock
@@ -53,9 +53,6 @@ public class IssueServiceTest {
       // Using reflection or mocking if IDs are protected, but here we can mock the Object
       Issue spyDuplicate = spy(duplicate);
       Issue spyOriginal = spy(original);
-      // Fake behavior of getId() to return specific values injected by us
-      when(spyDuplicate.getId()).thenReturn(10L);
-      when(spyOriginal.getId()).thenReturn(20L);
 
       when(repository.findById(10L)).thenReturn(spyDuplicate);
       when(repository.findById(20L)).thenReturn(spyOriginal);
@@ -106,7 +103,6 @@ public class IssueServiceTest {
    public void testProcessDuplicate_TC5_SelfDuplication() {
       Issue issue = new Issue("Title must be long enough", "Description", reporter);
       Issue spyIssue = spy(issue);
-      when(spyIssue.getId()).thenReturn(10L);
 
       when(repository.findById(10L)).thenReturn(spyIssue);
 
@@ -125,8 +121,6 @@ public class IssueServiceTest {
 
       Issue spyClosed = spy(alreadyClosedIssue);
       Issue spyOriginal = spy(original);
-      when(spyClosed.getId()).thenReturn(10L);
-      when(spyOriginal.getId()).thenReturn(20L);
 
       when(repository.findById(10L)).thenReturn(spyClosed);
       when(repository.findById(20L)).thenReturn(spyOriginal);
