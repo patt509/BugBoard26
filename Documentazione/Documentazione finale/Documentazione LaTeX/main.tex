@@ -1,11 +1,21 @@
-\documentclass{article}
+\documentclass[11pt,a4paper]{article}
 \usepackage[utf8]{inputenc}
+\usepackage[a4paper,left=2.5cm,right=2.5cm,top=3cm,bottom=3cm]{geometry}
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{enumitem}
 \usepackage{tabularx}
 \usepackage{amssymb}
 \usepackage{seqsplit}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    pdfnewwindow=true,
+    bookmarksnumbered=true,
+    pdfpagemode=UseOutlines
+}
 
 \title{Documentazione BugBoard26}
 \author{Luca Lucci}
@@ -84,6 +94,8 @@ possiamo categorizzarli come segue.
 % ------------------------------------------------- % 
 \section{Formalizzazione R16}
 
+processDuplicate
+
 \begin{tabularx}{\textwidth}{|X|X|}
     \hline
     \multicolumn{2}{|l|}{\textbf{Class Name}: AdminController}                        \\ \hline
@@ -121,13 +133,18 @@ possiamo categorizzarli come segue.
     Validate integrity constraints and mandatory fields                               & None                   \\ \hline
 \end{tabularx}
 
+\clearpage
+
 % ------------------------------------------------- %
 
 \section{Attività di testing}
 
-\subsection{Test Plan (8.4.a)}
+Di seguito verranno descritte le attività di verifica condotte sulla logica di business del sistema BugBoard26. La funzionalità selezionata per il testing è il processamento dei bug duplicati (\texttt{processDuplicate}).
 
-{\small
+\subsection{Test Plan (8.4.a Specifica dei Test Case)}
+L'obiettivo di questo piano di test è verificare la robustezza del sistema e la corretta gestione dei vincoli di business definiti dal Committente per la gestione dei duplicati.\\
+
+\noindent{\small
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
     \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
@@ -136,18 +153,61 @@ possiamo categorizzarli come segue.
     \hline
     TC2 & System active. Non-Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, user & \seqsplit{SecurityException} & No changes to Issue states. \\
     \hline
-    TC3 & System active. Admin user logged in. & \seqsplit{duplicateIssueId}=null, \seqsplit{originalIssueId}=20, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
+    TC3 & System active. Admin user is null. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, admin=null & \seqsplit{SecurityException} & No changes to Issue states. \\
     \hline
-    TC4 & Issue 10 exists, 999 does not. Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=999, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
+    TC4 & System active. Admin user logged in. & \seqsplit{duplicateIssueId}=null, \seqsplit{originalIssueId}=20, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
     \hline
-    TC5 & Issue 10 exists (TODO). Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=10, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
+    TC5 & System active. Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=null, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
     \hline
-    TC6 & Issue 10 is already CLOSED. Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, admin & \seqsplit{IllegalStateException} & Issue 10 state remains unchanged. \\
+    TC6 & Issue 10 exists. Original issue 20 does not exist in the DB. Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
+    \hline
+    TC7 & Issue 10 exists (TODO). Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=10, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
+    \hline
+    TC8 & Issue 10 is already CLOSED. Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, admin & \seqsplit{IllegalStateException} & Issue 10 state remains unchanged. \\
     \hline
 \end{tabularx}
 }
 
-{\small
+\subsection{8.4.b Codice per test di unità automatici}
+I test di unità sono stati realizzati utilizzando il framework \textbf{JUnit 4} e la libreria di mocking \textbf{Mockito}. La classe di test \texttt{IssueServiceTest.java} implementa gli 8 scenari descritti nel Test Plan, assicurando l'isolamento della logica di business dai componenti di persistenza. Il codice è strutturato per verificare sia il corretto aggiornamento dello stato delle entità (TC1) sia il sollevamento delle eccezioni appropriate in caso di violazione dei vincoli (TC2-TC8).
+
+Il codice dei test è consultabile nel repository GitHub (\href{https://github.com/patt509/BugBoard26.git}{\texttt{\seqsplit{https://github.com/patt509/BugBoard26.git}}}) al seguente percorso: \texttt{\seqsplit{backend/src/test/java/com/bugboard/service/IssueServiceTest.java}.}
+
+\subsection{8.4.c Strategie di progettazione dei test}
+Per la progettazione della suite di test è stato adottato un approccio di \textbf{White Box Testing}, focalizzato sulla copertura strutturale del codice sorgente. Sono state coperte dai TC tutte le righe di codice e i rami decisionali della funzione \texttt{processDuplicate}.
+
+\begin{itemize}
+    \item \textbf{Criterio di copertura strutturale (Branch Coverage):} I test case sono stati definiti per garantire che ogni ramo decisionale (\textit{branch}) delle istruzioni condizionali presenti nel metodo \texttt{processDuplicate} venga eseguito almeno una volta. Ad esempio, i TC2-TC3 coprono il ramo relativo ai controlli di sicurezza, mentre i TC4-TC7 coprono le validazioni degli input e l'integrità del dominio.
+    \item \textbf{Analisi delle classi di equivalenza:} Sono state identificate partizioni di input valide (Admin autenticato, ID esistenti e distinti) e non valide (User semplice, ID null o coincidenti) per minimizzare la ridondanza dei test massimizzando la capacità di individuare bug.
+    \item \textbf{Analisi dei valori limite:} Il test TC7 verifica specificamente il caso limite in cui l'ID della risorsa duplicata coincide con quello della risorsa originale, prevenendo stati inconsistenti nel sistema.
+    \item \textbf{Utilizzo di Mock e Spy:} La strategia ha previsto l'uso di \texttt{Mockito.spy()} per monitorare il comportamento delle istanze di \texttt{Issue} e \texttt{verify()} per accertarsi che il salvataggio sul repository avvenga solo nelle condizioni di successo previste.
+\end{itemize}
+
+\noindent{\small
+\begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
+    \hline
+    TC1 & Issues 10 (TODO) and 20 exist. Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, admin & None & Issue 10 status is CLOSED, closedAt $\neq$ null, originalIssue = 20. \\
+    \hline
+    TC2 & System active. Non-Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, user & \seqsplit{SecurityException} & No changes to Issue states. \\
+    \hline
+    TC3 & System active. Admin user is null. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, admin=null & \seqsplit{SecurityException} & No changes to Issue states. \\
+    \hline
+    TC4 & System active. Admin user logged in. & \seqsplit{duplicateIssueId}=null, \seqsplit{originalIssueId}=20, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
+    \hline
+    TC5 & System active. Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=null, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
+    \hline
+    TC6 & Issue 10 exists. Original issue 20 does not exist in the DB. Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
+    \hline
+    TC7 & Issue 10 exists (TODO). Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=10, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
+    \hline
+    TC8 & Issue 10 is already CLOSED. Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, admin & \seqsplit{IllegalStateException} & Issue 10 state remains unchanged. \\
+    \hline
+\end{tabularx}
+}
+
+\noindent{\small
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
     \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
@@ -165,6 +225,24 @@ possiamo categorizzarli come segue.
     TC6 & A non-admin user is logged in. & email=`u@t.com', role=USER, user (\seqsplit{isAdmin}=false) & \seqsplit{SecurityException} & No changes to the database. \\
     \hline
     TC7 & Email exist@test.com already in DB. Admin logged in. & \seqsplit{email=`exist@test.com'}, role=USER, admin & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    \hline
+\end{tabularx}
+}
+
+\noindent{\small
+\begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
+    \hline
+    TC1 & The user has logged in for the first time (\seqsplit{firstLogin}=true). & \seqsplit{userId}=5, \seqsplit{chosenUsername=`user5'} & \seqsplit{UserDTO} (correctly built) & Username is saved and firstLogin is set to false in the database. \\
+    \hline
+    TC2 & The user has just logged in for the first time. & \seqsplit{userId}=null, \seqsplit{chosenUsername=`user5'} & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    \hline
+    TC3 & The user has just logged in for the first time. & \seqsplit{userId}=5, \seqsplit{chosenUsername}=null & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    \hline
+    TC4 & A user with username `user5' already exists in the system. & \seqsplit{userId}=5, \seqsplit{chosenUsername=`user5'} & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    \hline
+    TC5 & System active. User with userId=5 does not exist in the DB. & \seqsplit{userId}=5, \seqsplit{chosenUsername=`user5'} & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
 \end{tabularx}
 }

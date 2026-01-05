@@ -77,30 +77,52 @@ public class IssueServiceTest {
    }
 
    /**
-    * TC3: Failure scenario - One or both IDs are null.
+    * TC3: Failure scenario - Admin user is null.
+    * Expected Output: IllegalArgumentException
+    */
+   @Test(expected = SecurityException.class)
+   public void testProcessDuplicate_TC3_NullAdmin() {
+      issueService.processDuplicate(10L, 20L, null);
+   }
+
+   /**
+    * TC4: Failure scenario - Duplicate issue ID is null.
     * Expected Output: IllegalArgumentException
     */
    @Test(expected = IllegalArgumentException.class)
-   public void testProcessDuplicate_TC3_NullIDs() {
+   public void testProcessDuplicate_TC4_NullDuplicateID() {
       issueService.processDuplicate(null, 20L, admin);
    }
 
    /**
-    * TC4: Failure scenario - Issue ID not found in repository.
+    * TC5: Failure scenario - Original issue ID is null (white box testing of all if branches).
     * Expected Output: IllegalArgumentException
     */
    @Test(expected = IllegalArgumentException.class)
-   public void testProcessDuplicate_TC4_IssueNotFound() {
-      when(repository.findById(10L)).thenReturn(null); // Faking issue 10 does not exist
+   public void testProcessDuplicate_TC5_NullOriginalID() {
+      issueService.processDuplicate(10L, null, admin);
+   }
+
+   /**
+    * TC6: Failure scenario - Original issue ID not found in repository.
+    * Expected Output: IllegalArgumentException
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testProcessDuplicate_TC6_OriginalIssueNotFound() {
+      Issue duplicate = new Issue("Title for Issue A", "Description A", reporter);
+      Issue spyDuplicate = spy(duplicate);
+
+      when(repository.findById(10L)).thenReturn(spyDuplicate);
+      when(repository.findById(20L)).thenReturn(null); // Original issue does not exist
       issueService.processDuplicate(10L, 20L, admin);
    }
 
    /**
-    * TC5: Failure scenario - Attempting to mark an issue as duplicate of itself.
+    * TC7: Failure scenario - Attempting to mark an issue as duplicate of itself.
     * Expected Output: IllegalArgumentException
     */
    @Test(expected = IllegalArgumentException.class)
-   public void testProcessDuplicate_TC5_SelfDuplication() {
+   public void testProcessDuplicate_TC7_SelfDuplication() {
       Issue issue = new Issue("Title must be long enough", "Description", reporter);
       Issue spyIssue = spy(issue);
 
@@ -110,11 +132,11 @@ public class IssueServiceTest {
    }
 
    /**
-    * TC6: Failure scenario - Attempting to mark an already closed issue as duplicate.
+    * TC8: Failure scenario - Attempting to mark an already closed issue as duplicate.
     * Expected Output: IllegalStateException
     */
    @Test(expected = IllegalStateException.class)
-   public void testProcessDuplicate_TC6_AlreadyClosed() {
+   public void testProcessDuplicate_TC8_AlreadyClosed() {
       Issue alreadyClosedIssue = new Issue("Title for Closed Issue", "Description", reporter);
       alreadyClosedIssue.setStatus(IssueStatus.CLOSED);
       Issue original = new Issue("Title for Original Issue", "Description", reporter);
