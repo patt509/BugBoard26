@@ -49,6 +49,17 @@ public class AuthService {
     */
    @Transactional
    public String createUser(String email, UserRole role, User adminUser) {
+      // Verify if inputs are valid
+      if (adminUser == null) {
+         throw new IllegalArgumentException("Admin user is required.");
+      }
+      if (email == null || email.trim().isEmpty()) {
+         throw new IllegalArgumentException("Email is required.");
+      }
+      if (role == null) {
+         throw new IllegalArgumentException("User role is required.");
+      }
+
       // Verify that the caller is admin
       if (!adminUser.isAdmin()) {
          throw new SecurityException("Only administrators can create users.");
