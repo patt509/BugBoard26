@@ -5,6 +5,7 @@
 \usepackage{enumitem}
 \usepackage{tabularx}
 \usepackage{amssymb}
+\usepackage{seqsplit}
 
 \title{Documentazione BugBoard26}
 \author{Luca Lucci}
@@ -26,7 +27,8 @@
 % Inserire qui il diagramma dei casi d'uso
 
 \subsection{Caratterizzazione Target Utenti}
-Il sistema BugBoard26 è progettato per servire diverse tipologie di utenti, ciascuna con competenze, esigenze e modalità d'uso specifiche.
+Il sistema BugBoard26 è progettato per servire diverse tipologie di utenti,
+ciascuna con competenze, esigenze e modalità d'uso specifiche.
 
 \subsubsection*{1. Sviluppatori e QA Tester (Utenti Operativi)}
 \begin{itemize}
@@ -53,7 +55,9 @@ Il sistema BugBoard26 è progettato per servire diverse tipologie di utenti, cia
 \end{itemize}
 
 \subsection{Requisiti Non-Funzionali e di Sistema}
-Questi requisiti definiscono le qualità del sistema e i vincoli tecnologici. Seguendo la traccia del progetto e le buone norme dell'Ingegneria del Software, possiamo categorizzarli come segue.
+Questi requisiti definiscono le qualità del sistema e i vincoli tecnologici.
+Seguendo la traccia del progetto e le buone norme dell'Ingegneria del Software,
+possiamo categorizzarli come segue.
 
 \subsubsection*{Requisiti di Sistema (Vincoli della Traccia)}
 \begin{itemize}
@@ -66,9 +70,9 @@ Questi requisiti definiscono le qualità del sistema e i vincoli tecnologici. Se
 \subsubsection*{Requisiti di Qualità (Proprietà Emergenti)}
 \begin{itemize}
     \item \textbf{Sicurezza (Security):} Le password non devono essere salvate in chiaro nel database, ma tramite algoritmi di hashing sicuri (es. BCrypt). L'accesso alle API deve essere protetto da token di sessione (es. JWT) per garantire l'integrità dei dati.
-    
+
     \item \textbf{Affidabilità e Robustezza (Reliability):} Il sistema deve gestire gli errori di rete tra client e server mostrando messaggi informativi e non interrompendo l'esecuzione (come previsto nei diagrammi di Cockburn).
-    
+
     \item \textbf{Usabilità (Usability):} L'interfaccia deve essere intuitiva: un utente "Standard" deve essere in grado di creare una nuova issue in meno di 30 secondi dal primo accesso.
 \end{itemize}
 
@@ -82,39 +86,67 @@ Questi requisiti definiscono le qualità del sistema e i vincoli tecnologici. Se
 
 \begin{tabularx}{\textwidth}{|X|X|}
     \hline
-    \multicolumn{2}{|l|}{\textbf{Class Name}: AdminController} \\ \hline
-    \multicolumn{2}{|l|}{\textbf{Superclasses}: RestController} \\ \hline
-    \multicolumn{2}{|l|}{\textbf{Subclasses}: None} \\ \hline
-    \textbf{Responsibilities} & \textbf{Collaborators} \\ \hline 
-    Expose endpoints for creating new user accounts (R1) & UserService \\ \hline 
-    Handle requests for the statistical dashboard (R7) & IssueService \\ \hline 
-    Trigger marking a bug as a duplicate (R16) & IssueService \\ \hline 
-    Validate administrator permissions for incoming requests & SecurityContext \\ \hline
+    \multicolumn{2}{|l|}{\textbf{Class Name}: AdminController}                        \\ \hline
+    \multicolumn{2}{|l|}{\textbf{Superclasses}: RestController}                       \\ \hline
+    \multicolumn{2}{|l|}{\textbf{Subclasses}: None}                                   \\ \hline
+    \textbf{Responsibilities}                                & \textbf{Collaborators} \\ \hline
+    Expose endpoints for creating new user accounts (R1)     & UserService            \\ \hline
+    Handle requests for the statistical dashboard (R7)       & IssueService           \\ \hline
+    Trigger marking a bug as a duplicate (R16)               & IssueService           \\ \hline
+    Validate administrator permissions for incoming requests & SecurityContext        \\ \hline
 \end{tabularx}
 
 \begin{tabularx}{\textwidth}{|X|X|}
     \hline
-    \multicolumn{2}{|l|}{\textbf{Class Name}: IssueService} \\ \hline
-    \multicolumn{2}{|l|}{\textbf{Superclasses}: None} \\ \hline
-    \multicolumn{2}{|l|}{\textbf{Subclasses}: None} \\ \hline
-    \textbf{Responsibilities} & \textbf{Collaborators} \\ \hline
-    Coordinate the saving of a new issue (R2) & IssueRepository, Issue \\ \hline 
-    Apply filters and sorting to the list (R3) & IssueRepository \\ \hline 
-    Process aggregate data for the dashboard (R7) & IssueRepository \\ \hline 
-    Perform keyword-based text search (R11) & IssueRepository \\ \hline 
+    \multicolumn{2}{|l|}{\textbf{Class Name}: IssueService}                       \\ \hline
+    \multicolumn{2}{|l|}{\textbf{Superclasses}: None}                             \\ \hline
+    \multicolumn{2}{|l|}{\textbf{Subclasses}: None}                               \\ \hline
+    \textbf{Responsibilities}                            & \textbf{Collaborators} \\ \hline
+    Coordinate the saving of a new issue (R2)            & IssueRepository, Issue \\ \hline
+    Apply filters and sorting to the list (R3)           & IssueRepository        \\ \hline
+    Process aggregate data for the dashboard (R7)        & IssueRepository        \\ \hline
+    Perform keyword-based text search (R11)              & IssueRepository        \\ \hline
     Manage duplication logic and immediate closure (R16) & IssueRepository, Issue \\ \hline
 \end{tabularx}
 
 \begin{tabularx}{\textwidth}{|X|X|}
     \hline
-    \multicolumn{2}{|l|}{\textbf{Class Name}: Issue} \\ \hline
-    \multicolumn{2}{|l|}{\textbf{Superclasses}: None} \\ \hline
-    \multicolumn{2}{|l|}{\textbf{Subclasses}: None} \\ \hline
-    \textbf{Responsibilities} & \textbf{Collaborators} \\ \hline
-    Maintain core data such as title, description, and type (R2) & None \\ \hline 
-    Manage internal state transitions from $\square$ TODO to CLOSED (or others) (R16) & None \\ \hline 
-    Maintain the reference to the original bug instance (R16) & Issue \\ \hline 
-    Validate integrity constraints and mandatory fields & None \\ \hline
+    \multicolumn{2}{|l|}{\textbf{Class Name}: Issue}                                                           \\ \hline
+    \multicolumn{2}{|l|}{\textbf{Superclasses}: None}                                                          \\ \hline
+    \multicolumn{2}{|l|}{\textbf{Subclasses}: None}                                                            \\ \hline
+    \textbf{Responsibilities}                                                         & \textbf{Collaborators} \\ \hline
+    Maintain core data such as title, description, and type (R2)                      & None                   \\ \hline
+    Manage internal state transitions from $\square$ TODO to CLOSED (or others) (R16) & None                   \\ \hline
+    Maintain the reference to the original bug instance (R16)                         & Issue                  \\ \hline
+    Validate integrity constraints and mandatory fields                               & None                   \\ \hline
 \end{tabularx}
+
+% ------------------------------------------------- %
+
+\section{Attività di testing}
+
+\subsection{Test Plan (8.4.a)}
+
+{\small
+\begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
+    \hline
+    TC1 & Issues 10 (TODO) and 20 exist. Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, admin & None & Issue 10 status is CLOSED, closedAt $\neq$ null, originalIssue = 20. \\
+    \hline
+    TC2 & System active. Non-Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, user & \seqsplit{SecurityException} & No changes to Issue states. \\
+    \hline
+    TC3 & System active. Admin user logged in. & \seqsplit{duplicateIssueId}=null, \seqsplit{originalIssueId}=20, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
+    \hline
+    TC4 & Issue 10 exists, 999 does not. Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=999, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
+    \hline
+    TC5 & Issue 10 exists (TODO). Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=10, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
+    \hline
+    TC6 & Issue 10 is already CLOSED. Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, admin & \seqsplit{IllegalStateException} & Issue 10 state remains unchanged. \\
+    \hline
+\end{tabularx}
+}
+
+\subsection{Progettazione Test (8.4.c)}
 
 \end{document}
