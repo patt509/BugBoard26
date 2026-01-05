@@ -94,7 +94,8 @@ possiamo categorizzarli come segue.
 % ------------------------------------------------- % 
 \section{Formalizzazione R16}
 
-processDuplicate
+\subsection{processDuplicate}
+Il metodo \texttt{processDuplicate} gestisce la marcatura di una issue come duplicato di un'altra. Il metodo esegue le seguenti azioni principali: verifica la legittimità dell'operatore (deve essere un Admin), valida gli identificativi passati, controlla l'esistenza delle issue coinvolte, e in caso di successo imposta lo stato della issue duplicata su CLOSED, registra la data di chiusura e mantiene il riferimento all'originale.
 
 \begin{tabularx}{\textwidth}{|X|X|}
     \hline
@@ -133,16 +134,21 @@ processDuplicate
     Validate integrity constraints and mandatory fields                               & None                   \\ \hline
 \end{tabularx}
 
+\subsection{createUser}
+Il metodo \texttt{createUser} (esposto dall'\texttt{AdminController}) permette ad un amministratore di creare una nuova utenza: verifica i parametri in ingresso, controlla i permessi dell'operatore, assicura l'unicità dell'email, genera una password temporanea cifrata e provvede al salvataggio della nuova utenza nel repository.
+
 \clearpage
 
 % ------------------------------------------------- %
 
-\section{Attività di testing}
+\section{Attività di Testing} % Capitolo 4 richiesto dalla traccia [cite: 197]
 
-Di seguito verranno descritte le attività di verifica condotte sulla logica di business del sistema BugBoard26. La funzionalità selezionata per il testing è il processamento dei bug duplicati (\texttt{processDuplicate}).
+Di seguito verranno descritte le attività di verifica condotte sulle logiche di business principali del sistema BugBoard26 (metodi \texttt{processDuplicate}, \texttt{createUser} e \texttt{finalizeProfile}).
 
-\subsection{Test Plan (8.4.a Specifica dei Test Case)}
-L'obiettivo di questo piano di test è verificare la robustezza del sistema e la corretta gestione dei vincoli di business definiti dal Committente per la gestione dei duplicati.\\
+\subsection{Analisi testing processDuplicate}
+
+\subsubsection{Test Plan (8.4.a)}
+La seguente tabella descrive i test case progettati per verificare il comportamento del metodo \texttt{processDuplicate} dell'\texttt{IssueService}. Il metodo è responsabile della gestione della marcatura di un Issue come duplicato di un altro, con validazione dei permessi amministrativi, controllo di esistenza delle entità e gestione degli stati.
 
 \noindent{\small
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
@@ -168,12 +174,12 @@ L'obiettivo di questo piano di test è verificare la robustezza del sistema e la
 \end{tabularx}
 }
 
-\subsection{8.4.b Codice per test di unità automatici}
+\subsubsection{Codice per test di unità automatici (8.4.b)}
 I test di unità sono stati realizzati utilizzando il framework \textbf{JUnit 4} e la libreria di mocking \textbf{Mockito}. La classe di test \texttt{IssueServiceTest.java} implementa gli 8 scenari descritti nel Test Plan, assicurando l'isolamento della logica di business dai componenti di persistenza. Il codice è strutturato per verificare sia il corretto aggiornamento dello stato delle entità (TC1) sia il sollevamento delle eccezioni appropriate in caso di violazione dei vincoli (TC2-TC8).
 
 Il codice dei test è consultabile nel repository GitHub (\href{https://github.com/patt509/BugBoard26.git}{\texttt{\seqsplit{https://github.com/patt509/BugBoard26.git}}}) al seguente percorso: \texttt{\seqsplit{backend/src/test/java/com/bugboard/service/IssueServiceTest.java}.}
 
-\subsection{8.4.c Strategie di progettazione dei test}
+\subsubsection{Strategie di progettazione dei test (8.4.c)}
 Per la progettazione della suite di test è stato adottato un approccio di \textbf{White Box Testing}, focalizzato sulla copertura strutturale del codice sorgente. Sono state coperte dai TC tutte le righe di codice e i rami decisionali della funzione \texttt{processDuplicate}.
 
 \begin{itemize}
@@ -184,9 +190,10 @@ Per la progettazione della suite di test è stato adottato un approccio di \text
 \end{itemize}
 
 
+\subsection{Analisi testing createUser}
 
-
-createUser
+\subsubsection{Test Plan (8.4.a)}
+La seguente tabella descrive i test case progettati per verificare il comportamento del metodo \texttt{createUser} del servizio di autenticazione. Il metodo è responsabile della creazione di nuovi utenti nel sistema, con validazione dei permessi amministrativi, controllo di unicità dell'email e generazione di password temporanea.
 
 \noindent{\small
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
@@ -212,6 +219,29 @@ createUser
 \end{tabularx}
 }
 
+\subsubsection{Codice per test di unità automatici (8.4.b)}
+
+I test di unità per il metodo \texttt{createUser} sono stati realizzati utilizzando il framework \textbf{JUnit 4} e la libreria di mocking \textbf{Mockito}. La classe di test \texttt{AuthServiceTest.java} implementa gli 8 scenari descritti nel Test Plan, assicurando la corretta validazione degli input, il controllo dei permessi amministrativi e l'unicità delle email. La suite verifica inoltre che la generazione della password temporanea avvenga esclusivamente nei casi di successo (TC1-TC2) e che nessuna operazione di persistenza venga eseguita in presenza di errori (TC3-TC8).
+
+Il codice dei test è consultabile nel repository GitHub (\href{https://github.com/patt509/BugBoard26.git}{\texttt{\seqsplit{https://github.com/patt509/BugBoard26.git}}}) al seguente percorso: \texttt{\seqsplit{backend/src/test/java/com/bugboard/service/AuthServiceTest.java}.}
+
+\subsubsection{Strategie di progettazione dei test (8.4.c)}
+
+Per la progettazione della suite di test è stato adottato un approccio di \textbf{White Box Testing}, focalizzato sulla copertura strutturale del codice sorgente. Sono state coperte dai TC tutte le righe di codice e i rami decisionali della funzione \texttt{createUser}.
+
+\begin{itemize}
+    \item \textbf{Criterio di copertura strutturale (Branch Coverage):} I test case sono stati definiti per garantire che ogni ramo decisionale delle istruzioni condizionali presenti nel metodo \texttt{createUser} venga eseguito almeno una volta. I TC3-TC6 verificano i controlli di validazione degli input (null/empty), il TC7 copre il controllo dei permessi amministrativi e il TC8 verifica il vincolo di unicità dell'email.
+    \item \textbf{Analisi delle classi di equivalenza:} Sono state identificate partizioni di input valide (Admin autenticato, email valida e non presente nel sistema) e non valide (parametri null/empty, utente non admin, email duplicata) per minimizzare la ridondanza dei test massimizzando la capacità di individuare bug.
+    \item \textbf{Testing degli effetti collaterali:} Per i casi di errore (TC3-TC8), oltre alla verifica del sollevamento dell'eccezione appropriata, è stato utilizzato \texttt{verify(userRepository, never()).save(any(User.class))} per garantire che nessuna operazione di persistenza venga eseguita in presenza di violazioni dei vincoli.
+    \item \textbf{Utilizzo di Mock Objects:} La strategia ha previsto l'uso di \texttt{Mockito} per simulare il comportamento del \texttt{UserRepository}, permettendo di testare la logica di business in isolamento dal layer di persistenza. Il mock è configurato per restituire \texttt{true} o \texttt{false} dal metodo \texttt{existsByEmail()} a seconda dello scenario testato.
+\end{itemize}
+
+% ========== Fine della documentazione di Testing ==========
+
+% Sezione placeholder per metodi da documentare in seguito
+
+\subsection{finalizeProfile (da documentare)}
+
 \noindent{\small
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
@@ -230,6 +260,6 @@ createUser
 \end{tabularx}
 }
 
-\subsection{Progettazione Test (8.4.c)}
+% Fine attività di testing e progettazione
 
 \end{document}
