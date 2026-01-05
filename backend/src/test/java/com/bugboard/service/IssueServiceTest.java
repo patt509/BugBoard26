@@ -38,7 +38,7 @@ public class IssueServiceTest {
    }
 
    /**
-    * TC1: Success scenario: - Admin marks an open issue ad duplicate of another issue.
+    * TC1: Success scenario - Admin marks an open issue ad duplicate of another issue.
     * Expected Output: None
     * PostConditions: Issue status changes to CLOSED, originalIssue is linked, closedAt is set
     * to current date/time.
@@ -68,5 +68,69 @@ public class IssueServiceTest {
       assertEquals("PostCond failed: Status should be CLOSED", IssueStatus.CLOSED, spyDuplicate.getStatus());
       assertNotNull("PostCond failed: closedAt should be set", spyDuplicate.getClosedAt());
       verify(repository).save(spyDuplicate); // Verify that save was called to persist changes
+   }
+
+   /**
+    * TC2: Failure scenario - Non-admin user attempts to mark an issue as duplicate.
+    * Expected Output: SecurityException
+    */
+   @Test(expected = SecurityException.class) // JUnit 4 way to expect exceptions
+   public void testProcessDuplicate_TC2_SecurityException() {
+      issueService.processDuplicate(10L, 20L, normalUser);
+   }
+
+   /**
+    * TC3: Failure scenario - One or both IDs are null.
+    * Expected Output: IllegalArgumentException
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testProcessDuplicate_TC3_NullIDs() {
+      issueService.processDuplicate(null, 20L, admin);
+   }
+
+   /**
+    * TC4: Failure scenario - Issue ID not found in repository.
+    * Expected Output: IllegalArgumentException
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testProcessDuplicate_TC4_IssueNotFound() {
+      when(repository.findById(10L)).thenReturn(null); // Faking issue 10 does not exist
+      issueService.processDuplicate(10L, 20L, admin);
+   }
+
+   /**
+    * TC5: Failure scenario - Attempting to mark an issue as duplicate of itself.
+    * Expected Output: IllegalArgumentException
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testProcessDuplicate_TC5_SelfDuplication() {
+      Issue issue = new Issue("Title must be long enough", "Description", reporter);
+      Issue spyIssue = spy(issue);
+      when(spyIssue.getId()).thenReturn(10L);
+
+      when(repository.findById(10L)).thenReturn(spyIssue);
+
+      issueService.processDuplicate(10L, 10L, admin);
+   }
+
+   /**
+    * TC6: Failure scenario - Attempting to mark an already closed issue as duplicate.
+    * Expected Output: IllegalStateException
+    */
+   @Test(expected = IllegalStateException.class)
+   public void testProcessDuplicate_TC6_AlreadyClosed() {
+      Issue alreadyClosedIssue = new Issue("Title for Closed Issue", "Description", reporter);
+      alreadyClosedIssue.setStatus(IssueStatus.CLOSED);
+      Issue original = new Issue("Title for Original Issue", "Description", reporter);
+
+      Issue spyClosed = spy(alreadyClosedIssue);
+      Issue spyOriginal = spy(original);
+      when(spyClosed.getId()).thenReturn(10L);
+      when(spyOriginal.getId()).thenReturn(20L);
+
+      when(repository.findById(10L)).thenReturn(spyClosed);
+      when(repository.findById(20L)).thenReturn(spyOriginal);
+
+      issueService.processDuplicate(10L, 20L, admin);
    }
 }
