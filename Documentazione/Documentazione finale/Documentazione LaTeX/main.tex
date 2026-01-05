@@ -183,29 +183,10 @@ Per la progettazione della suite di test è stato adottato un approccio di \text
     \item \textbf{Utilizzo di Mock e Spy:} La strategia ha previsto l'uso di \texttt{Mockito.spy()} per monitorare il comportamento delle istanze di \texttt{Issue} e \texttt{verify()} per accertarsi che il salvataggio sul repository avvenga solo nelle condizioni di successo previste.
 \end{itemize}
 
-\noindent{\small
-\begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
-    \hline
-    \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
-    \hline
-    TC1 & Issues 10 (TODO) and 20 exist. Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, admin & None & Issue 10 status is CLOSED, closedAt $\neq$ null, originalIssue = 20. \\
-    \hline
-    TC2 & System active. Non-Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, user & \seqsplit{SecurityException} & No changes to Issue states. \\
-    \hline
-    TC3 & System active. Admin user is null. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, admin=null & \seqsplit{SecurityException} & No changes to Issue states. \\
-    \hline
-    TC4 & System active. Admin user logged in. & \seqsplit{duplicateIssueId}=null, \seqsplit{originalIssueId}=20, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
-    \hline
-    TC5 & System active. Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=null, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
-    \hline
-    TC6 & Issue 10 exists. Original issue 20 does not exist in the DB. Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
-    \hline
-    TC7 & Issue 10 exists (TODO). Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=10, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
-    \hline
-    TC8 & Issue 10 is already CLOSED. Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, admin & \seqsplit{IllegalStateException} & Issue 10 state remains unchanged. \\
-    \hline
-\end{tabularx}
-}
+
+
+
+createUser
 
 \noindent{\small
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
@@ -220,11 +201,13 @@ Per la progettazione della suite di test è stato adottato un approccio di \text
     \hline
     TC4 & Admin user logged in. & email= (or null), role=USER, admin & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
-    TC5 & Admin user logged in. & email=`u@t.com', role=null, admin & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    TC5 & Admin user logged in. & email= (or empty), role=USER, admin & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
-    TC6 & A non-admin user is logged in. & email=`u@t.com', role=USER, user (\seqsplit{isAdmin}=false) & \seqsplit{SecurityException} & No changes to the database. \\
+    TC6 & Admin user logged in. & email=`u@t.com', role=null, admin & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
-    TC7 & Email exist@test.com already in DB. Admin logged in. & \seqsplit{email=`exist@test.com'}, role=USER, admin & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    TC7 & A non-admin user is logged in. & email=`u@t.com', role=USER, user (\seqsplit{isAdmin}=false) & \seqsplit{SecurityException} & No changes to the database. \\
+    \hline
+    TC8 & Email exist@test.com already in DB. Admin logged in. & \seqsplit{email=`exist@test.com'}, role=USER, admin & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
 \end{tabularx}
 }
