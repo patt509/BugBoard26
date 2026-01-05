@@ -11,25 +11,22 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.bugboard.model.Issue;
 import com.bugboard.model.User;
 import com.bugboard.repository.IssueRepository;
+import com.bugboard.repository.PasswordResetRequestRepository;
 
 @RunWith(MockitoJUnitRunner.class) // Using Mockito test runner (mandatory for JUnit 4)
-public class IssueServiceTest {
+public class AuthServiceTest {
    
    @Mock
-   private IssueRepository repository; // Simulate the database layer with a mock
+   private IssueRepository userRepository; // Simulate the database layer with a mock
+
+   @Mock
+   private PasswordResetRequestRepository resetRepository;
 
    @InjectMocks
-   private IssueService service; // Inject mocks into IssueService, the real service being tested
-
-   private User admin;
-   private Issue duplicateIssue;
-   private Issue originalIssue;
+   private AuthService authService; // Inject mocks into AuthService, the real service being tested
 
    @Before
    public void setUp() {
       // Initialize pre-conditions for tests
-      admin = mock(User.class);
-      duplicateIssue = mock(Issue.class);
-      originalIssue = mock(Issue.class);
    }
 }
