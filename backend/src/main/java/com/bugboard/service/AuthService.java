@@ -67,6 +67,7 @@ public class AuthService {
       User newUser = new User(email, hashedPassword, role);
       userRepository.save(newUser);
 
+      // TODO: replace getEmail with getUsername if we switch to usernames for login
       logger.log(Level.INFO, "Admin {0} created new user with email {1}",
             new Object[] { adminUser.getEmail(), email });
 
@@ -157,6 +158,9 @@ public class AuthService {
    /**
     * User login. Returns user data if credentials are correct.
     */
+   // TODO: consider adding account lockout after multiple failed attempts
+   // TODO: consider adding login with username when profile is finalized
+   //    (possibility to login with email or username in the same field)
    public Optional<UserDTO> login(String email, char[] rawPassword) {
       try {
          Optional<User> userOpt = userRepository.findByEmail(email);
