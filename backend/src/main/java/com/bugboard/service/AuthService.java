@@ -171,7 +171,7 @@ public class AuthService {
     */
    // TODO: consider adding account lockout after multiple failed attempts
    // TODO: consider adding login with username when profile is finalized
-   //    (possibility to login with email or username in the same field)
+   // (possibility to login with email or username in the same field)
    public Optional<UserDTO> login(String email, char[] rawPassword) {
       try {
          Optional<User> userOpt = userRepository.findByEmail(email);

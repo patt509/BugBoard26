@@ -147,6 +147,28 @@ possiamo categorizzarli come segue.
 \end{tabularx}
 }
 
+{\small
+\begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
+    \hline
+    TC1 & Admin logged in. Admin is in the user creation page. & \seqsplit{email=`user1@test.com'}, role=USER, admin & \seqsplit{tempPassword} (String) & User is created and saved in the DB33. \\
+    \hline
+    TC2 & Admin logged in. Admin is in the user creation page. & \seqsplit{email=`admin2@test.com'}, role=ADMIN, admin & \seqsplit{tempPassword} (String) & Admin user is created and saved in the DB44. \\
+    \hline
+    TC3 & System active. & email=`u@t.com', role=USER, \seqsplit{adminUser}=null & \seqsplit{IllegalArgumentException} & No changes to the database55. \\
+    \hline
+    TC4 & Admin user logged in. & email= (or null), role=USER, admin & \seqsplit{IllegalArgumentException} & No changes to the database66. \\
+    \hline
+    TC5 & Admin user logged in. & email=`u@t.com', role=null, admin & \seqsplit{IllegalArgumentException} & No changes to the database77. \\
+    \hline
+    TC6 & A non-admin user is logged in. & email=`u@t.com', role=USER, user (\seqsplit{isAdmin}=false) & \seqsplit{SecurityException} & No changes to the database88. \\
+    \hline
+    TC7 & Email exist@test.com already in DB. Admin logged in. & \seqsplit{email=`exist@test.com'}, role=USER, admin & \seqsplit{IllegalArgumentException} & No changes to the database99. \\
+    \hline
+\end{tabularx}
+}
+
 \subsection{Progettazione Test (8.4.c)}
 
 \end{document}
