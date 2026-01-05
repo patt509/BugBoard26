@@ -8,16 +8,14 @@ import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import com.bugboard.model.Issue;
-import com.bugboard.model.User;
-import com.bugboard.repository.IssueRepository;
+import com.bugboard.repository.UserRepository;
 import com.bugboard.repository.PasswordResetRequestRepository;
 
 @RunWith(MockitoJUnitRunner.class) // Using Mockito test runner (mandatory for JUnit 4)
 public class AuthServiceTest {
    
    @Mock
-   private IssueRepository userRepository; // Simulate the database layer with a mock
+   private UserRepository userRepository; // Simulate the database layer with a mock
 
    @Mock
    private PasswordResetRequestRepository resetRepository;
