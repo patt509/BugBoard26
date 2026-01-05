@@ -93,6 +93,12 @@ public class AuthService {
     */
    @Transactional
    public String resetUserPassword(Long userId, User adminUser) {
+      if (adminUser == null) {
+         throw new IllegalArgumentException("Admin user is required.");
+      }
+      if (userId == null) {
+         throw new IllegalArgumentException("User ID is required.");
+      }
       if (!adminUser.isAdmin()) {
          throw new SecurityException("Only administrators can reset passwords.");
       }
@@ -123,6 +129,12 @@ public class AuthService {
     */
    @Transactional
    public String processPasswordResetRequest(Long requestId, boolean approve, User adminUser) {
+      if (adminUser == null) {
+         throw new IllegalArgumentException("Admin user is required.");
+      }
+      if (requestId == null) {
+         throw new IllegalArgumentException("Request ID is required.");
+      }
       if (!adminUser.isAdmin()) {
          throw new SecurityException("Only administrators can process reset requests.");
       }
@@ -208,6 +220,12 @@ public class AuthService {
     */
    @Transactional
    public UserDTO finalizeProfile(Long userId, String chosenUsername) {
+      if (userId == null) {
+         throw new IllegalArgumentException("User ID is required.");
+      }
+      if (chosenUsername == null || chosenUsername.trim().isEmpty()) {
+         throw new IllegalArgumentException("Username is required.");
+      }
       // Verifica che lo username non sia già usato
       if (userRepository.existsByUsername(chosenUsername)) {
          throw new IllegalArgumentException("Username already taken.");
@@ -236,6 +254,9 @@ public class AuthService {
     */
    @Transactional
    public void requestPasswordReset(String email) {
+      if (email == null || email.trim().isEmpty()) {
+         throw new IllegalArgumentException("Email is required.");
+      }
       User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new IllegalArgumentException("Email not found."));
 
