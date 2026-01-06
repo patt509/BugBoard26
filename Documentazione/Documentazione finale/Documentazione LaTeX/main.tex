@@ -141,14 +141,20 @@ Il metodo \texttt{createUser} (esposto dall'\texttt{AdminController}) permette a
 
 % ------------------------------------------------- %
 
-\section{Attività di Testing} % Capitolo 4 richiesto dalla traccia [cite: 197]
+% ========== 8.4 ATTIVITÀ DI TESTING E VERIFICA ==========
 
-\subsection{Analisi testing processDuplicate}
+\section{Testing e Verifica (8.4)}
 
-\subsubsection{Test Plan (8.4.a)}
-La seguente tabella descrive i test case progettati per verificare il comportamento del metodo \texttt{processDuplicate} dell'\texttt{IssueService}. Il metodo è responsabile della gestione della marcatura di un Issue come duplicato di un altro, con validazione dei permessi amministrativi, controllo di esistenza delle entità e gestione degli stati.\\
+Di seguito verranno descritte le attività di verifica condotte sulle logiche di business principali del sistema BugBoard26 (metodi \texttt{processDuplicate}, \texttt{createUser} e \texttt{finalizeProfile}).
 
-\noindent{\small
+\subsection{Test Plan (8.4.a)}
+
+\subsubsection{IssueService.processDuplicate()}
+
+La seguente tabella descrive i test case progettati per verificare il comportamento del metodo \texttt{processDuplicate} dell'\texttt{IssueService}. Il metodo gestisce la marcatura di un Issue come duplicato di un altro, con validazione dei permessi amministrativi e controllo di esistenza delle entità.\\
+
+\vspace{-4pt}
+\noindent{\footnotesize
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
     \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
@@ -177,37 +183,45 @@ La seguente tabella descrive i test case progettati per verificare il comportame
     \hline
 \end{tabularx}
 }
+\clearpage
 
-\subsubsection{Codice per test di unità automatici (8.4.b)}
-I test di unità sono stati realizzati utilizzando il framework \textbf{JUnit 4} e la libreria di mocking \textbf{Mockito}. La classe di test \texttt{IssueServiceTest.java} implementa i 11 scenari descritti nel Test Plan, assicurando l'isolamento della logica di business dai componenti di persistenza. Il codice è strutturato per verificare sia il corretto aggiornamento dello stato delle entità (TC1) sia il sollevamento delle eccezioni appropriate in caso di violazione dei vincoli (TC2-TC11).
-
-Il codice dei test è consultabile nel repository GitHub (\href{https://github.com/patt509/BugBoard26.git}{\texttt{\seqsplit{https://github.com/patt509/BugBoard26.git}}}) al seguente percorso: \texttt{\seqsplit{backend/src/test/java/com/bugboard/service/IssueServiceTest.java}.}
-
-\subsubsection{Strategie di progettazione dei test (8.4.c)}
-Per la progettazione della suite di test è stato adottato un approccio di \textbf{White Box Testing}, focalizzato sulla copertura strutturale del codice sorgente. Sono state coperte dai TC tutte le righe di codice e i rami decisionali della funzione \texttt{processDuplicate}.
+\paragraph{Descrizione dei test case:}
 
 \begin{itemize}
-    \item \textbf{Criterio di copertura strutturale (Branch Coverage):} I test case sono stati definiti per garantire che ogni ramo decisionale (\textit{branch}) delle istruzioni condizionali presenti nel metodo \texttt{processDuplicate} venga eseguito almeno una volta. Ad esempio, i TC2-TC4 coprono il ramo relativo ai controlli di sicurezza, mentre i TC5-TC11 coprono le validazioni degli input e l'integrità del dominio, inclusi i casi di non esistenza (singolo issue o entrambi).
-    \item \textbf{Analisi delle classi di equivalenza:} Sono state identificate partizioni di input valide (Admin autenticato, ID esistenti e distinti) e non valide (User semplice, ID null o coincidenti) per minimizzare la ridondanza dei test massimizzando la capacità di individuare bug.
-    \item \textbf{Analisi dei valori limite:} Il test TC9 verifica specificamente il caso limite in cui l'ID della risorsa duplicata coincide con quello della risorsa originale, prevenendo stati inconsistenti nel sistema. I TC7, TC8 e TC11 coprono invece le verifiche di esistenza delle risorse nel repository (uno mancante, l'altro mancante, o entrambi mancanti).
-    \item \textbf{Utilizzo di Mock e Spy:} La strategia ha previsto l'uso di \texttt{Mockito.spy()} per monitorare il comportamento delle istanze di \texttt{Issue} e \texttt{verify()} per accertarsi che il salvataggio sul repository avvenga solo nelle condizioni di successo previste.
+    \item \textbf{TC1 (Success)}: Verifica il flusso positivo in cui un amministratore marca correttamente un issue come duplicato. L'issue duplicato passa a stato CLOSED e il campo \texttt{closedAt} viene impostato con la data/ora corrente, mantenendo il riferimento all'issue originale.
+    
+    \item \textbf{TC2 (Null adminId)}: Testa il controllo di autenticazione quando l'ID dell'amministratore è null, assicurando che venga sollevata una \texttt{SecurityException}.
+    
+    \item \textbf{TC3 (Unknown adminId)}: Verifica che il sistema rilevi quando l'ID dell'amministratore non esiste nel repository e sollevare l'eccezione appropriata.
+    
+    \item \textbf{TC4 (Non-admin user)}: Testa il controllo dei permessi amministrativi, verificando che utenti non-admin non possano marcare issue come duplicati.
+    
+    \item \textbf{TC5-TC6 (Null issue IDs)}: Verificano la validazione dei parametri di input (ID delle issue null), assicurando che il metodo sollevi \texttt{IllegalArgumentException}.
+    
+    \item \textbf{TC7-TC8 (Single missing issue)}: Testano i casi in cui una delle due issue non esiste nel repository. Coprono entrambi gli scenari: duplicate non trovato e original non trovato.
+    
+    \item \textbf{TC9 (Self-duplication)}: Testa il caso limite in cui un utente prova a marcare un issue come duplicato di se stesso, prevenendo stati inconsistenti.
+    
+    \item \textbf{TC10 (Already closed)}: Verifica che un issue già CLOSED non possa essere marcato come duplicato di un altro, sollevando \texttt{IllegalStateException}.
+    
+    \item \textbf{TC11 (Both issues missing)}: Copre il caso in cui entrambi gli issue non esistono nel repository.
 \end{itemize}
 
 \clearpage
 
-\subsection{Analisi testing createUser}
+\subsubsection{AuthService.createUser()}
 
-\subsubsection{Test Plan (8.4.a)}
-La seguente tabella descrive i test case progettati per verificare il comportamento del metodo \texttt{createUser} del servizio di autenticazione. Il metodo è responsabile della creazione di nuovi utenti nel sistema, con validazione dei permessi amministrativi, controllo di unicità dell'email e generazione di password temporanea.\\
+La seguente tabella descrive i test case progettati per verificare il comportamento del metodo \texttt{createUser}. Il metodo gestisce la creazione di nuovi utenti nel sistema, con validazione dei permessi amministrativi e controllo di unicità dell'email.\\
 
-\noindent{\small
+\vspace{-8pt}
+\noindent{\footnotesize
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
     \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
     \hline
-    TC1 & Admin user with ID=1 exists in DB. Admin is in the user creation page. & \seqsplit{email=`user1@test.com'}, role=USER, \seqsplit{adminId}=1 & \seqsplit{tempPassword} (String) & User is created and saved in the DB. \\
+    TC1 & Admin user with ID=1 exists in DB. & \seqsplit{email=`user1@test.com'}, role=USER, \seqsplit{adminId}=1 & \seqsplit{tempPassword} (String) & User is created and saved in the DB. \\
     \hline
-    TC2 & Admin user with ID=1 exists in DB. Admin is in the user creation page. & \seqsplit{email=`admin2@test.com'}, role=ADMIN, \seqsplit{adminId}=1 & \seqsplit{tempPassword} (String) & Admin user is created and saved in the DB. \\
+    TC2 & Admin user with ID=1 exists in DB. & \seqsplit{email=`admin2@test.com'}, role=ADMIN, \seqsplit{adminId}=1 & \seqsplit{tempPassword} (String) & Admin user is created and saved in the DB. \\
     \hline
     TC3 & System active. & \seqsplit{email=`u@t.com'}, role=USER, \seqsplit{adminId}=null & \seqsplit{SecurityException} & No changes to the database. \\
     \hline
@@ -215,7 +229,7 @@ La seguente tabella descrive i test case progettati per verificare il comportame
     \hline
     TC5 & Admin user with ID=1 exists in DB. & email=null, role=USER, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
-    TC6 & Admin user with ID=1 exists in DB. & email="", role=USER, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    TC6 & Admin user with ID=1 exists in DB. & email="" (empty), role=USER, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
     TC7 & Admin user with ID=1 exists in DB. & \seqsplit{email=`u@t.com'}, role=null, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
@@ -226,47 +240,125 @@ La seguente tabella descrive i test case progettati per verificare il comportame
 \end{tabularx}
 }
 
-\subsubsection{Codice per test di unità automatici (8.4.b)}
-
-I test di unità per il metodo \texttt{createUser} sono stati realizzati utilizzando il framework \textbf{JUnit 4} e la libreria di mocking \textbf{Mockito}. La classe di test \texttt{AuthServiceTest.java} implementa i 9 scenari descritti nel Test Plan, assicurando la corretta validazione degli input, il controllo dei permessi amministrativi e l'unicità delle email. La suite verifica inoltre che la generazione della password temporanea avvenga esclusivamente nei casi di successo (TC1-TC2) e che nessuna operazione di persistenza venga eseguita in presenza di errori (TC3-TC9).
-
-Il codice dei test è consultabile nel repository GitHub (\href{https://github.com/patt509/BugBoard26.git}{\texttt{\seqsplit{https://github.com/patt509/BugBoard26.git}}}) al seguente percorso: \texttt{\seqsplit{backend/src/test/java/com/bugboard/service/AuthServiceTest.java}.}
-
-\subsubsection{Strategie di progettazione dei test (8.4.c)}
-
-Per la progettazione della suite di test è stato adottato un approccio di \textbf{White Box Testing}, focalizzato sulla copertura strutturale del codice sorgente. Sono state coperte dai TC tutte le righe di codice e i rami decisionali della funzione \texttt{createUser}.
+\paragraph{Descrizione dei test case:}
 
 \begin{itemize}
-    \item \textbf{Criterio di copertura strutturale (Branch Coverage):} I test case sono stati definiti per garantire che ogni ramo decisionale delle istruzioni condizionali presenti nel metodo \texttt{createUser} venga eseguito almeno una volta. I TC3-TC4 verificano i controlli di autenticazione dell'amministratore (ID null o non trovato), i TC5-TC7 coprono la validazione degli input (email/role null/empty), il TC8 copre il controllo dei permessi amministrativi e il TC9 verifica il vincolo di unicità dell'email.
-    \item \textbf{Analisi delle classi di equivalenza:} Sono state identificate partizioni di input valide (Admin autenticato, email valida e non presente nel sistema) e non valide (parametri null/empty, utente non admin, email duplicata) per minimizzare la ridondanza dei test massimizzando la capacità di individuare bug.
-    \item \textbf{Testing degli effetti collaterali:} Per i casi di errore (TC3-TC9), oltre alla verifica del sollevamento dell'eccezione appropriata, è stato utilizzato \texttt{verify(userRepository, never()).save(any(User.class))} per garantire che nessuna operazione di persistenza venga eseguita in presenza di violazioni dei vincoli.
-    \item \textbf{Utilizzo di Mock Objects:} La strategia ha previsto l'uso di \texttt{Mockito} per simulare il comportamento del \texttt{UserRepository}, permettendo di testare la logica di business in isolamento dal layer di persistenza. Il mock è configurato per restituire \texttt{true} o \texttt{false} dal metodo \texttt{existsByEmail()} a seconda dello scenario testato.
+    \item \textbf{TC1-TC2 (Success)}: Verificano il flusso positivo della creazione di utenti (USER e ADMIN) da parte di un amministratore autenticato. Il metodo ritorna una password temporanea e l'utente viene salvato nel database.
+    
+    \item \textbf{TC3-TC4 (Admin validation)}: Testano i controlli di autenticazione e autorizzazione dell'amministratore (ID null o non trovato), assicurando che solo utenti admin possano creare account.
+    
+    \item \textbf{TC5-TC7 (Input validation)}: Verificano la validazione dei parametri di input (email null/empty, role null), sollevando \texttt{IllegalArgumentException} per input non validi.
+    
+    \item \textbf{TC8 (Non-admin user)}: Testa che un utente non-admin non possa creare account, verificando il controllo dei permessi amministrativi.
+    
+    \item \textbf{TC9 (Duplicate email)}: Verifica il vincolo di unicità dell'email, assicurando che non sia possibile registrare due account con lo stesso indirizzo email.
 \end{itemize}
 
 \clearpage
 
-\subsection{Analisi testing finalizeProfile}
+\subsubsection{AuthService.finalizeProfile()}
 
-\noindent{\small
+La seguente tabella descrive i test case progettati per verificare il comportamento del metodo \texttt{finalizeProfile}. Questo metodo consente agli utenti di finalizzare il loro profilo al primo login, impostando uno username univoco.\\
+
+\vspace{-8pt}
+\noindent{\footnotesize
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
     \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
     \hline
-    TC1 & The user has logged in for the first time (\seqsplit{firstLogin}=true). & \seqsplit{userId}=5, \seqsplit{chosenUsername=`user5'} & \seqsplit{UserDTO} (correctly built) & Username is saved and firstLogin is set to false in the database. \\
+    TC1 & User with ID=5 exists in DB, firstLogin=true. & \seqsplit{userId}=5, \seqsplit{chosenUsername=`user5'} & \seqsplit{UserDTO} (correctly built) & Username is updated, firstLogin is set to false, user saved in DB. \\
     \hline
-    TC2 & The user has just logged in for the first time. & \seqsplit{userId}=null, \seqsplit{chosenUsername=`user5'} & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    TC2 & System active. & \seqsplit{userId}=null, \seqsplit{chosenUsername=`user5'} & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
-    TC3 & The user has just logged in for the first time. & \seqsplit{userId}=5, \seqsplit{chosenUsername}=null & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    TC3 & System active. & \seqsplit{userId}=5, \seqsplit{chosenUsername}=null & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
-    TC4 & The user has just logged in for the first time. & \seqsplit{userId}=5, \seqsplit{chosenUsername}="" & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    TC4 & System active. & \seqsplit{userId}=5, \seqsplit{chosenUsername}="" (empty) & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
-    TC5 & A user with username `user5' already exists in the system. & \seqsplit{userId}=5, \seqsplit{chosenUsername=`user5'} & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    TC5 & Username `user5' already exists in the system. & \seqsplit{userId}=5, \seqsplit{chosenUsername=`user5'} & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
-    TC6 & System active. User with userId=5 does not exist in the DB. & \seqsplit{userId}=5, \seqsplit{chosenUsername=`user5'} & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    TC6 & System active. User with ID=5 does not exist in the DB. & \seqsplit{userId}=5, \seqsplit{chosenUsername=`user5'} & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
 \end{tabularx}
 }
 
-% Fine attività di testing e progettazione
+\paragraph{Descrizione dei test case:}
+
+\begin{itemize}
+    \item \textbf{TC1 (Success)}: Verifica il flusso positivo di finalizzazione del profilo. L'utente imposta il proprio username univoco, il flag \texttt{firstLogin} viene impostato a false, e un \texttt{UserDTO} viene ritornato contenente i dati aggiornati.
+    
+    \item \textbf{TC2 (Null userId)}: Testa la validazione del parametro \texttt{userId} quando null, assicurando che venga sollevata \texttt{IllegalArgumentException}.
+    
+    \item \textbf{TC3 (Null username)}: Verifica che uno username null non sia accettato, sollevando l'eccezione appropriata.
+    
+    \item \textbf{TC4 (Empty username)}: Testa il caso in cui lo username è una stringa vuota, assicurando la validazione corretta dei parametri di input.
+    
+    \item \textbf{TC5 (Duplicate username)}: Verifica il vincolo di unicità dello username, prevenendo che due utenti registrino lo stesso identificativo.
+    
+    \item \textbf{TC6 (User not found)}: Testa il caso in cui l'utente con l'ID fornito non esiste nel database, sollevando \texttt{IllegalArgumentException}.
+\end{itemize}
+
+\clearpage
+
+\subsection{Strategie e Tecnologie di Testing (8.4.b)}
+
+La suite di test è stata progettata seguendo un approccio di \textbf{White Box Testing}, focalizzato sulla copertura strutturale del codice sorgente e sulla verifica completa di tutti i rami decisionali.
+
+\subsubsection{Framework e Strumenti Utilizzati}
+
+\begin{itemize}
+    \item \textbf{JUnit 4}: Framework di unit testing per Java utilizzato per la definizione e l'esecuzione dei test case. Fornisce le annotazioni \texttt{@Test}, \texttt{@Before}, \texttt{@After} e supporto per eccezioni attese tramite \texttt{expected=}.
+    
+    \item \textbf{Mockito}: Libreria di mocking per simulare il comportamento dei componenti di persistenza (repository) in modo isolato dalla logica di business. Consente di definire stub e spy per controllare i comportamenti dei mock.
+    
+    \item \textbf{Maven}: Build tool utilizzato per compilazione, esecuzione dei test e gestione delle dipendenze. I test vengono eseguiti durante la fase di build con il plugin Surefire.
+    
+    \item \textbf{JaCoCo (Java Code Coverage)}: Tool per misurare la copertura di codice durante l'esecuzione dei test. Genera report dettagliati (in formato HTML) indicando quali linee di codice e rami decisionali sono stati testati.
+\end{itemize}
+
+\subsubsection{Strategie di Progettazione dei Test}
+
+\begin{itemize}
+    \item \textbf{White Box Testing (Structural Testing)}: L'approccio adottato richiede la conoscenza approfondita del codice sorgente e mira a coprire tutti i percorsi di esecuzione possibili. Ogni test case è progettato per esercitare almeno un nuovo ramo (branch) del codice.
+    
+    \item \textbf{Branch Coverage}: Tutti i test case sono stati definiti per garantire che ogni ramo decisionale (\textit{branch}) delle istruzioni condizionali (if, else, switch) venga eseguito almeno una volta. Ad esempio, nei test di \texttt{processDuplicate}, i TC2-TC4 coprono il ramo relativo ai controlli di sicurezza, mentre i TC5-TC11 coprono le validazioni degli input e l'integrità del dominio.
+    
+    \item \textbf{Equivalence Partitioning}: Per minimizzare la ridondanza, gli input sono stati suddivisi in classi di equivalenza valide e non valide. Ad esempio:
+        \begin{itemize}
+            \item Valide: Admin autenticato, ID esistenti, email/username univoci e ben formattati.
+            \item Non valide: User semplice, ID null o non trovati, email/username duplicate, parametri vuoti.
+        \end{itemize}
+    
+    \item \textbf{Boundary Value Analysis}: Sono stati identificati e testati casi limite che generalmente contengono difetti. Ad esempio, il test TC9 di \texttt{processDuplicate} verifica il caso limite in cui un issue viene marcato come duplicato di se stesso; i test TC7, TC8 e TC11 coprono le verifiche di esistenza delle risorse (uno mancante, l'altro mancante, entrambi mancanti).
+    
+    \item \textbf{State-Based Testing}: Per metodi che modificano lo stato delle entità (come \texttt{processDuplicate} e \texttt{finalizeProfile}), i test verificano che gli aggiornamenti dello stato siano corretti attraverso asserzioni e verifiche tramite \texttt{verify()}.
+\end{itemize}
+
+\subsubsection{Tecniche di Isolamento e Mocking}
+
+\begin{itemize}
+    \item \textbf{Mockito.mock()}: Crea mock objects completamente controllati per simulare il comportamento dei repository senza accedere al database reale.
+    
+    \item \textbf{Mockito.spy()}: Avvolge oggetti reali (ad es. istanze di \texttt{User}, \texttt{Issue}) permettendo di monitorarne il comportamento senza interferire con la logica interna. Utile per verificare i side effects (cambiamenti di stato) sugli oggetti durante i test.
+    
+    \item \textbf{when().thenReturn()}: Configura il comportamento atteso dei mock per input specifici, permettendo di testare diversi scenari (successo, eccezioni, etc.) senza dipendenze dal database.
+    
+    \item \textbf{verify()}: Verifica che i mock siano stati chiamati con i parametri attesi, assicurando che le operazioni di persistenza avvengano solo nei casi appropriati. Ad esempio, \texttt{verify(userRepository, never()).save(any(User.class))} assicura che nessun salvataggio avvenga in caso di errore.
+    
+    \item \textbf{Optional.of() / Optional.empty()}: Simulano i comportamenti del repository nel ritornare entità trovate o non trovate, mantenendo coerenza con le firme dei metodi reali che ritornano \texttt{Optional<T>}.
+\end{itemize}
+
+\subsubsection{Copertura e Validazione}
+
+La suite di test raggiunge una copertura di codice elevata per i tre metodi critici testati:
+
+\begin{itemize}
+    \item \textbf{processDuplicate}: 11 test case coprono tutti i rami decisionali (controlli di sicurezza, validazione input, verifiche di esistenza, gestione degli stati).
+    \item \textbf{createUser}: 9 test case coprono l'autenticazione, la validazione degli input, i permessi amministrativi e il vincolo di unicità dell'email.
+    \item \textbf{finalizeProfile}: 6 test case coprono la validazione dei parametri, il controllo di unicità dello username e l'aggiornamento dello stato.
+\end{itemize}
+
+I test sono configurati per essere eseguiti automaticamente durante la build Maven (fase \texttt{test}) e i report di copertura JaCoCo sono generati in \texttt{target/site/jacoco/index.html}, fornendo una visione dettagliata della completezza della suite di test.
+
+\clearpage
 
 \end{document}
