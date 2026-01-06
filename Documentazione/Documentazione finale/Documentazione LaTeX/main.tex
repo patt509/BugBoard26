@@ -148,7 +148,7 @@ Di seguito verranno descritte le attività di verifica condotte sulle logiche di
 \subsection{Analisi testing processDuplicate}
 
 \subsubsection{Test Plan (8.4.a)}
-La seguente tabella descrive i test case progettati per verificare il comportamento del metodo \texttt{processDuplicate} dell'\texttt{IssueService}. Il metodo è responsabile della gestione della marcatura di un Issue come duplicato di un altro, con validazione dei permessi amministrativi, controllo di esistenza delle entità e gestione degli stati.
+La seguente tabella descrive i test case progettati per verificare il comportamento del metodo \texttt{processDuplicate} dell'\texttt{IssueService}. Il metodo è responsabile della gestione della marcatura di un Issue come duplicato di un altro, con validazione dei permessi amministrativi, controllo di esistenza delle entità e gestione degli stati.\\
 
 \noindent{\small
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
@@ -189,11 +189,12 @@ Per la progettazione della suite di test è stato adottato un approccio di \text
     \item \textbf{Utilizzo di Mock e Spy:} La strategia ha previsto l'uso di \texttt{Mockito.spy()} per monitorare il comportamento delle istanze di \texttt{Issue} e \texttt{verify()} per accertarsi che il salvataggio sul repository avvenga solo nelle condizioni di successo previste.
 \end{itemize}
 
+\clearpage
 
 \subsection{Analisi testing createUser}
 
 \subsubsection{Test Plan (8.4.a)}
-La seguente tabella descrive i test case progettati per verificare il comportamento del metodo \texttt{createUser} del servizio di autenticazione. Il metodo è responsabile della creazione di nuovi utenti nel sistema, con validazione dei permessi amministrativi, controllo di unicità dell'email e generazione di password temporanea.
+La seguente tabella descrive i test case progettati per verificare il comportamento del metodo \texttt{createUser} del servizio di autenticazione. Il metodo è responsabile della creazione di nuovi utenti nel sistema, con validazione dei permessi amministrativi, controllo di unicità dell'email e generazione di password temporanea.\\
 
 \noindent{\small
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
@@ -236,9 +237,7 @@ Per la progettazione della suite di test è stato adottato un approccio di \text
     \item \textbf{Utilizzo di Mock Objects:} La strategia ha previsto l'uso di \texttt{Mockito} per simulare il comportamento del \texttt{UserRepository}, permettendo di testare la logica di business in isolamento dal layer di persistenza. Il mock è configurato per restituire \texttt{true} o \texttt{false} dal metodo \texttt{existsByEmail()} a seconda dello scenario testato.
 \end{itemize}
 
-% ========== Fine della documentazione di Testing ==========
-
-% Sezione placeholder per metodi da documentare in seguito
+\clearpage
 
 \subsection{finalizeProfile (da documentare)}
 
