@@ -7,6 +7,7 @@ import com.bugboard.enums.PriorityLevel;
 import com.bugboard.model.Issue;
 import com.bugboard.model.User;
 import com.bugboard.repository.IssueRepository;
+import com.bugboard.repository.UserRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -25,24 +26,30 @@ public class IssueService {
    private static final Logger logger = Logger.getLogger(IssueService.class.getName());
 
    private final IssueRepository repository;
+   private final UserRepository userRepository;
 
    @Inject
-   public IssueService(IssueRepository repository) {
+   public IssueService(IssueRepository repository, UserRepository userRepository) {
       this.repository = repository;
+      this.userRepository = userRepository;
    }
 
    // ==================== ISSUE CRUD OPERATIONS ====================
 
    // Create a new issue with minimal parameters
    @Transactional
-   public Long createIssue(String title, String description, User reporter) {
+   public Long createIssue(String title, String description, Long reporterId) {
+      User reporter = reporterId != null ? userRepository.findById(reporterId).orElse(null) : null;
       Issue issue = new Issue(title, description, reporter);
       repository.save(issue);
       return issue.getId();
    }
 
    @Transactional
-   public Long createIssue(IssueDTO dto, User reporter) {
+   public Long createIssue(IssueDTO dto, Long reporterId) {
+      // Fetch reporter from repository if provided
+      User reporter = reporterId != null ? userRepository.findById(reporterId).orElse(null) : null;
+      
       // Service creates the entity from the DTO
       Issue issue = new Issue(dto.getTitle(), dto.getDescription(), reporter);
 
@@ -85,6 +92,7 @@ public class IssueService {
 
    /**
     * Removes the attachment from an issue.
+    * @return the old attachment path (for deletion by AttachmentService)
     */
    @Transactional
    public String removeAttachment(Long issueId) {
@@ -96,6 +104,38 @@ public class IssueService {
       issue.setAttachmentPath(null);
       repository.save(issue);
       return oldPath;
+   }
+
+   /**
+    * Checks if an issue exists.
+    * @throws IllegalArgumentException if issue not found
+    */
+   public void validateIssueExists(Long issueId) {
+      Issue issue = repository.findById(issueId);
+      if (issue == null) {
+         throw new IllegalArgumentException("Issue not found");
+      }
+   }
+
+   /**
+    * Gets the current attachment path for an issue.
+    * @return the attachment path, or null if no attachment
+    * @throws IllegalArgumentException if issue not found
+    */
+   public String getIssueAttachmentPath(Long issueId) {
+      Issue issue = repository.findById(issueId);
+      if (issue == null) {
+         throw new IllegalArgumentException("Issue not found");
+      }
+      return issue.getAttachmentPath();
+   }
+
+   /**
+    * Checks if an issue has an attachment.
+    * @throws IllegalArgumentException if issue not found
+    */
+   public boolean issueHasAttachment(Long issueId) {
+      return getIssueAttachmentPath(issueId) != null;
    }
 
    // ==================== BOARD VIEW OPERATIONS ====================
@@ -139,10 +179,22 @@ public class IssueService {
    /**
     * Mark an issue as duplicate of another.
     * Only admins can perform this action.
+    * 
+    * @param duplicateIssueId the ID of the issue to mark as duplicate
+    * @param originalIssueId  the ID of the original issue
+    * @param adminId          the ID of the admin performing the action
     */
    @Transactional
-   public void processDuplicate(Long duplicateIssueId, Long originalIssueId, User admin) {
-      if (admin == null || !admin.isAdmin()) {
+   public void processDuplicate(Long duplicateIssueId, Long originalIssueId, Long adminId) {
+      // Validate admin privileges
+      if (adminId == null) {
+         throw new SecurityException("Authentication required.");
+      }
+      
+      User admin = userRepository.findById(adminId)
+            .orElseThrow(() -> new SecurityException("User not found."));
+      
+      if (!admin.isAdmin()) {
          throw new SecurityException("Only administrators can mark issues as duplicate.");
       }
 

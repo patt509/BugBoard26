@@ -1,11 +1,7 @@
 package com.bugboard.controller;
 
-import com.bugboard.model.Comment;
-import com.bugboard.model.Issue;
-import com.bugboard.repository.CommentRepository;
-import com.bugboard.repository.IssueRepository;
-import com.bugboard.repository.UserRepository;
 import com.bugboard.service.AttachmentService;
+import com.bugboard.service.CommentService;
 import com.bugboard.service.IssueService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
@@ -45,22 +41,16 @@ public class AttachmentResource {
 
    private final AttachmentService attachmentService;
    private final IssueService issueService;
-   private final IssueRepository issueRepository;
-   private final CommentRepository commentRepository;
-   private final UserRepository userRepository;
+   private final CommentService commentService;
 
    @Inject
    public AttachmentResource(
          AttachmentService attachmentService,
          IssueService issueService,
-         IssueRepository issueRepository,
-         CommentRepository commentRepository,
-         UserRepository userRepository) {
+         CommentService commentService) {
       this.attachmentService = attachmentService;
       this.issueService = issueService;
-      this.issueRepository = issueRepository;
-      this.commentRepository = commentRepository;
-      this.userRepository = userRepository;
+      this.commentService = commentService;
    }
 
    // ==================== ISSUE ATTACHMENTS ====================
@@ -88,9 +78,8 @@ public class AttachmentResource {
                   .build();
          }
 
-         // Verify issue exists
-         Issue issue = issueRepository.findById(issueId);
-         if (issue == null) {
+         // Verify issue exists (throws if not found)
+         if (!issueService.validateIssueExists(issueId)) {
             return Response.status(Response.Status.NOT_FOUND)
                   .entity(Map.of("error", "Issue not found"))
                   .build();
@@ -103,8 +92,9 @@ public class AttachmentResource {
          attachmentService.validateAttachment(actualContentType, fileSize, fileName);
 
          // Delete old attachment if exists
-         if (issue.getAttachmentPath() != null) {
-            attachmentService.deleteAttachment(issue.getAttachmentPath());
+         String existingPath = issueService.getIssueAttachmentPath(issueId);
+         if (existingPath != null) {
+            attachmentService.deleteAttachment(existingPath);
          }
 
          // Save new attachment
@@ -149,14 +139,13 @@ public class AttachmentResource {
                   .build();
          }
 
-         Issue issue = issueRepository.findById(issueId);
-         if (issue == null) {
+         if (!issueService.validateIssueExists(issueId)) {
             return Response.status(Response.Status.NOT_FOUND)
                   .entity(Map.of("error", "Issue not found"))
                   .build();
          }
 
-         if (issue.getAttachmentPath() == null) {
+         if (!issueService.issueHasAttachment(issueId)) {
             return Response.status(Response.Status.NOT_FOUND)
                   .entity(Map.of("error", "No attachment found"))
                   .build();
@@ -184,20 +173,20 @@ public class AttachmentResource {
    @Produces({ "image/jpeg", "image/png" })
    public Response getIssueAttachment(@PathParam("issueId") Long issueId) {
       try {
-         Issue issue = issueRepository.findById(issueId);
-         if (issue == null) {
+         if (!issueService.validateIssueExists(issueId)) {
             return Response.status(Response.Status.NOT_FOUND)
                   .entity("Issue not found")
                   .build();
          }
 
-         if (issue.getAttachmentPath() == null) {
+         String attachmentRelativePath = issueService.getIssueAttachmentPath(issueId);
+         if (attachmentRelativePath == null) {
             return Response.status(Response.Status.NOT_FOUND)
                   .entity("No attachment found")
                   .build();
          }
 
-         java.nio.file.Path filePath = attachmentService.getAttachmentPath(issue.getAttachmentPath());
+         java.nio.file.Path filePath = attachmentService.getAttachmentPath(attachmentRelativePath);
          if (!Files.exists(filePath)) {
             return Response.status(Response.Status.NOT_FOUND)
                   .entity("Attachment file not found")
@@ -244,8 +233,7 @@ public class AttachmentResource {
                   .build();
          }
 
-         Comment comment = commentRepository.findById(commentId).orElse(null);
-         if (comment == null) {
+         if (!commentService.validateCommentExists(commentId)) {
             return Response.status(Response.Status.NOT_FOUND)
                   .entity(Map.of("error", "Comment not found"))
                   .build();
@@ -255,17 +243,17 @@ public class AttachmentResource {
          attachmentService.validateAttachment(actualContentType, fileSize, fileName);
 
          // Delete old attachment if exists
-         if (comment.getAttachmentPath() != null) {
-            attachmentService.deleteAttachment(comment.getAttachmentPath());
+         String existingPath = commentService.getCommentAttachmentPath(commentId);
+         if (existingPath != null) {
+            attachmentService.deleteAttachment(existingPath);
          }
 
          // Save new attachment
          String relativePath = attachmentService.saveAttachment(
                fileInputStream, fileName, actualContentType, fileSize, "comments", commentId);
 
-         // Update comment with new attachment path
-         comment.setAttachmentPath(relativePath);
-         commentRepository.save(comment);
+         // Update comment with new attachment path via service
+         commentService.setCommentAttachmentPath(commentId, relativePath);
 
          logger.log(Level.INFO, "User {0} uploaded attachment to comment {1}",
                new Object[] { userId, commentId });
@@ -302,23 +290,21 @@ public class AttachmentResource {
                   .build();
          }
 
-         Comment comment = commentRepository.findById(commentId).orElse(null);
-         if (comment == null) {
+         if (!commentService.validateCommentExists(commentId)) {
             return Response.status(Response.Status.NOT_FOUND)
                   .entity(Map.of("error", "Comment not found"))
                   .build();
          }
 
-         if (comment.getAttachmentPath() == null) {
+         if (!commentService.commentHasAttachment(commentId)) {
             return Response.status(Response.Status.NOT_FOUND)
                   .entity(Map.of("error", "No attachment found"))
                   .build();
          }
 
-         // Delete file and clear path
-         attachmentService.deleteAttachment(comment.getAttachmentPath());
-         comment.removeAttachment();
-         commentRepository.save(comment);
+         // Delete file and clear path via service
+         String oldPath = commentService.removeCommentAttachment(commentId);
+         attachmentService.deleteAttachment(oldPath);
 
          return Response.ok(Map.of("message", "Attachment deleted successfully")).build();
 
@@ -338,20 +324,20 @@ public class AttachmentResource {
    @Produces({ "image/jpeg", "image/png" })
    public Response getCommentAttachment(@PathParam("commentId") Long commentId) {
       try {
-         Comment comment = commentRepository.findById(commentId).orElse(null);
-         if (comment == null) {
+         if (!commentService.validateCommentExists(commentId)) {
             return Response.status(Response.Status.NOT_FOUND)
                   .entity("Comment not found")
                   .build();
          }
 
-         if (comment.getAttachmentPath() == null) {
+         String attachmentRelativePath = commentService.getCommentAttachmentPath(commentId);
+         if (attachmentRelativePath == null) {
             return Response.status(Response.Status.NOT_FOUND)
                   .entity("No attachment found")
                   .build();
          }
 
-         java.nio.file.Path filePath = attachmentService.getAttachmentPath(comment.getAttachmentPath());
+         java.nio.file.Path filePath = attachmentService.getAttachmentPath(attachmentRelativePath);
          if (!Files.exists(filePath)) {
             return Response.status(Response.Status.NOT_FOUND)
                   .entity("Attachment file not found")

@@ -2,8 +2,6 @@ package com.bugboard.controller;
 
 import com.bugboard.dto.*;
 import com.bugboard.enums.UserRole;
-import com.bugboard.model.User;
-import com.bugboard.repository.UserRepository;
 import com.bugboard.service.AuthService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -39,12 +37,10 @@ public class AuthResource {
    private static final Logger logger = Logger.getLogger(AuthResource.class.getName());
 
    private final AuthService authService;
-   private final UserRepository userRepository;
 
    @Inject
-   public AuthResource(AuthService authService, UserRepository userRepository) {
+   public AuthResource(AuthService authService) {
       this.authService = authService;
-      this.userRepository = userRepository;
    }
 
    // ==================== USER ENDPOINTS ====================
@@ -176,7 +172,7 @@ public class AuthResource {
          @HeaderParam("X-User-Id") Long adminId,
          CreateUserRequest request) {
       try {
-         User admin = getAuthenticatedAdmin(adminId);
+         // Admin validation is done inside the service method
 
          if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -195,7 +191,7 @@ public class AuthResource {
             }
          }
 
-         String tempPassword = authService.createUser(request.getEmail().trim(), role, admin);
+         String tempPassword = authService.createUser(request.getEmail().trim(), role, adminId);
 
          return Response.status(Response.Status.CREATED)
                .entity(Map.of(
@@ -228,7 +224,7 @@ public class AuthResource {
    @Path("/admin/password-reset-requests")
    public Response getPendingResetRequests(@HeaderParam("X-User-Id") Long adminId) {
       try {
-         getAuthenticatedAdmin(adminId); // Verifica che sia admin
+         authService.validateAdminPrivileges(adminId); // Verifica che sia admin
 
          List<PasswordResetRequestDTO> requests = authService.getPendingResetRequests();
          return Response.ok(requests).build();
@@ -257,7 +253,7 @@ public class AuthResource {
          @PathParam("requestId") Long requestId,
          Map<String, Boolean> body) {
       try {
-         User admin = getAuthenticatedAdmin(adminId);
+         // Admin validation is done inside the service method
 
          Boolean approve = body.get("approve");
          if (approve == null) {
@@ -266,7 +262,7 @@ public class AuthResource {
                   .build();
          }
 
-         String newPassword = authService.processPasswordResetRequest(requestId, approve, admin);
+         String newPassword = authService.processPasswordResetRequest(requestId, approve, adminId);
 
          if (approve) {
             return Response.ok(Map.of(
@@ -307,9 +303,8 @@ public class AuthResource {
          @HeaderParam("X-User-Id") Long adminId,
          @PathParam("userId") Long userId) {
       try {
-         User admin = getAuthenticatedAdmin(adminId);
-
-         String newPassword = authService.resetUserPassword(userId, admin);
+         // Admin validation is done inside the service method
+         String newPassword = authService.resetUserPassword(userId, adminId);
 
          return Response.ok(Map.of(
                "message", "Password reset successfully",
@@ -330,22 +325,5 @@ public class AuthResource {
                .entity(Map.of("error", "Internal server error"))
                .build();
       }
-   }
-
-   // ==================== HELPER METHODS ====================
-
-   private User getAuthenticatedAdmin(Long userId) {
-      if (userId == null) {
-         throw new SecurityException("Authentication required");
-      }
-
-      User user = userRepository.findById(userId)
-            .orElseThrow(() -> new SecurityException("User not found"));
-
-      if (!user.isAdmin()) {
-         throw new SecurityException("Admin privileges required");
-      }
-
-      return user;
    }
 }

@@ -4,8 +4,7 @@ import com.bugboard.dto.DashboardStatsDTO;
 import com.bugboard.dto.IssueDTO;
 import com.bugboard.enums.IssueStatus;
 import com.bugboard.enums.PriorityLevel;
-import com.bugboard.model.User;
-import com.bugboard.repository.UserRepository;
+import com.bugboard.service.AuthService;
 import com.bugboard.service.IssueService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -39,12 +38,12 @@ public class IssueResource {
    private static final Logger logger = Logger.getLogger(IssueResource.class.getName());
 
    private final IssueService issueService;
-   private final UserRepository userRepository;
+   private final AuthService authService;
 
    @Inject
-   public IssueResource(IssueService issueService, UserRepository userRepository) {
+   public IssueResource(IssueService issueService, AuthService authService) {
       this.issueService = issueService;
-      this.userRepository = userRepository;
+      this.authService = authService;
    }
 
    // ==================== PUBLIC ENDPOINTS (ALL USERS) ====================
@@ -116,12 +115,7 @@ public class IssueResource {
          @HeaderParam("X-User-Id") Long userId,
          IssueDTO issueDTO) {
       try {
-         User reporter = null;
-         if (userId != null) {
-            reporter = userRepository.findById(userId).orElse(null);
-         }
-
-         Long id = issueService.createIssue(issueDTO, reporter);
+         Long id = issueService.createIssue(issueDTO, userId);
          return Response.status(Response.Status.CREATED)
                .entity(Map.of("id", id, "message", "Issue created successfully"))
                .build();
@@ -176,7 +170,8 @@ public class IssueResource {
    @Path("/admin/dashboard")
    public Response getDashboardStats(@HeaderParam("X-User-Id") Long adminId) {
       try {
-         User admin = getAuthenticatedAdmin(adminId);
+         // Validate admin privileges via AuthService
+         authService.validateAdminPrivileges(adminId);
 
          DashboardStatsDTO stats = issueService.getDashboardStats();
          return Response.ok(stats).build();
@@ -203,9 +198,8 @@ public class IssueResource {
          @PathParam("id") Long duplicateId,
          @PathParam("originalId") Long originalId) {
       try {
-         User admin = getAuthenticatedAdmin(adminId);
-
-         issueService.processDuplicate(duplicateId, originalId, admin);
+         // Admin validation is done inside the service method
+         issueService.processDuplicate(duplicateId, originalId, adminId);
          return Response.ok(Map.of(
                "message", "Issue marked as duplicate successfully",
                "duplicateId", duplicateId,
@@ -232,22 +226,5 @@ public class IssueResource {
                .entity(Map.of("error", "An unexpected error occurred"))
                .build();
       }
-   }
-
-   // ==================== HELPER METHODS ====================
-
-   private User getAuthenticatedAdmin(Long userId) {
-      if (userId == null) {
-         throw new SecurityException("Authentication required");
-      }
-
-      User user = userRepository.findById(userId)
-            .orElseThrow(() -> new SecurityException("User not found"));
-
-      if (!user.isAdmin()) {
-         throw new SecurityException("Admin privileges required");
-      }
-
-      return user;
    }
 }

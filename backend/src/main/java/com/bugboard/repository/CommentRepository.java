@@ -1,7 +1,6 @@
 package com.bugboard.repository;
 
 import com.bugboard.model.Comment;
-import com.bugboard.model.Issue;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;

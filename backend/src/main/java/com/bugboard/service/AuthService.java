@@ -42,27 +42,22 @@ public class AuthService {
     * Generates a temporary password that the admin will communicate physically to
     * the employee.
     * 
-    * @param email     email of the new user
-    * @param role      user role
-    * @param adminUser the admin creating the user
+    * @param email   email of the new user
+    * @param role    user role
+    * @param adminId the ID of the admin creating the user
     * @return the generated temporary password (to be communicated to the employee)
     */
    @Transactional
-   public String createUser(String email, UserRole role, User adminUser) {
+   public String createUser(String email, UserRole role, Long adminId) {
+      // Validate admin privileges
+      User admin = getValidatedAdmin(adminId);
+      
       // Verify if inputs are valid
-      if (adminUser == null) {
-         throw new IllegalArgumentException("Admin user is required.");
-      }
       if (email == null || email.trim().isEmpty()) {
          throw new IllegalArgumentException("Email is required.");
       }
       if (role == null) {
          throw new IllegalArgumentException("User role is required.");
-      }
-
-      // Verify that the caller is admin
-      if (!adminUser.isAdmin()) {
-         throw new SecurityException("Only administrators can create users.");
       }
 
       // Verify that the email is not already registered
@@ -78,9 +73,8 @@ public class AuthService {
       User newUser = new User(email, hashedPassword, role);
       userRepository.save(newUser);
 
-      // TODO: replace getEmail with getUsername if we switch to usernames for login
       logger.log(Level.INFO, "Admin {0} created new user with email {1}",
-            new Object[] { adminUser.getEmail(), email });
+            new Object[] { admin.getEmail(), email });
 
       // Return the temporary password (admin will communicate it physically)
       return tempPassword;
@@ -89,18 +83,17 @@ public class AuthService {
    /**
     * Admin resets a user's password.
     * 
+    * @param userId  the ID of the user whose password will be reset
+    * @param adminId the ID of the admin performing the reset
     * @return the new temporary password
     */
    @Transactional
-   public String resetUserPassword(Long userId, User adminUser) {
-      if (adminUser == null) {
-         throw new IllegalArgumentException("Admin user is required.");
-      }
+   public String resetUserPassword(Long userId, Long adminId) {
+      // Validate admin privileges
+      User admin = getValidatedAdmin(adminId);
+      
       if (userId == null) {
          throw new IllegalArgumentException("User ID is required.");
-      }
-      if (!adminUser.isAdmin()) {
-         throw new SecurityException("Only administrators can reset passwords.");
       }
 
       User user = userRepository.findById(userId)
@@ -115,7 +108,7 @@ public class AuthService {
       userRepository.save(user);
 
       logger.log(Level.INFO, "Admin {0} reset password for user {1}",
-            new Object[] { adminUser.getEmail(), user.getEmail() });
+            new Object[] { admin.getEmail(), user.getEmail() });
 
       return newTempPassword;
    }
@@ -125,18 +118,16 @@ public class AuthService {
     * 
     * @param requestId request ID
     * @param approve   true to approve (resets password), false to reject
+    * @param adminId   the ID of the admin processing the request
     * @return the new password if approved, null if rejected
     */
    @Transactional
-   public String processPasswordResetRequest(Long requestId, boolean approve, User adminUser) {
-      if (adminUser == null) {
-         throw new IllegalArgumentException("Admin user is required.");
-      }
+   public String processPasswordResetRequest(Long requestId, boolean approve, Long adminId) {
+      // Validate admin privileges
+      User admin = getValidatedAdmin(adminId);
+      
       if (requestId == null) {
          throw new IllegalArgumentException("Request ID is required.");
-      }
-      if (!adminUser.isAdmin()) {
-         throw new SecurityException("Only administrators can process reset requests.");
       }
 
       PasswordResetRequest request = resetRequestRepository.findById(requestId)
@@ -147,15 +138,15 @@ public class AuthService {
       }
 
       if (approve) {
-         request.markAsCompleted(adminUser);
+         request.markAsCompleted(admin);
          resetRequestRepository.save(request);
          // Actually reset the password
-         return resetUserPassword(request.getUser().getId(), adminUser);
+         return resetUserPassword(request.getUser().getId(), adminId);
       } else {
-         request.markAsRejected(adminUser);
+         request.markAsRejected(admin);
          resetRequestRepository.save(request);
          logger.log(Level.INFO, "Admin {0} rejected password reset for user {1}",
-               new Object[] { adminUser.getEmail(), request.getUser().getEmail() });
+               new Object[] { admin.getEmail(), request.getUser().getEmail() });
          return null;
       }
    }
@@ -303,6 +294,35 @@ public class AuthService {
    }
 
    // ==================== HELPER METHODS ====================
+
+   /**
+    * Validates that the given user ID corresponds to an authenticated admin.
+    * This method is used internally by the service layer to verify admin privileges.
+    * 
+    * @param adminId the user ID to validate
+    * @throws SecurityException if user is null, not found, or not an admin
+    */
+   public void validateAdminPrivileges(Long adminId) {
+      if (adminId == null) {
+         throw new SecurityException("Authentication required.");
+      }
+      
+      User admin = userRepository.findById(adminId)
+            .orElseThrow(() -> new SecurityException("User not found."));
+      
+      if (!admin.isAdmin()) {
+         throw new SecurityException("Admin privileges required.");
+      }
+   }
+
+   /**
+    * Internal helper to get admin User after validation.
+    * Used by service methods that need to log admin actions.
+    */
+   private User getValidatedAdmin(Long adminId) {
+      validateAdminPrivileges(adminId);
+      return userRepository.findById(adminId).orElseThrow();
+   }
 
    private String generateTemporaryPassword() {
       SecureRandom random = new SecureRandom();
