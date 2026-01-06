@@ -208,6 +208,7 @@ public class AuthServiceTest {
     */
    @Test(expected = IllegalArgumentException.class)
    public void testFinalizeProfile_TC5_DuplicateUsername() {
+      when(userRepository.existsByUsername("user5")).thenReturn(true);
       authService.finalizeProfile(5L, "user5");
    }
 
