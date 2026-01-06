@@ -30,13 +30,11 @@ public class CommentService {
    /**
     * Validates that a comment exists.
     * @param commentId the comment ID to validate
-    * @throws IllegalArgumentException if comment not found
+    * @return true if comment exists, false otherwise
     */
-   public void validateCommentExists(Long commentId) {
+   public boolean validateCommentExists(Long commentId) {
       Comment comment = commentRepository.findById(commentId).orElse(null);
-      if (comment == null) {
-         throw new IllegalArgumentException("Comment not found");
-      }
+      return comment != null;
    }
 
    // ==================== ATTACHMENT OPERATIONS ====================

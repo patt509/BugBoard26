@@ -155,27 +155,33 @@ La seguente tabella descrive i test case progettati per verificare il comportame
     \hline
     \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
     \hline
-    TC1 & Issues 10 (TODO) and 20 exist. Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, admin & None & Issue 10 status is CLOSED, closedAt $\neq$ null, originalIssue = 20. \\
+    TC1 & Issues 10 (TODO) and 20 exist. Admin user with ID=1 exists in DB. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, \seqsplit{adminId}=1 & None & Issue 10 status is CLOSED, closedAt $\neq$ null, originalIssue = 20. \\
     \hline
-    TC2 & System active. Non-Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, user & \seqsplit{SecurityException} & No changes to Issue states. \\
+    TC2 & System active. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, \seqsplit{adminId}=null & \seqsplit{SecurityException} & No changes to Issue states. \\
     \hline
-    TC3 & System active. Admin user is null. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, admin=null & \seqsplit{SecurityException} & No changes to Issue states. \\
+    TC3 & System active. No user with ID=999 in DB. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, \seqsplit{adminId}=999 & \seqsplit{SecurityException} & No changes to Issue states. \\
     \hline
-    TC4 & System active. Admin user logged in. & \seqsplit{duplicateIssueId}=null, \seqsplit{originalIssueId}=20, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
+    TC4 & System active. Non-admin user with ID=2 exists in DB. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, \seqsplit{adminId}=2 & \seqsplit{SecurityException} & No changes to Issue states. \\
     \hline
-    TC5 & System active. Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=null, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
+    TC5 & System active. Admin user with ID=1 exists in DB. & \seqsplit{duplicateIssueId}=null, \seqsplit{originalIssueId}=20, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
     \hline
-    TC6 & Issue 10 exists. Original issue 20 does not exist in the DB. Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
+    TC6 & System active. Admin user with ID=1 exists in DB. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=null, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
     \hline
-    TC7 & Issue 10 exists (TODO). Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=10, admin & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
+    TC7 & Duplicate issue 10 does not exist. Original issue 20 exists. Admin with ID=1 exists. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
     \hline
-    TC8 & Issue 10 is already CLOSED. Admin user logged in. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, admin & \seqsplit{IllegalStateException} & Issue 10 state remains unchanged. \\
+    TC8 & Duplicate issue 10 exists. Original issue 20 does not exist. Admin with ID=1 exists. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
+    \hline
+    TC9 & Issue 10 exists (TODO). Admin user with ID=1 exists in DB. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=10, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
+    \hline
+    TC10 & Issue 10 is already CLOSED. Issue 20 exists. Admin with ID=1 exists. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, \seqsplit{adminId}=1 & \seqsplit{IllegalStateException} & Issue 10 state remains unchanged. \\
+    \hline
+    TC11 & Neither issue 10 nor issue 20 exist in DB. Admin with ID=1 exists. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
     \hline
 \end{tabularx}
 }
 
 \subsubsection{Codice per test di unità automatici (8.4.b)}
-I test di unità sono stati realizzati utilizzando il framework \textbf{JUnit 4} e la libreria di mocking \textbf{Mockito}. La classe di test \texttt{IssueServiceTest.java} implementa gli 8 scenari descritti nel Test Plan, assicurando l'isolamento della logica di business dai componenti di persistenza. Il codice è strutturato per verificare sia il corretto aggiornamento dello stato delle entità (TC1) sia il sollevamento delle eccezioni appropriate in caso di violazione dei vincoli (TC2-TC8).
+I test di unità sono stati realizzati utilizzando il framework \textbf{JUnit 4} e la libreria di mocking \textbf{Mockito}. La classe di test \texttt{IssueServiceTest.java} implementa i 11 scenari descritti nel Test Plan, assicurando l'isolamento della logica di business dai componenti di persistenza. Il codice è strutturato per verificare sia il corretto aggiornamento dello stato delle entità (TC1) sia il sollevamento delle eccezioni appropriate in caso di violazione dei vincoli (TC2-TC11).
 
 Il codice dei test è consultabile nel repository GitHub (\href{https://github.com/patt509/BugBoard26.git}{\texttt{\seqsplit{https://github.com/patt509/BugBoard26.git}}}) al seguente percorso: \texttt{\seqsplit{backend/src/test/java/com/bugboard/service/IssueServiceTest.java}.}
 
@@ -183,9 +189,9 @@ Il codice dei test è consultabile nel repository GitHub (\href{https://github.c
 Per la progettazione della suite di test è stato adottato un approccio di \textbf{White Box Testing}, focalizzato sulla copertura strutturale del codice sorgente. Sono state coperte dai TC tutte le righe di codice e i rami decisionali della funzione \texttt{processDuplicate}.
 
 \begin{itemize}
-    \item \textbf{Criterio di copertura strutturale (Branch Coverage):} I test case sono stati definiti per garantire che ogni ramo decisionale (\textit{branch}) delle istruzioni condizionali presenti nel metodo \texttt{processDuplicate} venga eseguito almeno una volta. Ad esempio, i TC2-TC3 coprono il ramo relativo ai controlli di sicurezza, mentre i TC4-TC7 coprono le validazioni degli input e l'integrità del dominio.
+    \item \textbf{Criterio di copertura strutturale (Branch Coverage):} I test case sono stati definiti per garantire che ogni ramo decisionale (\textit{branch}) delle istruzioni condizionali presenti nel metodo \texttt{processDuplicate} venga eseguito almeno una volta. Ad esempio, i TC2-TC4 coprono il ramo relativo ai controlli di sicurezza, mentre i TC5-TC11 coprono le validazioni degli input e l'integrità del dominio, inclusi i casi di non esistenza (singolo issue o entrambi).
     \item \textbf{Analisi delle classi di equivalenza:} Sono state identificate partizioni di input valide (Admin autenticato, ID esistenti e distinti) e non valide (User semplice, ID null o coincidenti) per minimizzare la ridondanza dei test massimizzando la capacità di individuare bug.
-    \item \textbf{Analisi dei valori limite:} Il test TC7 verifica specificamente il caso limite in cui l'ID della risorsa duplicata coincide con quello della risorsa originale, prevenendo stati inconsistenti nel sistema.
+    \item \textbf{Analisi dei valori limite:} Il test TC9 verifica specificamente il caso limite in cui l'ID della risorsa duplicata coincide con quello della risorsa originale, prevenendo stati inconsistenti nel sistema. I TC7, TC8 e TC11 coprono invece le verifiche di esistenza delle risorse nel repository (uno mancante, l'altro mancante, o entrambi mancanti).
     \item \textbf{Utilizzo di Mock e Spy:} La strategia ha previsto l'uso di \texttt{Mockito.spy()} per monitorare il comportamento delle istanze di \texttt{Issue} e \texttt{verify()} per accertarsi che il salvataggio sul repository avvenga solo nelle condizioni di successo previste.
 \end{itemize}
 
@@ -201,28 +207,30 @@ La seguente tabella descrive i test case progettati per verificare il comportame
     \hline
     \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
     \hline
-    TC1 & Admin logged in. Admin is in the user creation page. & \seqsplit{email=`user1@test.com'}, role=USER, admin & \seqsplit{tempPassword} (String) & User is created and saved in the DB. \\
+    TC1 & Admin user with ID=1 exists in DB. Admin is in the user creation page. & \seqsplit{email=`user1@test.com'}, role=USER, \seqsplit{adminId}=1 & \seqsplit{tempPassword} (String) & User is created and saved in the DB. \\
     \hline
-    TC2 & Admin logged in. Admin is in the user creation page. & \seqsplit{email=`admin2@test.com'}, role=ADMIN, admin & \seqsplit{tempPassword} (String) & Admin user is created and saved in the DB. \\
+    TC2 & Admin user with ID=1 exists in DB. Admin is in the user creation page. & \seqsplit{email=`admin2@test.com'}, role=ADMIN, \seqsplit{adminId}=1 & \seqsplit{tempPassword} (String) & Admin user is created and saved in the DB. \\
     \hline
-    TC3 & System active. & email=`u@t.com', role=USER, \seqsplit{adminUser}=null & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    TC3 & System active. & \seqsplit{email=`u@t.com'}, role=USER, \seqsplit{adminId}=null & \seqsplit{SecurityException} & No changes to the database. \\
     \hline
-    TC4 & Admin user logged in. & email= (or null), role=USER, admin & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    TC4 & System active. No user with ID=999 in DB. & \seqsplit{email=`u@t.com'}, role=USER, \seqsplit{adminId}=999 & \seqsplit{SecurityException} & No changes to the database. \\
     \hline
-    TC5 & Admin user logged in. & email= (or empty), role=USER, admin & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    TC5 & Admin user with ID=1 exists in DB. & email=null, role=USER, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
-    TC6 & Admin user logged in. & email=`u@t.com', role=null, admin & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    TC6 & Admin user with ID=1 exists in DB. & email=`` (empty), role=USER, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
-    TC7 & A non-admin user is logged in. & email=`u@t.com', role=USER, user (\seqsplit{isAdmin}=false) & \seqsplit{SecurityException} & No changes to the database. \\
+    TC7 & Admin user with ID=1 exists in DB. & \seqsplit{email=`u@t.com'}, role=null, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
-    TC8 & Email exist@test.com already in DB. Admin logged in. & \seqsplit{email=`exist@test.com'}, role=USER, admin & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    TC8 & Non-admin user with ID=2 exists in DB. & \seqsplit{email=`u@t.com'}, role=USER, \seqsplit{adminId}=2 & \seqsplit{SecurityException} & No changes to the database. \\
+    \hline
+    TC9 & Email exist@test.com already in DB. Admin user with ID=1 exists in DB. & \seqsplit{email=`exist@test.com'}, role=USER, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
 \end{tabularx}
 }
 
 \subsubsection{Codice per test di unità automatici (8.4.b)}
 
-I test di unità per il metodo \texttt{createUser} sono stati realizzati utilizzando il framework \textbf{JUnit 4} e la libreria di mocking \textbf{Mockito}. La classe di test \texttt{AuthServiceTest.java} implementa gli 8 scenari descritti nel Test Plan, assicurando la corretta validazione degli input, il controllo dei permessi amministrativi e l'unicità delle email. La suite verifica inoltre che la generazione della password temporanea avvenga esclusivamente nei casi di successo (TC1-TC2) e che nessuna operazione di persistenza venga eseguita in presenza di errori (TC3-TC8).
+I test di unità per il metodo \texttt{createUser} sono stati realizzati utilizzando il framework \textbf{JUnit 4} e la libreria di mocking \textbf{Mockito}. La classe di test \texttt{AuthServiceTest.java} implementa i 9 scenari descritti nel Test Plan, assicurando la corretta validazione degli input, il controllo dei permessi amministrativi e l'unicità delle email. La suite verifica inoltre che la generazione della password temporanea avvenga esclusivamente nei casi di successo (TC1-TC2) e che nessuna operazione di persistenza venga eseguita in presenza di errori (TC3-TC9).
 
 Il codice dei test è consultabile nel repository GitHub (\href{https://github.com/patt509/BugBoard26.git}{\texttt{\seqsplit{https://github.com/patt509/BugBoard26.git}}}) al seguente percorso: \texttt{\seqsplit{backend/src/test/java/com/bugboard/service/AuthServiceTest.java}.}
 
@@ -231,9 +239,9 @@ Il codice dei test è consultabile nel repository GitHub (\href{https://github.c
 Per la progettazione della suite di test è stato adottato un approccio di \textbf{White Box Testing}, focalizzato sulla copertura strutturale del codice sorgente. Sono state coperte dai TC tutte le righe di codice e i rami decisionali della funzione \texttt{createUser}.
 
 \begin{itemize}
-    \item \textbf{Criterio di copertura strutturale (Branch Coverage):} I test case sono stati definiti per garantire che ogni ramo decisionale delle istruzioni condizionali presenti nel metodo \texttt{createUser} venga eseguito almeno una volta. I TC3-TC6 verificano i controlli di validazione degli input (null/empty), il TC7 copre il controllo dei permessi amministrativi e il TC8 verifica il vincolo di unicità dell'email.
+    \item \textbf{Criterio di copertura strutturale (Branch Coverage):} I test case sono stati definiti per garantire che ogni ramo decisionale delle istruzioni condizionali presenti nel metodo \texttt{createUser} venga eseguito almeno una volta. I TC3-TC4 verificano i controlli di autenticazione dell'amministratore (ID null o non trovato), i TC5-TC7 coprono la validazione degli input (email/role null/empty), il TC8 copre il controllo dei permessi amministrativi e il TC9 verifica il vincolo di unicità dell'email.
     \item \textbf{Analisi delle classi di equivalenza:} Sono state identificate partizioni di input valide (Admin autenticato, email valida e non presente nel sistema) e non valide (parametri null/empty, utente non admin, email duplicata) per minimizzare la ridondanza dei test massimizzando la capacità di individuare bug.
-    \item \textbf{Testing degli effetti collaterali:} Per i casi di errore (TC3-TC8), oltre alla verifica del sollevamento dell'eccezione appropriata, è stato utilizzato \texttt{verify(userRepository, never()).save(any(User.class))} per garantire che nessuna operazione di persistenza venga eseguita in presenza di violazioni dei vincoli.
+    \item \textbf{Testing degli effetti collaterali:} Per i casi di errore (TC3-TC9), oltre alla verifica del sollevamento dell'eccezione appropriata, è stato utilizzato \texttt{verify(userRepository, never()).save(any(User.class))} per garantire che nessuna operazione di persistenza venga eseguita in presenza di violazioni dei vincoli.
     \item \textbf{Utilizzo di Mock Objects:} La strategia ha previsto l'uso di \texttt{Mockito} per simulare il comportamento del \texttt{UserRepository}, permettendo di testare la logica di business in isolamento dal layer di persistenza. Il mock è configurato per restituire \texttt{true} o \texttt{false} dal metodo \texttt{existsByEmail()} a seconda dello scenario testato.
 \end{itemize}
 

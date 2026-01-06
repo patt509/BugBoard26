@@ -108,13 +108,11 @@ public class IssueService {
 
    /**
     * Checks if an issue exists.
-    * @throws IllegalArgumentException if issue not found
+    * @return true if issue exists, false otherwise
     */
-   public void validateIssueExists(Long issueId) {
+   public boolean validateIssueExists(Long issueId) {
       Issue issue = repository.findById(issueId);
-      if (issue == null) {
-         throw new IllegalArgumentException("Issue not found");
-      }
+      return issue != null;
    }
 
    /**
