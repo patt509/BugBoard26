@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import com.bugboard.repository.UserRepository;
 import com.bugboard.model.User;
+import com.bugboard.dto.UserDTO;
 import java.util.Optional;
 import static com.bugboard.enums.UserRole.*;
 
@@ -30,7 +31,7 @@ public class AuthServiceTest {
       admin = spy(new User("admin@test.com", "password", ADMIN));
       normalUser = spy(new User("user@test.com", "password", USER));
    }
-   
+
    /* Test on createUser method */
 
    /**
@@ -154,5 +155,70 @@ public class AuthServiceTest {
 
    /* Test on finalizeProfile method */
 
-   
+   /**
+    * TC1: Success scenario - User finalizes profile with valid username.
+    * Expected Output: UserDTO with username.
+    * PostConditions: User's username is updated in the DB, firstLogin flag is set
+    * to false.
+    */
+   @Test
+   public void testFinalizeProfile_TC1_Success() {
+      when(userRepository.findById(5L)).thenReturn(Optional.of(normalUser));
+      UserDTO user5 = authService.finalizeProfile(5L, "user5");
+      assertEquals("PostCond failed: username should be updated", "user5", user5.getUsername());
+      assertEquals("PostCond failed: username should be updated", "user5", normalUser.getUsername());
+      assertFalse("PostCond failed: firstLogin should be false", normalUser.isFirstLogin());
+      verify(userRepository).save(normalUser);
+   }
+
+   /**
+    * TC2: Failure scenario - ID parameter is null.
+    * Expected Output: IllegalArgumentException
+    * PostConditions: No changes to the database.
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testFinalizeProfile_TC2_NullUsername() {
+      authService.finalizeProfile(null, "User5");
+   }
+
+   /**
+    * TC3: Failure scenario - Username parameter is null.
+    * Expected Output: IllegalArgumentException
+    * PostConditions: No changes to the database.
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testFinalizeProfile_TC3_EmptyUsername() {
+      authService.finalizeProfile(5L, null);
+   }
+
+   /**
+    * TC4: Failure scenario - Username parameter is empty string.
+    * Expected Output: IllegalArgumentException
+    * PostConditions: No changes to the database.
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testFinalizeProfile_TC4_EmptyUsername() {
+      authService.finalizeProfile(5L, "");
+   }
+
+   /**
+    * TC5: Failure scenario - Username already exists in the database.
+    * Expected Output: IllegalArgumentException
+    * PostConditions: No changes to the database.
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testFinalizeProfile_TC5_DuplicateUsername() {
+      authService.finalizeProfile(5L, "user5");
+   }
+
+   /**
+    * TC6: Failure scenario - User with userId = 5 does not exist in the database.
+    * Expected Output: IllegalArgumentException
+    * PostConditions: No changes to the database.
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testFinalizeProfile_TC6_UserNotFound() {
+      when(userRepository.findById(5L)).thenReturn(Optional.empty());
+      authService.finalizeProfile(5L, "user5");
+   }
 }
