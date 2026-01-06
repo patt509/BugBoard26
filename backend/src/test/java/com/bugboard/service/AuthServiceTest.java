@@ -30,6 +30,8 @@ public class AuthServiceTest {
       admin = spy(new User("admin@test.com", "password", ADMIN));
       normalUser = spy(new User("user@test.com", "password", USER));
    }
+   
+   /* Test on createUser method */
 
    /**
     * TC1: Success scenario - Admin creates a new regular USER account.
@@ -147,4 +149,10 @@ public class AuthServiceTest {
       // Ensure no user was saved
       verify(userRepository, never()).save(any(User.class));
    }
+
+   /* _________________________________________________________________________ */
+
+   /* Test on finalizeProfile method */
+
+   
 }

@@ -143,8 +143,6 @@ Il metodo \texttt{createUser} (esposto dall'\texttt{AdminController}) permette a
 
 \section{Attività di Testing} % Capitolo 4 richiesto dalla traccia [cite: 197]
 
-Di seguito verranno descritte le attività di verifica condotte sulle logiche di business principali del sistema BugBoard26 (metodi \texttt{processDuplicate}, \texttt{createUser} e \texttt{finalizeProfile}).
-
 \subsection{Analisi testing processDuplicate}
 
 \subsubsection{Test Plan (8.4.a)}
@@ -217,7 +215,7 @@ La seguente tabella descrive i test case progettati per verificare il comportame
     \hline
     TC5 & Admin user with ID=1 exists in DB. & email=null, role=USER, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
-    TC6 & Admin user with ID=1 exists in DB. & email=`` (empty), role=USER, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    TC6 & Admin user with ID=1 exists in DB. & email="", role=USER, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
     TC7 & Admin user with ID=1 exists in DB. & \seqsplit{email=`u@t.com'}, role=null, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
@@ -247,7 +245,7 @@ Per la progettazione della suite di test è stato adottato un approccio di \text
 
 \clearpage
 
-\subsection{finalizeProfile (da documentare)}
+\subsection{Analisi testing finalizeProfile}
 
 \noindent{\small
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
@@ -260,9 +258,11 @@ Per la progettazione della suite di test è stato adottato un approccio di \text
     \hline
     TC3 & The user has just logged in for the first time. & \seqsplit{userId}=5, \seqsplit{chosenUsername}=null & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
-    TC4 & A user with username `user5' already exists in the system. & \seqsplit{userId}=5, \seqsplit{chosenUsername=`user5'} & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    TC4 & The user has just logged in for the first time. & \seqsplit{userId}=5, \seqsplit{chosenUsername}="" & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
-    TC5 & System active. User with userId=5 does not exist in the DB. & \seqsplit{userId}=5, \seqsplit{chosenUsername=`user5'} & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    TC5 & A user with username `user5' already exists in the system. & \seqsplit{userId}=5, \seqsplit{chosenUsername=`user5'} & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    \hline
+    TC6 & System active. User with userId=5 does not exist in the DB. & \seqsplit{userId}=5, \seqsplit{chosenUsername=`user5'} & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
 \end{tabularx}
 }
