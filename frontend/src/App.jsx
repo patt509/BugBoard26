@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
-import Login from './Login'
-import Dashboard from './Dashboard'
-import './App.css'
+import Login from './pages/Login'
+import Issues from './pages/Issues'
 
 function App() {
   const [user, setUser] = useState(null);
@@ -26,14 +25,17 @@ function App() {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('user');
     setUser(null);
   };
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner">🐛</div>
-        <p>Loading BugBoard...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -41,7 +43,7 @@ function App() {
   return (
     <>
       {user ? (
-        <Dashboard user={user} onLogout={handleLogout} />
+        <Issues user={user} onLogout={handleLogout} />
       ) : (
         <Login onLoginSuccess={handleLoginSuccess} />
       )}
