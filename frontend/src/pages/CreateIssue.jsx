@@ -84,13 +84,28 @@ const removeAttachment = (id) => {
 const handleSubmit = async (e) => {
    e.preventDefault();
    setError(null);
+   
+   // Client-side validation
+   if (!formData.title || formData.title.trim().length < 10) {
+      setError('Title must be at least 10 characters.');
+      return;
+   }
+   if (!formData.description || formData.description.trim().length === 0) {
+      setError('Description cannot be empty.');
+      return;
+   }
+   if (!user?.id) {
+      setError('User not authenticated. Please login again.');
+      return;
+   }
+   
    setLoading(true);
 
    try {
       // Create issue data
       const issueData = {
-         title: formData.title,
-         description: formData.description,
+         title: formData.title.trim(),
+         description: formData.description.trim(),
          priority: formData.priority,
          // Add other fields as needed by backend
       };

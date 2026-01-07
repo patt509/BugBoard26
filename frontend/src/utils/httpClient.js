@@ -18,12 +18,15 @@ class HttpClient {
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
     
+    // Extract headers separately to avoid being overwritten by spread
+    const { headers: customHeaders, ...restOptions } = options;
+    
     const config = {
+      ...restOptions,
       headers: {
         'Content-Type': 'application/json',
-        ...options.headers,
+        ...customHeaders,
       },
-      ...options,
     };
 
     try {

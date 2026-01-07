@@ -115,7 +115,21 @@ public class IssueResource {
          @HeaderParam("X-User-Id") Long userId,
          IssueDTO issueDTO) {
       try {
+         // Validate userId is provided
+         if (userId == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                  .entity(Map.of("error", "X-User-Id header is required"))
+                  .build();
+         }
+         
          Long id = issueService.createIssue(issueDTO, userId);
+         
+         if (id == null) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                  .entity(Map.of("error", "Failed to create issue - no ID returned"))
+                  .build();
+         }
+         
          return Response.status(Response.Status.CREATED)
                .entity(Map.of("id", id, "message", "Issue created successfully"))
                .build();
@@ -126,7 +140,7 @@ public class IssueResource {
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error creating issue", e);
          return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Error creating issue"))
+               .entity(Map.of("error", "Error creating issue: " + e.getMessage()))
                .build();
       }
    }

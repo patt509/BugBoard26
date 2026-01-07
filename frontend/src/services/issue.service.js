@@ -31,7 +31,9 @@ export const issueService = {
    */
   create(issueData, userId) {
     return httpClient.post(API_ENDPOINTS.ISSUES, issueData, {
-      'X-User-Id': userId
+      headers: {
+        'X-User-Id': userId
+      }
     });
   },
 
