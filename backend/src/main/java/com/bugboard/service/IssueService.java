@@ -28,6 +28,12 @@ public class IssueService {
    private final IssueRepository repository;
    private final UserRepository userRepository;
 
+   // CDI requires no-arg constructor for proxy
+   protected IssueService() {
+      this.repository = null;
+      this.userRepository = null;
+   }
+
    @Inject
    public IssueService(IssueRepository repository, UserRepository userRepository) {
       this.repository = repository;

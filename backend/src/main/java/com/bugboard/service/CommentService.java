@@ -20,6 +20,11 @@ public class CommentService {
 
    private final CommentRepository commentRepository;
 
+   // CDI requires no-arg constructor for proxy
+   protected CommentService() {
+      this.commentRepository = null;
+   }
+
    @Inject
    public CommentService(CommentRepository commentRepository) {
       this.commentRepository = commentRepository;

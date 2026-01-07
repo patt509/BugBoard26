@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
+         version="6.0">
+    
+    <display-name>BugBoard Backend</display-name>
+    
+    <data-source>
+        <name>java:app/jdbc/bugboard</name>
+        <class-name>org.postgresql.ds.PGSimpleDataSource</class-name>
+        <server-name>${ENV=DB_HOST:localhost}</server-name>
+        <port-number>5432</port-number>
+        <database-name>${ENV=DB_NAME:bugboard}</database-name>
+        <user>${ENV=DB_USER:postgres}</user>
+        <password>${ENV=DB_PASSWORD:postgres}</password>
+    </data-source>
+</web-app>
