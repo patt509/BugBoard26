@@ -133,7 +133,10 @@ const handleSubmit = async (e) => {
       }
 
       if (onSuccess) {
-         onSuccess();
+         onSuccess({
+            id: issueId,
+            title: formData.title.trim()
+         });
       }
    } catch (err) {
       console.error('Error creating issue:', err);

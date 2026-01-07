@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, CheckCircle, X } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { issueService } from '../services/issue.service';
 
-function Issues({ user, onLogout, onCreateIssue }) {
+function Issues({ user, onLogout, onCreateIssue, successMessage, onDismissSuccess }) {
   const [currentPage, setCurrentPage] = useState('issues');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -212,6 +212,22 @@ function Issues({ user, onLogout, onCreateIssue }) {
           </div>
         </div>
       </main>
+
+      {/* Success Toast Notification */}
+      {successMessage && (
+        <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 animate-slide-up z-50">
+          <div className="bg-green-50 border border-green-200 rounded-lg shadow-lg px-6 py-4 flex items-center gap-3 min-w-[400px]">
+            <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
+            <span className="text-green-800 font-medium flex-1">{successMessage}</span>
+            <button
+              onClick={onDismissSuccess}
+              className="text-green-600 hover:text-green-800 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

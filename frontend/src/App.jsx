@@ -7,6 +7,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentView, setCurrentView] = useState('issues'); // 'issues' or 'create'
+  const [successMessage, setSuccessMessage] = useState(null);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -39,8 +40,15 @@ function App() {
     setCurrentView('issues');
   };
 
-  const handleCreateSuccess = () => {
+  const handleCreateSuccess = (issueInfo) => {
     setCurrentView('issues');
+    if (issueInfo) {
+      setSuccessMessage(`Issue #${issueInfo.id} '${issueInfo.title}' created successfully!`);
+      // Auto-dismiss after 4 seconds
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 4000);
+    }
   };
 
   if (loading) {
@@ -69,6 +77,8 @@ function App() {
             user={user}
             onLogout={handleLogout}
             onCreateIssue={handleCreateIssue}
+            successMessage={successMessage}
+            onDismissSuccess={() => setSuccessMessage(null)}
           />
         )
       ) : (
