@@ -26,10 +26,13 @@ export const issueService = {
   /**
    * Create new issue
    * @param {Object} issueData - Issue data
-   * @returns {Promise<Object>} Created issue
+   * @param {number} userId - User ID for the X-User-Id header
+   * @returns {Promise<Object>} Created issue response with id
    */
-  create(issueData) {
-    return httpClient.post(API_ENDPOINTS.ISSUES, issueData);
+  create(issueData, userId) {
+    return httpClient.post(API_ENDPOINTS.ISSUES, issueData, {
+      'X-User-Id': userId
+    });
   },
 
   /**

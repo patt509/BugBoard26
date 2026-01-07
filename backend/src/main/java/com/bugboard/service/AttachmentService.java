@@ -24,12 +24,10 @@ public class AttachmentService {
    // Configuration constants
    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
-         "image/jpeg",
          "image/jpg",
          "image/png");
    private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
          ".jpg",
-         ".jpeg",
          ".png");
 
    // Base directory for storing attachments
@@ -76,7 +74,7 @@ public class AttachmentService {
       String extension = getFileExtension(fileName);
       if (!ALLOWED_EXTENSIONS.contains(extension.toLowerCase())) {
          throw new IllegalArgumentException(
-               "Invalid file extension. Only .jpg, .jpeg, and .png are allowed.");
+               "Invalid file extension. Only .jpg and .png are allowed.");
       }
 
       // Generate unique filename to prevent overwrites and path traversal

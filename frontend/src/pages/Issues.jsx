@@ -3,7 +3,7 @@ import { Search, Plus } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { issueService } from '../services/issue.service';
 
-function Issues({ user, onLogout }) {
+function Issues({ user, onLogout, onCreateIssue }) {
   const [currentPage, setCurrentPage] = useState('issues');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -123,7 +123,10 @@ function Issues({ user, onLogout }) {
             </select>
 
             {/* New Issue Button */}
-            <button className="ml-auto flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+            <button 
+              onClick={onCreateIssue}
+              className="ml-auto flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
               <Plus size={20} />
               New Issue
             </button>

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import Login from './pages/Login'
 import Issues from './pages/Issues'
+import CreateIssue from './pages/CreateIssue'
 
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentView, setCurrentView] = useState('issues'); // 'issues' or 'create'
 
   useEffect(() => {
     // Check if user is already logged in
@@ -29,6 +31,18 @@ function App() {
     setUser(null);
   };
 
+  const handleCreateIssue = () => {
+    setCurrentView('create');
+  };
+
+  const handleCancelCreate = () => {
+    setCurrentView('issues');
+  };
+
+  const handleCreateSuccess = () => {
+    setCurrentView('issues');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -43,7 +57,20 @@ function App() {
   return (
     <>
       {user ? (
-        <Issues user={user} onLogout={handleLogout} />
+        currentView === 'create' ? (
+          <CreateIssue
+            user={user}
+            onLogout={handleLogout}
+            onCancel={handleCancelCreate}
+            onSuccess={handleCreateSuccess}
+          />
+        ) : (
+          <Issues
+            user={user}
+            onLogout={handleLogout}
+            onCreateIssue={handleCreateIssue}
+          />
+        )
       ) : (
         <Login onLoginSuccess={handleLoginSuccess} />
       )}

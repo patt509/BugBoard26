@@ -1,0 +1,46 @@
+import httpClient from '../utils/httpClient';
+
+const ENDPOINT = '/attachments';
+
+export const attachmentService = {
+  /**
+   * Fetch attachment constraints/info from backend
+   */
+  getInfo() {
+    return httpClient.get(`${ENDPOINT}/info`);
+  },
+
+  /**
+   * Upload an attachment for an issue
+   * @param {number} issueId
+   * @param {File} file
+   * @param {number} userId
+   */
+  async uploadIssueAttachment(issueId, file, userId) {
+    const url = `${ENDPOINT}/issues/${issueId}`;
+    const form = new FormData();
+    form.append('file', file, file.name);
+
+    const headers = {
+      // Let browser set Content-Type for multipart
+      'X-User-Id': userId != null ? String(userId) : undefined,
+      'X-File-Name': file.name,
+      'X-File-Size': String(file.size),
+    };
+
+    const response = await fetch(`/api${url}`, {
+      method: 'POST',
+      body: form,
+      headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || `Upload failed with status ${response.status}`);
+    }
+
+    return response.json();
+  },
+};
+
+export default attachmentService;
