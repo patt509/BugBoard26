@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Upload } from 'lucide-react';
+import { X, Upload, AlertTriangle } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { issueService } from '../services/issue.service';
 import { attachmentService } from '../services/attachment.service';
@@ -17,6 +17,8 @@ function CreateIssue({ user, onLogout, onCancel, onSuccess }) {
    const [attachments, setAttachments] = useState([]);
    const [loading, setLoading] = useState(false);
    const [error, setError] = useState(null);
+   const [titleError, setTitleError] = useState(null);
+   const [fileSizeError, setFileSizeError] = useState(null);
    const [attachInfo, setAttachInfo] = useState({ maxFileSizeMB: 5, allowedExtensions: ['.jpg', '.jpeg', '.png'] });
 
    // Fetch attachment constraints from backend
@@ -36,10 +38,20 @@ function CreateIssue({ user, onLogout, onCancel, onSuccess }) {
    const handleInputChange = (e) => {
       const { name, value } = e.target;
       setFormData(prev => ({ ...prev, [name]: value }));
+      
+      // Validazione titolo in tempo reale
+      if (name === 'title') {
+         if (value.length > 0 && value.length < 10) {
+            setTitleError('Title must be at least 10 characters long.');
+         } else {
+            setTitleError(null);
+         }
+      }
    };
 
 const handleFileUpload = (e) => {
    setError(null);
+   setFileSizeError(null);
    const file = e.target.files && e.target.files[0];
    if (!file) return;
 
@@ -47,12 +59,12 @@ const handleFileUpload = (e) => {
    // Validate size
    const maxBytes = attachInfo.maxFileSizeMB * 1024 * 1024;
    if (file.size > maxBytes) {
-      setError(`File size exceeds maximum allowed size of ${attachInfo.maxFileSizeMB} MB`);
+      setFileSizeError(`File is too large (Max ${attachInfo.maxFileSizeMB}MB).`);
       return;
    }
 
    if (file.size <= 0) {
-      setError('File is empty');
+      setFileSizeError('File is empty');
       return;
    }
 
@@ -61,7 +73,7 @@ const handleFileUpload = (e) => {
    const ext = name.includes('.') ? name.substring(name.lastIndexOf('.')).toLowerCase() : '';
    const allowed = (attachInfo.allowedExtensions || ['.jpg', '.jpeg', '.png']).map(s => s.toLowerCase());
    if (!allowed.includes(ext)) {
-      setError('Invalid file type. Only JPG and PNG images are allowed.');
+      setFileSizeError('Invalid file type. Only JPG and PNG images are allowed.');
       return;
    }
 
@@ -78,6 +90,7 @@ const handleFileUpload = (e) => {
 
 const removeAttachment = (id) => {
    setAttachments(prev => prev.filter(att => att.id !== id));
+   setFileSizeError(null);
 };
 
 
@@ -185,10 +198,15 @@ return (
                      name="title"
                      value={formData.title}
                      onChange={handleInputChange}
-                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                     className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        titleError ? 'border-red-500' : 'border-gray-300'
+                     }`}
                      placeholder="Brief summary of the issue"
                      required
                   />
+                  {titleError && (
+                     <p className="mt-1 text-sm text-blue-600">{titleError}</p>
+                  )}
                </div>
 
                {/* Type, Priority, Assignee Row */}
@@ -331,12 +349,23 @@ return (
                         ))}
                      </div>
                   )}
+
+                  {/* File Size Error - styled like mockup M9 */}
+                  {fileSizeError && (
+                     <div className="mt-3 flex items-center gap-2 px-4 py-3 bg-red-500 text-white rounded-lg">
+                        <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                        <span className="text-sm font-medium">{fileSizeError}</span>
+                     </div>
+                  )}
                </div>
 
-               {/* Error Message */}
+               {/* Error Message - styled like mockup M11 (service unavailable) */}
                {error && (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                     <p className="text-sm text-red-800">{error}</p>
+                  <div className="flex items-center gap-2 px-4 py-3 bg-red-500 text-white rounded-lg">
+                     <div className="flex-shrink-0 w-5 h-5 bg-white rounded-full flex items-center justify-center">
+                        <X className="w-3 h-3 text-red-500" />
+                     </div>
+                     <span className="text-sm font-medium">{error}</span>
                   </div>
                )}
 
@@ -352,7 +381,7 @@ return (
                   </button>
                   <button
                      type="submit"
-                     disabled={loading}
+                     disabled={loading || titleError || fileSizeError}
                      className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                      {loading ? 'Creating...' : 'Create Issue'}

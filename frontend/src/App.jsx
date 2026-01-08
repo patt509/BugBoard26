@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react'
 import Login from './pages/Login'
 import Issues from './pages/Issues'
 import CreateIssue from './pages/CreateIssue'
+import IssueDetail from './pages/IssueDetail'
 
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [currentView, setCurrentView] = useState('issues'); // 'issues' or 'create'
+  const [currentView, setCurrentView] = useState('issues'); // 'issues', 'create', or 'detail'
+  const [selectedIssueId, setSelectedIssueId] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
   useEffect(() => {
@@ -51,6 +53,16 @@ function App() {
     }
   };
 
+  const handleIssueClick = (issueId) => {
+    setSelectedIssueId(issueId);
+    setCurrentView('detail');
+  };
+
+  const handleBackFromDetail = () => {
+    setSelectedIssueId(null);
+    setCurrentView('issues');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -72,11 +84,19 @@ function App() {
             onCancel={handleCancelCreate}
             onSuccess={handleCreateSuccess}
           />
+        ) : currentView === 'detail' && selectedIssueId ? (
+          <IssueDetail
+            user={user}
+            onLogout={handleLogout}
+            issueId={selectedIssueId}
+            onBack={handleBackFromDetail}
+          />
         ) : (
           <Issues
             user={user}
             onLogout={handleLogout}
             onCreateIssue={handleCreateIssue}
+            onIssueClick={handleIssueClick}
             successMessage={successMessage}
             onDismissSuccess={() => setSuccessMessage(null)}
           />

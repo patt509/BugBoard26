@@ -18,21 +18,31 @@ export const commentService = {
   /**
    * Create new comment
    * @param {number} issueId - Issue ID
-   * @param {Object} commentData - Comment data
+   * @param {Object} commentData - Comment data (text, authorId)
    * @returns {Promise<Object>} Created comment
    */
   create(issueId, commentData) {
-    return httpClient.post(API_ENDPOINTS.ISSUE_COMMENTS(issueId), commentData);
+    const userId = commentData.authorId;
+    return httpClient.post(API_ENDPOINTS.ISSUE_COMMENTS(issueId), commentData, {
+      headers: {
+        'X-User-Id': userId
+      }
+    });
   },
 
   /**
    * Delete comment
    * @param {number} issueId - Issue ID
    * @param {number} commentId - Comment ID
+   * @param {number} userId - User ID for authorization
    * @returns {Promise<void>}
    */
-  delete(issueId, commentId) {
-    return httpClient.delete(API_ENDPOINTS.ISSUE_COMMENT_BY_ID(issueId, commentId));
+  delete(issueId, commentId, userId) {
+    return httpClient.delete(API_ENDPOINTS.ISSUE_COMMENT_BY_ID(issueId, commentId), {
+      headers: {
+        'X-User-Id': userId
+      }
+    });
   },
 };
 

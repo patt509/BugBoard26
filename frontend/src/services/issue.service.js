@@ -50,11 +50,11 @@ export const issueService = {
   /**
    * Update issue status
    * @param {number} id - Issue ID
-   * @param {string} status - New status
+   * @param {string} status - New status (TODO, IN_PROGRESS, RESOLVED, CLOSED)
    * @returns {Promise<Object>} Updated issue
    */
   updateStatus(id, status) {
-    return httpClient.patch(API_ENDPOINTS.ISSUE_STATUS(id), { status });
+    return httpClient.patch(`${API_ENDPOINTS.ISSUE_STATUS(id)}?newStatus=${status}`);
   },
 
   /**

@@ -3,7 +3,7 @@ import { Search, Plus, CheckCircle, X } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { issueService } from '../services/issue.service';
 
-function Issues({ user, onLogout, onCreateIssue, successMessage, onDismissSuccess }) {
+function Issues({ user, onLogout, onCreateIssue, onIssueClick, successMessage, onDismissSuccess }) {
   const [currentPage, setCurrentPage] = useState('issues');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -32,20 +32,50 @@ function Issues({ user, onLogout, onCreateIssue, successMessage, onDismissSucces
 
   const getStatusBadgeClass = (status) => {
     const classes = {
-      Open: 'bg-green-100 text-green-800',
-      'In Progress': 'bg-blue-100 text-blue-800',
-      Closed: 'bg-gray-100 text-gray-800',
+      'TODO': 'bg-green-100 text-green-700',
+      'Open': 'bg-green-100 text-green-700',
+      'IN_PROGRESS': 'bg-blue-100 text-blue-700',
+      'In Progress': 'bg-blue-100 text-blue-700',
+      'RESOLVED': 'bg-purple-100 text-purple-700',
+      'Resolved': 'bg-purple-100 text-purple-700',
+      'CLOSED': 'bg-gray-100 text-gray-700',
+      'Closed': 'bg-gray-100 text-gray-700',
     };
-    return classes[status] || 'bg-gray-100 text-gray-800';
+    return classes[status] || 'bg-gray-100 text-gray-700';
+  };
+
+  const getStatusLabel = (status) => {
+    const labels = {
+      'TODO': 'Open',
+      'IN_PROGRESS': 'In Progress',
+      'RESOLVED': 'Resolved',
+      'CLOSED': 'Closed',
+    };
+    return labels[status] || status;
   };
 
   const getPriorityBadgeClass = (priority) => {
     const classes = {
-      High: 'bg-red-100 text-red-800',
-      Medium: 'bg-orange-100 text-orange-800',
-      Low: 'bg-yellow-100 text-yellow-800',
+      'CRITICAL': 'bg-red-500 text-white',
+      'Critical': 'bg-red-500 text-white',
+      'HIGH': 'bg-red-100 text-red-700',
+      'High': 'bg-red-100 text-red-700',
+      'MEDIUM': 'bg-yellow-100 text-yellow-700',
+      'Medium': 'bg-yellow-100 text-yellow-700',
+      'LOW': 'bg-green-100 text-green-700',
+      'Low': 'bg-green-100 text-green-700',
     };
-    return classes[priority] || 'bg-gray-100 text-gray-800';
+    return classes[priority] || 'bg-gray-100 text-gray-700';
+  };
+
+  const getPriorityLabel = (priority) => {
+    const labels = {
+      'CRITICAL': 'Critical',
+      'HIGH': 'High',
+      'MEDIUM': 'Medium',
+      'LOW': 'Low',
+    };
+    return labels[priority] || priority;
   };
 
   return (
@@ -184,7 +214,11 @@ function Issues({ user, onLogout, onCreateIssue, successMessage, onDismissSucces
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {issues.map((issue) => (
-                    <tr key={issue.id} className="hover:bg-gray-50 cursor-pointer transition-colors">
+                    <tr 
+                      key={issue.id} 
+                      className="hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={() => onIssueClick && onIssueClick(issue.id)}
+                    >
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         #{issue.id}
                       </td>
@@ -193,12 +227,12 @@ function Issues({ user, onLogout, onCreateIssue, successMessage, onDismissSucces
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(issue.status)}`}>
-                          {issue.status}
+                          {getStatusLabel(issue.status)}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${getPriorityBadgeClass(issue.priority)}`}>
-                          {issue.priority}
+                          {getPriorityLabel(issue.priority)}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
