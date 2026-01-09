@@ -20,7 +20,7 @@ function CreateIssue({ user, onLogout, onCancel, onSuccess, editingIssue }) {
    const [error, setError] = useState(null);
    const [titleError, setTitleError] = useState(null);
    const [fileError, setFileError] = useState(null);
-   const [attachInfo, setAttachInfo] = useState({ maxFileSizeMB: 5, allowedExtensions: ['.jpg', '.png'] });
+   const [attachInfo, setAttachInfo] = useState({ maxFileSizeMB: 5, allowedExtensions: ['.jpg', '.jpeg', '.png'] });
 
    // Fetch attachment constraints from backend
    useEffect(() => {
@@ -85,7 +85,7 @@ const handleFileUpload = (e) => {
    // Validate extension - use server-provided allowed extensions when available
    const fileName = file.name || '';
    const ext = fileName.includes('.') ? fileName.substring(fileName.lastIndexOf('.')).toLowerCase() : '';
-   const allowed = (attachInfo.allowedExtensions || ['.jpg', '.png']).map(a => {
+   const allowed = (attachInfo.allowedExtensions || ['.jpg', '.jpeg', '.png']).map(a => {
       const lower = a.toLowerCase();
       return lower.startsWith('.') ? lower : `.${lower}`;
    });
@@ -141,7 +141,7 @@ const handleSubmit = async (e) => {
       
       const fileName = file.name || '';
       const ext = fileName.includes('.') ? fileName.substring(fileName.lastIndexOf('.')).toLowerCase() : '';
-      const allowed = (attachInfo.allowedExtensions || ['.jpg', '.png']).map(a => {
+      const allowed = (attachInfo.allowedExtensions || ['.jpg', '.jpeg', '.png']).map(a => {
          const lower = a.toLowerCase();
          return lower.startsWith('.') ? lower : `.${lower}`;
       });
@@ -350,7 +350,7 @@ return (
                         id="file-upload"
                         onChange={handleFileUpload}
                         className="hidden"
-                        accept={(attachInfo.allowedExtensions || ['.jpg', '.png']).join(',')}
+                        accept={(attachInfo.allowedExtensions || ['.jpg', '.jpeg', '.png']).join(',')}
                      />
                      <label
                         htmlFor="file-upload"

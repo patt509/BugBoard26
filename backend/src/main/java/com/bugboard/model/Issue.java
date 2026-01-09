@@ -35,6 +35,7 @@ public class Issue {
    private Issue originalIssue;
 
    private LocalDateTime createdAt;
+   private LocalDateTime updatedAt;
    private LocalDateTime closedAt;
    private String attachmentPath; // Requisito 7
 
@@ -56,6 +57,7 @@ public class Issue {
       this.status = IssueStatus.TODO;
       this.priority = PriorityLevel.MEDIUM;
       this.createdAt = LocalDateTime.now();
+      this.updatedAt = LocalDateTime.now();
    }
 
    // 3. GETTERS AND SETTERS
@@ -69,6 +71,7 @@ public class Issue {
          throw new IllegalArgumentException("Title must be at least 10 characters.");
       }
       this.title = title;
+      this.updatedAt = LocalDateTime.now();
    }
 
    public PriorityLevel getPriority() {
@@ -77,6 +80,7 @@ public class Issue {
 
    public void setPriority(PriorityLevel priority) {
       this.priority = priority;
+      this.updatedAt = LocalDateTime.now();
    }
 
    public String getDescription() {
@@ -85,6 +89,7 @@ public class Issue {
 
    public void setDescription(String description) {
       this.description = description;
+      this.updatedAt = LocalDateTime.now();
    }
 
    public Long getId() {
@@ -107,6 +112,7 @@ public class Issue {
          this.closedAt = null;
       }
       this.status = status;
+      this.updatedAt = LocalDateTime.now();
    }
 
    public User getReporter() {
@@ -123,10 +129,15 @@ public class Issue {
 
    public void setAttachmentPath(String attachmentPath) {
       this.attachmentPath = attachmentPath;
+      this.updatedAt = LocalDateTime.now();
    }
 
    public LocalDateTime getCreatedAt() {
       return createdAt;
+   }
+
+   public LocalDateTime getUpdatedAt() {
+      return updatedAt;
    }
 
    public LocalDateTime getClosedAt() {

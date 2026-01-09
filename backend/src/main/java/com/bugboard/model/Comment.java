@@ -52,6 +52,7 @@ public class Comment {
       this.issue = issue;
       this.author = author;
       this.createdAt = LocalDateTime.now();
+      this.updatedAt = LocalDateTime.now();
    }
 
    // Getters
@@ -97,9 +98,11 @@ public class Comment {
 
    public void setAttachmentPath(String attachmentPath) {
       this.attachmentPath = attachmentPath;
+      this.updatedAt = LocalDateTime.now();
    }
 
    public void removeAttachment() {
       this.attachmentPath = null;
+      this.updatedAt = LocalDateTime.now();
    }
 }

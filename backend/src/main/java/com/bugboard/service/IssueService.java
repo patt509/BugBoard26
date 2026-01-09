@@ -320,6 +320,7 @@ public class IssueService {
             .priority(issue.getPriority().toString())
             .reporterName(reporterName)
             .createdAt(issue.getCreatedAt())
+            .updatedAt(issue.getUpdatedAt())
             .closedAt(issue.getClosedAt())
             .attachmentPath(issue.getAttachmentPath())
             .originalIssueId(issue.getOriginalIssueId())

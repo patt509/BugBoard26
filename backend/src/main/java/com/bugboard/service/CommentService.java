@@ -83,6 +83,29 @@ public class CommentService {
    }
 
    /**
+    * Update an existing comment.
+    * Only the author can update their own comment.
+    * @param commentId the comment ID
+    * @param text the new comment text
+    * @param userId the user ID attempting the update
+    */
+   @Transactional
+   public void updateComment(Long commentId, String text, Long userId) {
+      Comment comment = commentRepository.findById(commentId)
+            .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
+      
+      // Check if user is the author
+      if (!comment.getAuthor().getId().equals(userId)) {
+         throw new SecurityException("Only the author can update this comment");
+      }
+      
+      comment.setText(text);  // This also sets updatedAt
+      commentRepository.save(comment);
+      
+      logger.log(Level.INFO, "Updated comment {0} by user {1}", new Object[]{commentId, userId});
+   }
+
+   /**
     * Delete a comment.
     * @param commentId the comment ID
     */

@@ -92,6 +92,48 @@ public class CommentResource {
    }
 
    /**
+    * Update an existing comment.
+    */
+   @PUT
+   @Path("/{commentId}")
+   public Response updateComment(
+         @PathParam("issueId") Long issueId,
+         @PathParam("commentId") Long commentId,
+         @HeaderParam("X-User-Id") Long userId,
+         CommentDTO commentDTO) {
+      try {
+         if (userId == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                  .entity(Map.of("error", "X-User-Id header is required"))
+                  .build();
+         }
+
+         if (commentDTO.getText() == null || commentDTO.getText().trim().isEmpty()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                  .entity(Map.of("error", "Comment text is required"))
+                  .build();
+         }
+
+         commentService.updateComment(commentId, commentDTO.getText(), userId);
+         
+         return Response.ok(Map.of("message", "Comment updated successfully")).build();
+      } catch (SecurityException e) {
+         return Response.status(Response.Status.FORBIDDEN)
+               .entity(Map.of("error", e.getMessage()))
+               .build();
+      } catch (IllegalArgumentException e) {
+         return Response.status(Response.Status.NOT_FOUND)
+               .entity(Map.of("error", e.getMessage()))
+               .build();
+      } catch (Exception e) {
+         logger.log(Level.SEVERE, "Error updating comment " + commentId, e);
+         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+               .entity(Map.of("error", "Error updating comment"))
+               .build();
+      }
+   }
+
+   /**
     * Delete a comment.
     */
    @DELETE
