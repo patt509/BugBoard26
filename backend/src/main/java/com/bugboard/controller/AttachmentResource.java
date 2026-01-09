@@ -85,7 +85,8 @@ public class AttachmentResource {
                   .build();
          }
 
-         // Derive content type from file name (more reliable than Content-Type header for multipart)
+         // Derive content type from file name (more reliable than Content-Type header
+         // for multipart)
          String actualContentType = deriveContentTypeFromFileName(fileName);
          if (actualContentType == null) {
             // Fallback to extracting from header
@@ -246,7 +247,8 @@ public class AttachmentResource {
                   .build();
          }
 
-         // Derive content type from file name (more reliable than Content-Type header for multipart)
+         // Derive content type from file name (more reliable than Content-Type header
+         // for multipart)
          String actualContentType = deriveContentTypeFromFileName(fileName);
          if (actualContentType == null) {
             // Fallback to extracting from header
@@ -402,7 +404,7 @@ public class AttachmentResource {
       }
       return contentType;
    }
-   
+
    /**
     * Derives the content type from the file extension.
     * More reliable than parsing multipart headers.
