@@ -1,6 +1,8 @@
 package com.bugboard.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -32,6 +34,68 @@ public class AttachmentService {
 
    // Base directory for storing attachments
    private static final String UPLOAD_DIR = "uploads/attachments";
+
+   /**
+    * Extracts the actual file content from a multipart/form-data body.
+    * Multipart bodies contain boundary markers and headers that need to be stripped.
+    * 
+    * @param inputStream The raw multipart input stream
+    * @return A clean InputStream containing only the file bytes
+    * @throws IOException if reading fails
+    */
+   public InputStream extractFileFromMultipart(InputStream inputStream) throws IOException {
+      // Read entire body into byte array
+      ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+      byte[] data = new byte[8192];
+      int bytesRead;
+      while ((bytesRead = inputStream.read(data, 0, data.length)) != -1) {
+         buffer.write(data, 0, bytesRead);
+      }
+      byte[] bodyBytes = buffer.toByteArray();
+      
+      // Convert to string to find boundaries (for small headers)
+      String bodyStr = new String(bodyBytes, 0, Math.min(bodyBytes.length, 2000), "UTF-8");
+      
+      // Find the start of actual file content (after the headers end with \r\n\r\n)
+      int contentStart = -1;
+      for (int i = 0; i < bodyBytes.length - 4; i++) {
+         if (bodyBytes[i] == '\r' && bodyBytes[i+1] == '\n' && 
+             bodyBytes[i+2] == '\r' && bodyBytes[i+3] == '\n') {
+            contentStart = i + 4;
+            break;
+         }
+      }
+      
+      if (contentStart == -1) {
+         // No multipart headers found, return as-is
+         return new ByteArrayInputStream(bodyBytes);
+      }
+      
+      // Find the boundary at the end (starts with \r\n--)
+      int contentEnd = bodyBytes.length;
+      for (int i = bodyBytes.length - 1; i >= contentStart + 4; i--) {
+         if (bodyBytes[i-3] == '\r' && bodyBytes[i-2] == '\n' && 
+             bodyBytes[i-1] == '-' && bodyBytes[i] == '-') {
+            // Found end boundary, go back to the \r\n
+            contentEnd = i - 3;
+            break;
+         }
+      }
+      
+      // Extract just the file content
+      int length = contentEnd - contentStart;
+      if (length <= 0) {
+         return new ByteArrayInputStream(bodyBytes);
+      }
+      
+      byte[] fileContent = new byte[length];
+      System.arraycopy(bodyBytes, contentStart, fileContent, 0, length);
+      
+      logger.log(Level.INFO, "Extracted file content: {0} bytes from {1} byte body", 
+            new Object[]{length, bodyBytes.length});
+      
+      return new ByteArrayInputStream(fileContent);
+   }
 
    /**
     * Validates and saves an attachment file.

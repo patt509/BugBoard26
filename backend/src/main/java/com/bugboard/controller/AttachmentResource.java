@@ -101,9 +101,12 @@ public class AttachmentResource {
             attachmentService.deleteAttachment(existingPath);
          }
 
+         // Extract actual file content from multipart body
+         java.io.InputStream cleanFileStream = attachmentService.extractFileFromMultipart(fileInputStream);
+
          // Save new attachment
          String relativePath = attachmentService.saveAttachment(
-               fileInputStream, fileName, actualContentType, fileSize, "issues", issueId);
+               cleanFileStream, fileName, actualContentType, fileSize, "issues", issueId);
 
          // Update issue with new attachment path
          issueService.setAttachmentPath(issueId, relativePath);
@@ -257,9 +260,12 @@ public class AttachmentResource {
             attachmentService.deleteAttachment(existingPath);
          }
 
+         // Extract actual file content from multipart body
+         java.io.InputStream cleanFileStream = attachmentService.extractFileFromMultipart(fileInputStream);
+
          // Save new attachment
          String relativePath = attachmentService.saveAttachment(
-               fileInputStream, fileName, actualContentType, fileSize, "comments", commentId);
+               cleanFileStream, fileName, actualContentType, fileSize, "comments", commentId);
 
          // Update comment with new attachment path via service
          commentService.setCommentAttachmentPath(commentId, relativePath);

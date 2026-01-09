@@ -510,7 +510,7 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, successMess
                   <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center overflow-hidden">
                       <img
-                        src={`/api/attachments/download?path=${encodeURIComponent(issue.attachmentPath)}`}
+                        src={`/api/attachments/issues/${issue.id}`}
                         alt="Attachment preview"
                         className="w-full h-full object-cover"
                         onError={(e) => {
@@ -525,7 +525,7 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, successMess
                       </p>
                     </div>
                     <a
-                      href={`/api/attachments/download?path=${encodeURIComponent(issue.attachmentPath)}`}
+                      href={`/api/attachments/issues/${issue.id}`}
                       download
                       className="p-2 hover:bg-gray-200 rounded transition-colors"
                     >
