@@ -18,7 +18,7 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, successMess
   // Comment attachment state
   const [commentAttachment, setCommentAttachment] = useState(null);
   const [commentAttachmentError, setCommentAttachmentError] = useState(null);
-  const [attachInfo, setAttachInfo] = useState({ maxFileSizeMB: 5, allowedExtensions: ['.jpg', '.jpeg', '.png'] });
+  const [attachInfo, setAttachInfo] = useState({ maxFileSizeMB: 5, allowedExtensions: ['.jpg', '.png'] });
   
   // Flag as Duplicate modal state
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -108,7 +108,7 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, successMess
     // Validate extension
     const fileName = file.name || '';
     const ext = fileName.includes('.') ? fileName.substring(fileName.lastIndexOf('.')).toLowerCase() : '';
-    const allowed = (attachInfo.allowedExtensions || ['.jpg', '.jpeg', '.png']).map(a => {
+    const allowed = (attachInfo.allowedExtensions || ['.jpg', '.png']).map(a => {
       const lower = a.toLowerCase();
       return lower.startsWith('.') ? lower : `.${lower}`;
     });
@@ -140,7 +140,7 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, successMess
 
       const fileName = commentAttachment.name || '';
       const ext = fileName.includes('.') ? fileName.substring(fileName.lastIndexOf('.')).toLowerCase() : '';
-      const allowed = (attachInfo.allowedExtensions || ['.jpg', '.jpeg', '.png']).map(a => {
+      const allowed = (attachInfo.allowedExtensions || ['.jpg', '.png']).map(a => {
         const lower = a.toLowerCase();
         return lower.startsWith('.') ? lower : `.${lower}`;
       });
@@ -621,7 +621,7 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, successMess
                         type="file"
                         onChange={handleCommentAttachment}
                         className="hidden"
-                        accept={(attachInfo.allowedExtensions || ['.jpg', '.jpeg', '.png']).join(',')}
+                        accept={(attachInfo.allowedExtensions || ['.jpg', '.png']).join(',')}
                         disabled={commentLoading}
                       />
                       <Paperclip className="w-5 h-5 text-gray-500" />
