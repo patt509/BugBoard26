@@ -38,8 +38,8 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, successMessage, o
       'In Progress': 'bg-blue-100 text-blue-700',
       'RESOLVED': 'bg-purple-100 text-purple-700',
       'Resolved': 'bg-purple-100 text-purple-700',
-      'CLOSED': 'bg-gray-100 text-gray-700',
-      'Closed': 'bg-gray-100 text-gray-700',
+      'CLOSED': 'bg-red-100 text-red-700',
+      'Closed': 'bg-red-100 text-red-700',
     };
     return classes[status] || 'bg-gray-100 text-gray-700';
   };
@@ -216,7 +216,11 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, successMessage, o
                   {issues.map((issue) => (
                     <tr 
                       key={issue.id} 
-                      className="hover:bg-gray-50 cursor-pointer transition-colors"
+                      className={`hover:bg-gray-50 cursor-pointer transition-colors ${
+                        (issue.status === 'CLOSED' || issue.status === 'RESOLVED') 
+                          ? 'bg-gray-50 opacity-75' 
+                          : ''
+                      }`}
                       onClick={() => onIssueClick && onIssueClick(issue.id)}
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">

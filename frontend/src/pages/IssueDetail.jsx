@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Download, Flag, Edit, ChevronDown, Send, AlertCircle, X, CheckCircle, Search } from 'lucide-react';
+import { ArrowLeft, Download, Flag, Edit, ChevronDown, Send, AlertCircle, X, CheckCircle, Search, Upload, Paperclip } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { issueService } from '../services/issue.service';
 import { commentService } from '../services/comment.service';
+import { attachmentService } from '../services/attachment.service';
 
 function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, successMessage, onDismissSuccess }) {
   const [currentPage] = useState('issues');
@@ -14,6 +15,11 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, successMess
   const [commentLoading, setCommentLoading] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   
+  // Comment attachment state
+  const [commentAttachment, setCommentAttachment] = useState(null);
+  const [commentAttachmentError, setCommentAttachmentError] = useState(null);
+  const [attachInfo, setAttachInfo] = useState({ maxFileSizeMB: 5, allowedExtensions: ['.jpg', '.png'] });
+  
   // Flag as Duplicate modal state
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [allIssues, setAllIssues] = useState([]);
@@ -21,6 +27,20 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, successMess
   const [duplicateSearchQuery, setDuplicateSearchQuery] = useState('');
   const [flaggingDuplicate, setFlaggingDuplicate] = useState(false);
   const [duplicateSuccess, setDuplicateSuccess] = useState(null);
+
+  // Fetch attachment constraints
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const info = await attachmentService.getInfo();
+        if (mounted && info) setAttachInfo(info);
+      } catch (e) {
+        console.warn('Could not fetch attachment info, using defaults', e);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const fetchIssueData = useCallback(async () => {
     try {
@@ -67,9 +87,68 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, successMess
     }
   };
 
+  // Handle comment attachment selection
+  const handleCommentAttachment = (e) => {
+    setCommentAttachmentError(null);
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    // Validate size
+    const maxBytes = attachInfo.maxFileSizeMB * 1024 * 1024;
+    if (file.size > maxBytes) {
+      setCommentAttachmentError(`File is too large (Max ${attachInfo.maxFileSizeMB}MB).`);
+      return;
+    }
+
+    if (file.size <= 0) {
+      setCommentAttachmentError('File is empty');
+      return;
+    }
+
+    // Validate extension
+    const fileName = file.name || '';
+    const ext = fileName.includes('.') ? fileName.substring(fileName.lastIndexOf('.')).toLowerCase() : '';
+    const allowed = (attachInfo.allowedExtensions || ['.jpg', '.png']).map(a => {
+      const lower = a.toLowerCase();
+      return lower.startsWith('.') ? lower : `.${lower}`;
+    });
+    if (!allowed.includes(ext)) {
+      setCommentAttachmentError(`Invalid file type. Only ${allowed.join(', ')} images are allowed.`);
+      return;
+    }
+
+    setCommentAttachment(file);
+  };
+
+  // Remove comment attachment
+  const removeCommentAttachment = () => {
+    setCommentAttachment(null);
+    setCommentAttachmentError(null);
+  };
+
   const handleSubmitComment = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
+
+    // Validate attachment before submitting
+    if (commentAttachment) {
+      const maxBytes = attachInfo.maxFileSizeMB * 1024 * 1024;
+      if (commentAttachment.size > maxBytes) {
+        setCommentAttachmentError(`File is too large (Max ${attachInfo.maxFileSizeMB}MB).`);
+        return;
+      }
+
+      const fileName = commentAttachment.name || '';
+      const ext = fileName.includes('.') ? fileName.substring(fileName.lastIndexOf('.')).toLowerCase() : '';
+      const allowed = (attachInfo.allowedExtensions || ['.jpg', '.png']).map(a => {
+        const lower = a.toLowerCase();
+        return lower.startsWith('.') ? lower : `.${lower}`;
+      });
+      if (!allowed.includes(ext)) {
+        setCommentAttachmentError(`Invalid file type. Only ${allowed.join(', ')} images are allowed.`);
+        return;
+      }
+    }
 
     try {
       setCommentLoading(true);
@@ -78,8 +157,22 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, successMess
         authorId: user?.id
       };
       
-      await commentService.create(issueId, commentData);
+      const result = await commentService.create(issueId, commentData);
+      const commentId = result?.id;
+      
+      // If there's an attachment, upload it
+      if (commentAttachment && commentId) {
+        try {
+          await attachmentService.uploadCommentAttachment(commentId, commentAttachment, user?.id);
+        } catch (uploadErr) {
+          console.error('Error uploading comment attachment:', uploadErr);
+          // Comment was created but attachment failed - still show comment
+        }
+      }
+      
       setNewComment('');
+      setCommentAttachment(null);
+      setCommentAttachmentError(null);
       
       // Refresh comments
       const updatedComments = await commentService.getByIssueId(issueId);
@@ -153,7 +246,7 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, successMess
       'TODO': 'bg-green-100 text-green-800',
       'IN_PROGRESS': 'bg-blue-100 text-blue-800',
       'RESOLVED': 'bg-purple-100 text-purple-800',
-      'CLOSED': 'bg-gray-100 text-gray-800',
+      'CLOSED': 'bg-red-100 text-red-800',
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
@@ -265,9 +358,31 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, successMess
               >
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
               </button>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Issue #{issue?.id}: {issue?.title}
-              </h1>
+              <div className="relative">
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Issue #{issue?.id}: {issue?.title}
+                </h1>
+                {/* DUPLICATE Stamp Overlay on Title */}
+                {issue?.originalIssueId && (
+                  <div 
+                    className="absolute inset-0 flex items-center justify-start pointer-events-none"
+                    style={{ marginLeft: '-10px' }}
+                  >
+                    <span 
+                      className="text-red-600 font-bold text-4xl uppercase tracking-wider select-none"
+                      style={{ 
+                        transform: 'rotate(-12deg)',
+                        opacity: 0.4,
+                        fontFamily: 'Impact, Haettenschweiler, Arial Narrow Bold, sans-serif',
+                        textShadow: '2px 2px 0 rgba(255,255,255,0.5)',
+                        letterSpacing: '4px'
+                      }}
+                    >
+                      DUPLICATE
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-600">
@@ -328,15 +443,6 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, successMess
               >
                 <X className="w-5 h-5" />
               </button>
-            </div>
-          )}
-
-          {/* Duplicate Stamp Overlay */}
-          {issue?.originalIssueId && (
-            <div className="mb-4">
-              <span className="inline-block px-4 py-2 bg-red-100 text-red-700 font-bold text-lg rounded-lg border-2 border-red-300 transform -rotate-3">
-                DUPLICATE
-              </span>
             </div>
           )}
 
@@ -463,6 +569,32 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, successMess
                             </span>
                           </div>
                           <p className="text-sm">{comment.text}</p>
+                          {/* Comment Attachment */}
+                          {comment.attachmentPath && (
+                            <div className="mt-2 flex items-center gap-2 p-2 bg-white/50 rounded border border-gray-200">
+                              <div className="w-10 h-10 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                                <img
+                                  src={`/api/attachments/comments/${comment.id}`}
+                                  alt="Attachment"
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    e.target.parentElement.innerHTML = '📎';
+                                  }}
+                                />
+                              </div>
+                              <span className="text-xs text-gray-600 truncate flex-1">
+                                {comment.attachmentPath.split('/').pop()}
+                              </span>
+                              <a
+                                href={`/api/attachments/comments/${comment.id}`}
+                                download
+                                className="p-1 hover:bg-gray-200 rounded transition-colors"
+                              >
+                                <Download className="w-4 h-4 text-gray-500" />
+                              </a>
+                            </div>
+                          )}
                           <span className="text-xs text-gray-500 mt-1 block">
                             {formatTime(comment.createdAt)}
                           </span>
@@ -473,22 +605,66 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, successMess
                 </div>
 
                 {/* Add Comment Form */}
-                <form onSubmit={handleSubmitComment} className="flex gap-3">
-                  <input
-                    type="text"
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Add a comment..."
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={commentLoading}
-                  />
-                  <button
-                    type="submit"
-                    disabled={commentLoading || !newComment.trim()}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {commentLoading ? 'Sending...' : 'Submit'}
-                  </button>
+                <form onSubmit={handleSubmitComment} className="space-y-3">
+                  <div className="flex gap-3">
+                    <input
+                      type="text"
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      placeholder="Add a comment..."
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={commentLoading}
+                    />
+                    {/* Attachment button */}
+                    <label className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                      <input
+                        type="file"
+                        onChange={handleCommentAttachment}
+                        className="hidden"
+                        accept={(attachInfo.allowedExtensions || ['.jpg', '.png']).join(',')}
+                        disabled={commentLoading}
+                      />
+                      <Paperclip className="w-5 h-5 text-gray-500" />
+                    </label>
+                    <button
+                      type="submit"
+                      disabled={commentLoading || !newComment.trim() || commentAttachmentError}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {commentLoading ? 'Sending...' : <Send className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  
+                  {/* Selected Attachment Preview */}
+                  {commentAttachment && (
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <Upload className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-900 truncate">{commentAttachment.name}</p>
+                        <p className="text-xs text-gray-500">{(commentAttachment.size / (1024 * 1024)).toFixed(2)} MB</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={removeCommentAttachment}
+                        className="p-1 hover:bg-gray-200 rounded transition-colors"
+                      >
+                        <X className="w-4 h-4 text-gray-500" />
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* Attachment Error */}
+                  {commentAttachmentError && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 rounded-lg text-sm">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      <span>{commentAttachmentError}</span>
+                    </div>
+                  )}
+                  
+                  {/* Helper text */}
+                  <p className="text-xs text-gray-400">
+                    PNG, JPG up to {attachInfo.maxFileSizeMB} MB
+                  </p>
                 </form>
               </div>
             </div>
