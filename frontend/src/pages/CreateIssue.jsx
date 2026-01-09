@@ -5,21 +5,22 @@ import { issueService } from '../services/issue.service';
 import { attachmentService } from '../services/attachment.service';
 
 
-function CreateIssue({ user, onLogout, onCancel, onSuccess }) {
+function CreateIssue({ user, onLogout, onCancel, onSuccess, editingIssue }) {
+   const isEditMode = !!editingIssue;
    const [currentPage] = useState('issues');
    const [formData, setFormData] = useState({
-      title: '',
-      type: 'Bug',
-      priority: 'HIGH',
-      assignee: '',
-      description: '',
+      title: editingIssue?.title || '',
+      type: editingIssue?.type || 'Bug',
+      priority: editingIssue?.priority || 'HIGH',
+      assignee: editingIssue?.assignee || '',
+      description: editingIssue?.description || '',
    });
    const [attachments, setAttachments] = useState([]);
    const [loading, setLoading] = useState(false);
    const [error, setError] = useState(null);
    const [titleError, setTitleError] = useState(null);
-   const [fileSizeError, setFileSizeError] = useState(null);
-   const [attachInfo, setAttachInfo] = useState({ maxFileSizeMB: 5, allowedExtensions: ['.jpg', '.jpeg', '.png'] });
+   const [fileError, setFileError] = useState(null);
+   const [attachInfo, setAttachInfo] = useState({ maxFileSizeMB: 5, allowedExtensions: ['.jpg', '.png'] });
 
    // Fetch attachment constraints from backend
    useEffect(() => {
@@ -34,6 +35,19 @@ function CreateIssue({ user, onLogout, onCancel, onSuccess }) {
       })();
       return () => { mounted = false; };
    }, []);
+
+   // Initialize form data when editingIssue changes
+   useEffect(() => {
+      if (editingIssue) {
+         setFormData({
+            title: editingIssue.title || '',
+            type: editingIssue.type || 'Bug',
+            priority: editingIssue.priority || 'HIGH',
+            assignee: editingIssue.assignee || '',
+            description: editingIssue.description || '',
+         });
+      }
+   }, [editingIssue]);
 
    const handleInputChange = (e) => {
       const { name, value } = e.target;
@@ -51,7 +65,7 @@ function CreateIssue({ user, onLogout, onCancel, onSuccess }) {
 
 const handleFileUpload = (e) => {
    setError(null);
-   setFileSizeError(null);
+   setFileError(null);
    const file = e.target.files && e.target.files[0];
    if (!file) return;
 
@@ -59,26 +73,24 @@ const handleFileUpload = (e) => {
    // Validate size
    const maxBytes = attachInfo.maxFileSizeMB * 1024 * 1024;
    if (file.size > maxBytes) {
-      setFileSizeError(`File is too large (Max ${attachInfo.maxFileSizeMB}MB).`);
+      setFileError(`File is too large (Max ${attachInfo.maxFileSizeMB}MB).`);
       return;
    }
 
    if (file.size <= 0) {
-      setFileSizeError('File is empty');
+      setFileError('File is empty');
       return;
    }
 
-   // Validate extension
-   const name = file.name || '';
-   const ext = name.includes('.') ? name.substring(name.lastIndexOf('.')).toLowerCase() : '';
-   // Normalize extensions: treat .jpeg as .jpg
-   let normalizedExt = ext;
-   if (ext === '.jpeg') {
-      normalizedExt = '.jpg';
-   }
-   const allowed = (attachInfo.allowedExtensions || ['.jpg', '.jpeg', '.png']).map(s => s.toLowerCase()).map(s => s === '.jpeg' ? '.jpg' : s);
-   if (!allowed.includes(normalizedExt)) {
-      setFileSizeError('Invalid file type. Only JPG and PNG images are allowed.');
+   // Validate extension - use server-provided allowed extensions when available
+   const fileName = file.name || '';
+   const ext = fileName.includes('.') ? fileName.substring(fileName.lastIndexOf('.')).toLowerCase() : '';
+   const allowed = (attachInfo.allowedExtensions || ['.jpg', '.png']).map(a => {
+      const lower = a.toLowerCase();
+      return lower.startsWith('.') ? lower : `.${lower}`;
+   });
+   if (!allowed.includes(ext)) {
+      setFileError(`Invalid file type. Only ${allowed.join(', ')} images are allowed.`);
       return;
    }
 
@@ -95,7 +107,7 @@ const handleFileUpload = (e) => {
 
 const removeAttachment = (id) => {
    setAttachments(prev => prev.filter(att => att.id !== id));
-   setFileSizeError(null);
+   setFileError(null);
 };
 
 
@@ -116,11 +128,33 @@ const handleSubmit = async (e) => {
       setError('User not authenticated. Please login again.');
       return;
    }
+
+   // Validate attachment BEFORE creating issue (only for new issues)
+   if (!isEditMode && attachments.length > 0) {
+      const file = attachments[0].file;
+      const maxBytes = attachInfo.maxFileSizeMB * 1024 * 1024;
+      
+      if (file.size > maxBytes) {
+         setError(`File is too large (Max ${attachInfo.maxFileSizeMB}MB). Please remove or replace the attachment.`);
+         return;
+      }
+      
+      const fileName = file.name || '';
+      const ext = fileName.includes('.') ? fileName.substring(fileName.lastIndexOf('.')).toLowerCase() : '';
+      const allowed = (attachInfo.allowedExtensions || ['.jpg', '.png']).map(a => {
+         const lower = a.toLowerCase();
+         return lower.startsWith('.') ? lower : `.${lower}`;
+      });
+      if (!allowed.includes(ext)) {
+         setError(`Invalid file type. Only ${allowed.join(', ')} images are allowed. Please remove or replace the attachment.`);
+         return;
+      }
+   }
    
    setLoading(true);
 
    try {
-      // Create issue data
+      // Create/Update issue data
       const issueData = {
          title: formData.title.trim(),
          description: formData.description.trim(),
@@ -128,16 +162,25 @@ const handleSubmit = async (e) => {
          // Add other fields as needed by backend
       };
 
-      const response = await issueService.create(issueData, user?.id);
-      
-      // Backend returns {id, message} on success
-      const issueId = response?.id;
-      if (!issueId) {
-         throw new Error('No issue ID returned from server');
+      let issueId;
+
+      if (isEditMode) {
+         // Update existing issue
+         await issueService.update(editingIssue.id, issueData);
+         issueId = editingIssue.id;
+      } else {
+         // Create new issue
+         const response = await issueService.create(issueData, user?.id);
+         
+         // Backend returns {id, message} on success
+         issueId = response?.id;
+         if (!issueId) {
+            throw new Error('No issue ID returned from server');
+         }
       }
 
-      // If there's an attachment, upload it to the backend
-      if (attachments.length > 0) {
+      // If there's a new attachment, upload it to the backend (only for new issues)
+      if (!isEditMode && attachments.length > 0) {
          const file = attachments[0].file;
          try {
             await attachmentService.uploadIssueAttachment(issueId, file, user?.id);
@@ -157,8 +200,8 @@ const handleSubmit = async (e) => {
          });
       }
    } catch (err) {
-      console.error('Error creating issue:', err);
-      setError(err.message || 'Failed to create issue');
+      console.error(isEditMode ? 'Error updating issue:' : 'Error creating issue:', err);
+      setError(err.message || (isEditMode ? 'Failed to update issue' : 'Failed to create issue'));
    } finally {
       setLoading(false);
    }
@@ -173,7 +216,9 @@ return (
          <header className="bg-white border-b border-gray-200 px-8 py-4">
             <div className="flex items-center justify-between">
                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Create New Issue</h1>
+                  <h1 className="text-2xl font-bold text-gray-900">
+                     {isEditMode ? `Edit Issue #${editingIssue.id}` : 'Create New Issue'}
+                  </h1>
                </div>
                <div className="flex items-center gap-4">
                   <span className="text-sm text-gray-600">
@@ -305,7 +350,7 @@ return (
                         id="file-upload"
                         onChange={handleFileUpload}
                         className="hidden"
-                        accept=".jpg,.jpeg,.png"
+                        accept={(attachInfo.allowedExtensions || ['.jpg', '.png']).join(',')}
                      />
                      <label
                         htmlFor="file-upload"
@@ -316,9 +361,7 @@ return (
                            Click to upload or drag and drop
                         </span>
                         <span className="text-xs text-gray-500">
-                           {attachInfo.allowedExtensions && attachInfo.allowedExtensions.length > 0 ?
-                              `${attachInfo.allowedExtensions.map(e => e.replace('.', '').toUpperCase()).join(', ')} up to ${attachInfo.maxFileSizeMB} MB` :
-                              'PNG, JPG up to 5 MB'}
+                           PNG, JPG up to {attachInfo.maxFileSizeMB} MB
                         </span>
                         <span className="text-xs text-gray-400">Only one file allowed</span>
                      </label>
@@ -356,10 +399,10 @@ return (
                   )}
 
                   {/* File Size Error - styled like mockup M9 */}
-                  {fileSizeError && (
+                  {fileError && (
                      <div className="mt-3 flex items-center gap-2 px-4 py-3 bg-red-500 text-white rounded-lg">
                         <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-                        <span className="text-sm font-medium">{fileSizeError}</span>
+                        <span className="text-sm font-medium">{fileError}</span>
                      </div>
                   )}
                </div>
@@ -386,10 +429,12 @@ return (
                   </button>
                   <button
                      type="submit"
-                     disabled={loading || titleError || fileSizeError}
+                     disabled={loading || titleError || fileError}
                      className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                     {loading ? 'Creating...' : 'Create Issue'}
+                     {loading 
+                        ? (isEditMode ? 'Updating...' : 'Creating...') 
+                        : (isEditMode ? 'Update Issue' : 'Create Issue')}
                   </button>
                </div>
             </form>

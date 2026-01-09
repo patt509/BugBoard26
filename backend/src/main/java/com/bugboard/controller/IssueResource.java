@@ -146,6 +146,29 @@ public class IssueResource {
    }
 
    /**
+    * Update an existing issue.
+    */
+   @PUT
+   @Path("/{id}")
+   public Response updateIssue(
+         @PathParam("id") Long id,
+         IssueDTO issueDTO) {
+      try {
+         issueService.updateIssue(id, issueDTO);
+         return Response.ok(Map.of("message", "Issue updated successfully")).build();
+      } catch (IllegalArgumentException e) {
+         return Response.status(Response.Status.NOT_FOUND)
+               .entity(Map.of("error", e.getMessage()))
+               .build();
+      } catch (Exception e) {
+         logger.log(Level.SEVERE, "Error updating issue", e);
+         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+               .entity(Map.of("error", "Error updating issue: " + e.getMessage()))
+               .build();
+      }
+   }
+
+   /**
     * Update the status of an issue.
     */
    @PATCH

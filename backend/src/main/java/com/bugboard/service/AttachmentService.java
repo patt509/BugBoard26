@@ -164,7 +164,7 @@ public class AttachmentService {
       String extension = getFileExtension(fileName);
       if (!ALLOWED_EXTENSIONS.contains(extension.toLowerCase())) {
          throw new IllegalArgumentException(
-               "Invalid file extension. Only .jpg, .jpeg, and .png are allowed.");
+               "Invalid file extension. Only .jpg and .png are allowed.");
       }
    }
 

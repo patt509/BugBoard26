@@ -81,6 +81,21 @@ export const issueService = {
     
     return httpClient.get(`${API_ENDPOINTS.ISSUES_SEARCH}?${queryString}`);
   },
+
+  /**
+   * Flag an issue as duplicate of another (Admin only)
+   * @param {number} duplicateId - ID of the issue to mark as duplicate
+   * @param {number} originalId - ID of the original issue
+   * @param {number} adminId - Admin user ID
+   * @returns {Promise<Object>} Response with message
+   */
+  flagAsDuplicate(duplicateId, originalId, adminId) {
+    return httpClient.post(API_ENDPOINTS.ISSUE_FLAG_DUPLICATE(duplicateId, originalId), null, {
+      headers: {
+        'X-User-Id': adminId
+      }
+    });
+  },
 };
 
 export default issueService;

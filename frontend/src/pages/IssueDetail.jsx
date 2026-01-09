@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Download, Flag, Edit, ChevronDown, Send, AlertCircle, X } from 'lucide-react';
+import { ArrowLeft, Download, Flag, Edit, ChevronDown, Send, AlertCircle, X, CheckCircle, Search } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { issueService } from '../services/issue.service';
 import { commentService } from '../services/comment.service';
 
-function IssueDetail({ user, onLogout, issueId, onBack }) {
+function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, successMessage, onDismissSuccess }) {
   const [currentPage] = useState('issues');
   const [issue, setIssue] = useState(null);
   const [comments, setComments] = useState([]);
@@ -13,6 +13,14 @@ function IssueDetail({ user, onLogout, issueId, onBack }) {
   const [error, setError] = useState(null);
   const [commentLoading, setCommentLoading] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  
+  // Flag as Duplicate modal state
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [allIssues, setAllIssues] = useState([]);
+  const [selectedOriginalIssue, setSelectedOriginalIssue] = useState(null);
+  const [duplicateSearchQuery, setDuplicateSearchQuery] = useState('');
+  const [flaggingDuplicate, setFlaggingDuplicate] = useState(false);
+  const [duplicateSuccess, setDuplicateSuccess] = useState(null);
 
   const fetchIssueData = useCallback(async () => {
     try {
@@ -37,6 +45,16 @@ function IssueDetail({ user, onLogout, issueId, onBack }) {
   useEffect(() => {
     fetchIssueData();
   }, [fetchIssueData]);
+
+  // Auto-dismiss duplicate success message
+  useEffect(() => {
+    if (duplicateSuccess) {
+      const timer = setTimeout(() => {
+        setDuplicateSuccess(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [duplicateSuccess]);
 
   const handleStatusChange = async (newStatus) => {
     try {
@@ -73,6 +91,62 @@ function IssueDetail({ user, onLogout, issueId, onBack }) {
       setCommentLoading(false);
     }
   };
+
+  // Handle Edit Issue button click
+  const handleEditClick = () => {
+    if (onEditIssue && issue) {
+      onEditIssue(issue);
+    }
+  };
+
+  // Handle Flag as Duplicate button click
+  const handleFlagDuplicateClick = async () => {
+    try {
+      // Fetch all issues to show in the modal
+      const issues = await issueService.getAll();
+      // Filter out the current issue
+      const otherIssues = issues.filter(i => i.id !== issueId);
+      setAllIssues(otherIssues);
+      setSelectedOriginalIssue(null);
+      setDuplicateSearchQuery('');
+      setShowDuplicateModal(true);
+    } catch (err) {
+      console.error('Error fetching issues:', err);
+      setError(err.message || 'Failed to load issues');
+    }
+  };
+
+  // Handle confirm flag as duplicate
+  const handleConfirmDuplicate = async () => {
+    if (!selectedOriginalIssue) return;
+    
+    try {
+      setFlaggingDuplicate(true);
+      await issueService.flagAsDuplicate(issueId, selectedOriginalIssue.id, user?.id);
+      
+      // Close modal and show success
+      setShowDuplicateModal(false);
+      setDuplicateSuccess({
+        issueId: issueId,
+        issueTitle: issue?.title,
+        originalId: selectedOriginalIssue.id
+      });
+      
+      // Refresh issue data to show updated status
+      await fetchIssueData();
+    } catch (err) {
+      console.error('Error flagging as duplicate:', err);
+      setError(err.message || 'Failed to flag as duplicate');
+    } finally {
+      setFlaggingDuplicate(false);
+    }
+  };
+
+  // Filter issues based on search query
+  const filteredIssues = allIssues.filter(i => 
+    i.title?.toLowerCase().includes(duplicateSearchQuery.toLowerCase()) ||
+    `#${i.id}`.includes(duplicateSearchQuery)
+  );
 
   const getStatusColor = (status) => {
     const colors = {
@@ -211,6 +285,36 @@ function IssueDetail({ user, onLogout, issueId, onBack }) {
 
         {/* Content */}
         <div className="p-8">
+          {/* Success Banner for Duplicate */}
+          {duplicateSuccess && (
+            <div className="mb-6 flex items-center gap-3 px-4 py-3 bg-green-100 border border-green-300 rounded-lg">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <span className="text-green-800 font-medium">
+                Issue #{duplicateSuccess.issueId} '{duplicateSuccess.issueTitle}' flagged as duplicate of #{duplicateSuccess.originalId} and closed successfully!
+              </span>
+              <button
+                onClick={() => setDuplicateSuccess(null)}
+                className="ml-auto text-green-600 hover:text-green-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          )}
+
+          {/* Success Banner from parent */}
+          {successMessage && (
+            <div className="mb-6 flex items-center gap-3 px-4 py-3 bg-green-100 border border-green-300 rounded-lg">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <span className="text-green-800 font-medium">{successMessage}</span>
+              <button
+                onClick={onDismissSuccess}
+                className="ml-auto text-green-600 hover:text-green-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          )}
+
           {/* Error Banner */}
           {error && (
             <div className="mb-6 flex items-center gap-3 px-4 py-3 bg-red-100 border border-red-300 rounded-lg">
@@ -227,16 +331,32 @@ function IssueDetail({ user, onLogout, issueId, onBack }) {
             </div>
           )}
 
+          {/* Duplicate Stamp Overlay */}
+          {issue?.originalIssueId && (
+            <div className="mb-4">
+              <span className="inline-block px-4 py-2 bg-red-100 text-red-700 font-bold text-lg rounded-lg border-2 border-red-300 transform -rotate-3">
+                DUPLICATE
+              </span>
+            </div>
+          )}
+
           <div className="flex gap-8">
             {/* Main Content */}
             <div className="flex-1">
               {/* Action Buttons */}
               <div className="flex items-center gap-3 mb-6">
-                <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                <button 
+                  onClick={handleFlagDuplicateClick}
+                  disabled={issue?.status === 'CLOSED' || issue?.status === 'RESOLVED'}
+                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <Flag className="w-4 h-4" />
                   Flag as Duplicate
                 </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <button 
+                  onClick={handleEditClick}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
                   <Edit className="w-4 h-4" />
                   Edit Issue
                 </button>
@@ -456,6 +576,78 @@ function IssueDetail({ user, onLogout, issueId, onBack }) {
             </div>
           </div>
         </div>
+
+        {/* Flag as Duplicate Modal */}
+        {showDuplicateModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Flag Issue #{issueId} as Duplicate
+                </h2>
+              </div>
+
+              {/* Modal Body */}
+              <div className="px-6 py-4">
+                {/* Search Input */}
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search for original issue..."
+                    value={duplicateSearchQuery}
+                    onChange={(e) => setDuplicateSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Issues List */}
+                <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg">
+                  {filteredIssues.length === 0 ? (
+                    <div className="p-8 text-center text-gray-500">
+                      No issues found.
+                    </div>
+                  ) : (
+                    filteredIssues.map((otherIssue) => (
+                      <button
+                        key={otherIssue.id}
+                        onClick={() => setSelectedOriginalIssue(otherIssue)}
+                        className={`w-full text-left px-4 py-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors ${
+                          selectedOriginalIssue?.id === otherIssue.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                        }`}
+                      >
+                        <span className="font-medium text-gray-900">
+                          Issue #{otherIssue.id}: {otherIssue.title}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowDuplicateModal(false);
+                    setSelectedOriginalIssue(null);
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmDuplicate}
+                  disabled={!selectedOriginalIssue || flaggingDuplicate}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {flaggingDuplicate ? 'Processing...' : 'Flag & Close Issue'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

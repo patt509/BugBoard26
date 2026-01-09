@@ -17,6 +17,7 @@ export const API_ENDPOINTS = {
   ISSUES_BY_ID: (id) => `/issues/${id}`,
   ISSUES_SEARCH: '/issues/search',
   ISSUE_STATUS: (id) => `/issues/${id}/status`,
+  ISSUE_FLAG_DUPLICATE: (duplicateId, originalId) => `/issues/${duplicateId}/duplicate/${originalId}`,
   
   // Comments
   ISSUE_COMMENTS: (issueId) => `/issues/${issueId}/comments`,

@@ -7,8 +7,9 @@ import IssueDetail from './pages/IssueDetail'
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [currentView, setCurrentView] = useState('issues'); // 'issues', 'create', or 'detail'
+  const [currentView, setCurrentView] = useState('issues'); // 'issues', 'create', 'edit', or 'detail'
   const [selectedIssueId, setSelectedIssueId] = useState(null);
+  const [editingIssue, setEditingIssue] = useState(null); // Issue data for editing
   const [successMessage, setSuccessMessage] = useState(null);
 
   useEffect(() => {
@@ -35,22 +36,43 @@ function App() {
   };
 
   const handleCreateIssue = () => {
+    setEditingIssue(null);
     setCurrentView('create');
   };
 
+  const handleEditIssue = (issue) => {
+    setEditingIssue(issue);
+    setCurrentView('edit');
+  };
+
   const handleCancelCreate = () => {
-    setCurrentView('issues');
+    setEditingIssue(null);
+    // If we were editing, go back to detail view
+    if (editingIssue && selectedIssueId) {
+      setCurrentView('detail');
+    } else {
+      setCurrentView('issues');
+    }
   };
 
   const handleCreateSuccess = (issueInfo) => {
-    setCurrentView('issues');
-    if (issueInfo) {
+    const wasEditing = editingIssue !== null;
+    setEditingIssue(null);
+    
+    if (wasEditing && selectedIssueId) {
+      // After editing, go back to detail view
+      setCurrentView('detail');
+      setSuccessMessage(`Issue #${issueInfo.id} '${issueInfo.title}' updated successfully!`);
+    } else {
+      // After creating, go back to issues list
+      setCurrentView('issues');
       setSuccessMessage(`Issue #${issueInfo.id} '${issueInfo.title}' created successfully!`);
-      // Auto-dismiss after 4 seconds
-      setTimeout(() => {
-        setSuccessMessage(null);
-      }, 4000);
     }
+    
+    // Auto-dismiss after 4 seconds
+    setTimeout(() => {
+      setSuccessMessage(null);
+    }, 4000);
   };
 
   const handleIssueClick = (issueId) => {
@@ -77,12 +99,13 @@ function App() {
   return (
     <>
       {user ? (
-        currentView === 'create' ? (
+        (currentView === 'create' || currentView === 'edit') ? (
           <CreateIssue
             user={user}
             onLogout={handleLogout}
             onCancel={handleCancelCreate}
             onSuccess={handleCreateSuccess}
+            editingIssue={editingIssue}
           />
         ) : currentView === 'detail' && selectedIssueId ? (
           <IssueDetail
@@ -90,6 +113,9 @@ function App() {
             onLogout={handleLogout}
             issueId={selectedIssueId}
             onBack={handleBackFromDetail}
+            onEditIssue={handleEditIssue}
+            successMessage={successMessage}
+            onDismissSuccess={() => setSuccessMessage(null)}
           />
         ) : (
           <Issues

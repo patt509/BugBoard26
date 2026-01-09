@@ -75,6 +75,27 @@ public class IssueService {
    }
 
    @Transactional
+   public void updateIssue(Long id, IssueDTO dto) {
+      Issue issue = repository.findById(id);
+      if (issue == null) {
+         throw new IllegalArgumentException("Issue not found");
+      }
+
+      // Update fields if provided
+      if (dto.getTitle() != null && !dto.getTitle().trim().isEmpty()) {
+         issue.setTitle(dto.getTitle().trim());
+      }
+      if (dto.getDescription() != null) {
+         issue.setDescription(dto.getDescription().trim());
+      }
+      if (dto.getPriority() != null) {
+         issue.setPriority(PriorityLevel.valueOf(dto.getPriority()));
+      }
+
+      repository.save(issue);
+   }
+
+   @Transactional
    public void updateStatus(Long id, IssueStatus newStatus) {
       Issue issue = repository.findById(id);
       if (issue == null) {
