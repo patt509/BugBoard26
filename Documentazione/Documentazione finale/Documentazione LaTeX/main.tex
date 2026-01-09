@@ -179,6 +179,8 @@ La seguente tabella descrive i test case progettati per verificare il comportame
     \hline
     TC10 & Issue 10 is already CLOSED. Issue 20 exists. Admin with ID=1 exists. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, \seqsplit{adminId}=1 & \seqsplit{IllegalStateException} & Issue 10 state remains unchanged. \\
     \hline
+    TC12 & Issue 10 is already RESOLVED. Issue 20 exists. Admin with ID=1 exists. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, \seqsplit{adminId}=1 & \seqsplit{IllegalStateException} & Issue 10 state remains unchanged. \\
+    \hline
     TC11 & Neither issue 10 nor issue 20 exist in DB. Admin with ID=1 exists. & \seqsplit{duplicateIssueId}=10, \seqsplit{originalIssueId}=20, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes to Issue states. \\
     \hline
 \end{tabularx}
@@ -203,6 +205,8 @@ La seguente tabella descrive i test case progettati per verificare il comportame
     \item \textbf{TC9 (Self-duplication)}: Testa il caso limite in cui un utente prova a marcare un issue come duplicato di se stesso, prevenendo stati inconsistenti.
     
     \item \textbf{TC10 (Already closed)}: Verifica che un issue già CLOSED non possa essere marcato come duplicato di un altro, sollevando \texttt{IllegalStateException}.
+    
+    \item \textbf{TC12 (Already resolved)}: Verifica che un issue già RESOLVED non possa essere marcato come duplicato di un altro, sollevando \texttt{IllegalStateException}.
     
     \item \textbf{TC11 (Both issues missing)}: Copre il caso in cui entrambi gli issue non esistono nel repository.
 \end{itemize}
@@ -320,7 +324,7 @@ La suite di test è stata progettata seguendo un approccio di \textbf{White Box 
 \begin{itemize}
     \item \textbf{White Box Testing (Structural Testing)}: L'approccio adottato richiede la conoscenza approfondita del codice sorgente e mira a coprire tutti i percorsi di esecuzione possibili. Ogni test case è progettato per esercitare almeno un nuovo ramo (branch) del codice.
     
-    \item \textbf{Branch Coverage}: Tutti i test case sono stati definiti per garantire che ogni ramo decisionale (\textit{branch}) delle istruzioni condizionali (if, else, switch) venga eseguito almeno una volta. Ad esempio, nei test di \texttt{processDuplicate}, i TC2-TC4 coprono il ramo relativo ai controlli di sicurezza, mentre i TC5-TC11 coprono le validazioni degli input e l'integrità del dominio.
+    \item \textbf{Branch Coverage}: Tutti i test case sono stati definiti per garantire che ogni ramo decisionale (\textit{branch}) delle istruzioni condizionali (if, else, switch) venga eseguito almeno una volta. Ad esempio, nei test di \texttt{processDuplicate}, i TC2-TC4 coprono il ramo relativo ai controlli di sicurezza, mentre i TC5-TC12 coprono le validazioni degli input e l'integrità del dominio.
     
     \item \textbf{Equivalence Partitioning}: Per minimizzare la ridondanza, gli input sono stati suddivisi in classi di equivalenza valide e non valide. Ad esempio:
         \begin{itemize}
@@ -328,7 +332,7 @@ La suite di test è stata progettata seguendo un approccio di \textbf{White Box 
             \item Non valide: User semplice, ID null o non trovati, email/username duplicate, parametri vuoti.
         \end{itemize}
     
-    \item \textbf{Boundary Value Analysis}: Sono stati identificati e testati casi limite che generalmente contengono difetti. Ad esempio, il test TC9 di \texttt{processDuplicate} verifica il caso limite in cui un issue viene marcato come duplicato di se stesso; i test TC7, TC8 e TC11 coprono le verifiche di esistenza delle risorse (uno mancante, l'altro mancante, entrambi mancanti).
+    \item \textbf{Boundary Value Analysis}: Sono stati identificati e testati casi limite che generalmente contengono difetti. Ad esempio, il test TC9 di \texttt{processDuplicate} verifica il caso limite in cui un issue viene marcato come duplicato di se stesso; i test TC7, TC8, TC11 e TC12 coprono le verifiche di esistenza e stato delle risorse (uno mancante, l'altro mancante, entrambi mancanti, oppure issue già risolto).
     
     \item \textbf{State-Based Testing}: Per metodi che modificano lo stato delle entità (come \texttt{processDuplicate} e \texttt{finalizeProfile}), i test verificano che gli aggiornamenti dello stato siano corretti attraverso asserzioni e verifiche tramite \texttt{verify()}.
 \end{itemize}

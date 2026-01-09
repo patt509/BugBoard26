@@ -86,7 +86,7 @@ function IssueDetail({ user, onLogout, issueId, onBack }) {
 
   const getStatusLabel = (status) => {
     const labels = {
-      'TODO': 'Open',
+      'TODO': 'TODO',
       'IN_PROGRESS': 'In Progress',
       'RESOLVED': 'Resolved',
       'CLOSED': 'Closed',

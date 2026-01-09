@@ -96,12 +96,14 @@ public class Issue {
    }
 
    public void setStatus(IssueStatus status) {
-      // If the status is being set to CLOSED, we should record the closing time
-      if (status == IssueStatus.CLOSED && this.status != IssueStatus.CLOSED) {
+      // If the status is being set to CLOSED or RESOLVED, we should record the closing time
+      // RESOLVED is also considered closed because a resolved issue is essentially closed
+      if ((status == IssueStatus.CLOSED || status == IssueStatus.RESOLVED) 
+          && this.status != IssueStatus.CLOSED && this.status != IssueStatus.RESOLVED) {
          this.closedAt = LocalDateTime.now();
       }
-      // If the issue is being reopened, clear the closedAt timestamp
-      else if (status != IssueStatus.CLOSED) {
+      // If the issue is being reopened (back to TODO or IN_PROGRESS), clear the closedAt timestamp
+      else if (status != IssueStatus.CLOSED && status != IssueStatus.RESOLVED) {
          this.closedAt = null;
       }
       this.status = status;
@@ -141,8 +143,9 @@ public class Issue {
          throw new IllegalArgumentException("An issue cannot be a duplicate of itself.");
       }
 
-      if (this.status == IssueStatus.CLOSED) {
-         throw new IllegalStateException("The issue is already closed.");
+      // Check both CLOSED and RESOLVED - a resolved issue is also considered closed
+      if (this.status == IssueStatus.CLOSED || this.status == IssueStatus.RESOLVED) {
+         throw new IllegalStateException("The issue is already closed or resolved.");
       }
 
       this.originalIssue = original;

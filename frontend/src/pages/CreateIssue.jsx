@@ -71,8 +71,13 @@ const handleFileUpload = (e) => {
    // Validate extension
    const name = file.name || '';
    const ext = name.includes('.') ? name.substring(name.lastIndexOf('.')).toLowerCase() : '';
-   const allowed = (attachInfo.allowedExtensions || ['.jpg', '.jpeg', '.png']).map(s => s.toLowerCase());
-   if (!allowed.includes(ext)) {
+   // Normalize extensions: treat .jpeg as .jpg
+   let normalizedExt = ext;
+   if (ext === '.jpeg') {
+      normalizedExt = '.jpg';
+   }
+   const allowed = (attachInfo.allowedExtensions || ['.jpg', '.jpeg', '.png']).map(s => s.toLowerCase()).map(s => s === '.jpeg' ? '.jpg' : s);
+   if (!allowed.includes(normalizedExt)) {
       setFileSizeError('Invalid file type. Only JPG and PNG images are allowed.');
       return;
    }
@@ -300,7 +305,7 @@ return (
                         id="file-upload"
                         onChange={handleFileUpload}
                         className="hidden"
-                        accept=".jpg,.png"
+                        accept=".jpg,.jpeg,.png"
                      />
                      <label
                         htmlFor="file-upload"

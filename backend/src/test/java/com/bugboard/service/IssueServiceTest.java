@@ -198,4 +198,25 @@ public class IssueServiceTest {
       when(repository.findById(20L)).thenReturn(null);
       issueService.processDuplicate(10L, 20L, 1L);
    }
+
+   /**
+    * TC12: Failure scenario - Attempting to mark an already resolved issue as
+    * duplicate. A resolved issue is also considered closed.
+    * Expected Output: IllegalStateException
+    */
+   @Test(expected = IllegalStateException.class)
+   public void testProcessDuplicate_TC12_AlreadyResolved() {
+      Issue alreadyResolvedIssue = new Issue("Title for Resolved Issue", "Description", reporter);
+      alreadyResolvedIssue.setStatus(IssueStatus.RESOLVED);
+      Issue original = new Issue("Title for Original Issue", "Description", reporter);
+
+      Issue spyResolved = spy(alreadyResolvedIssue);
+      Issue spyOriginal = spy(original);
+
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+      when(repository.findById(10L)).thenReturn(spyResolved);
+      when(repository.findById(20L)).thenReturn(spyOriginal);
+
+      issueService.processDuplicate(10L, 20L, 1L);
+   }
 }

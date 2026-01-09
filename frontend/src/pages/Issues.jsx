@@ -46,7 +46,7 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, successMessage, o
 
   const getStatusLabel = (status) => {
     const labels = {
-      'TODO': 'Open',
+      'TODO': 'TODO',
       'IN_PROGRESS': 'In Progress',
       'RESOLVED': 'Resolved',
       'CLOSED': 'Closed',
