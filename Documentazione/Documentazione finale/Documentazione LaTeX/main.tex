@@ -167,7 +167,7 @@ Il metodo \texttt{createUser} (esposto dall'\texttt{AdminController}) permette a
 
 \section{Testing e Verifica (8.4)}
 
-Di seguito verranno descritte le attività di verifica condotte sulle logiche di business principali del sistema BugBoard26 (metodi \texttt{processDuplicate}, \texttt{createUser} e \texttt{finalizeProfile}).
+Di seguito verranno descritte le attività di verifica condotte sulle logiche di business principali del sistema BugBoard26 (metodi \texttt{processDuplicate}, \texttt{createUser}, \texttt{finalizeProfile}) e i test white-box sull'entità \texttt{Issue} e sull'\texttt{IssueService} con copertura completa di tutti i rami.
 
 \subsection{Test Plan (8.4.a)}
 
@@ -228,6 +228,148 @@ La seguente tabella descrive i test case progettati per verificare il comportame
     
     \item \textbf{TC11 (Both issues missing)}: Copre il caso in cui entrambi gli issue non esistono nel repository.
 \end{itemize}
+
+\clearpage
+
+\subsubsection{Issue (Entità di Dominio) — White Box Testing}
+
+La seguente tabella descrive i test case progettati per ottenere il 100\% di branch coverage sull'entità di dominio \texttt{Issue}. I test verificano costruttore, setter con validazione, gestione dello stato (\texttt{setStatus}), tipo (\texttt{setType}), e il metodo \texttt{markAsDuplicateOf} includendo il ramo di uguaglianza basato su ID (tramite reflection).\\
+
+\vspace{-4pt}
+\noindent{\footnotesize
+\begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
+    \hline
+    TC1 & Reporter exists. & title=``Valid title...'', desc=``A valid description'', type=BUG & None & Issue created: status=TODO, priority=MEDIUM, createdAt $\neq$ null. \\
+    \hline
+    TC2 & Reporter exists. & title=null & \seqsplit{IllegalArgumentException} & No Issue created. \\
+    \hline
+    TC3 & Reporter exists. & title=``Short'' (5 chars) & \seqsplit{IllegalArgumentException} & No Issue created. \\
+    \hline
+    TC4 & Reporter exists. & title=``1234567890'' (10 chars, boundary) & None & Issue created with boundary title. \\
+    \hline
+    TC5 & Reporter exists. & description=null & \seqsplit{IllegalArgumentException} & No Issue created. \\
+    \hline
+    TC6 & Reporter exists. & description="" (empty) & \seqsplit{IllegalArgumentException} & No Issue created. \\
+    \hline
+    TC7 & Reporter exists. & description="\ \ \ " (whitespace only) & \seqsplit{IllegalArgumentException} & No Issue created. \\
+    \hline
+    TC8 & Reporter exists. & type=null & \seqsplit{IllegalArgumentException} & No Issue created. \\
+    \hline
+    TC9 & Valid Issue exists. & setTitle(``Updated valid title'') & None & Title is updated. \\
+    \hline
+    TC10 & Valid Issue exists. & setTitle(null) & \seqsplit{IllegalArgumentException} & Title unchanged. \\
+    \hline
+    TC11 & Valid Issue exists. & setTitle(``short'') & \seqsplit{IllegalArgumentException} & Title unchanged. \\
+    \hline
+    TC12 & Issue status=TODO, closedAt=null. & setStatus(CLOSED) & None & status=CLOSED, closedAt $\neq$ null. \\
+    \hline
+    TC13 & Issue status=CLOSED, closedAt $\neq$ null. & setStatus(CLOSED) & None & status=CLOSED, closedAt unchanged. \\
+    \hline
+    TC14 & Issue status=CLOSED, closedAt $\neq$ null. & \seqsplit{setStatus(IN\_PROGRESS)} & None & \seqsplit{status=IN\_PROGRESS}, closedAt=null. \\
+    \hline
+    TC15 & Issue status=TODO. & \seqsplit{setStatus(IN\_PROGRESS)} & None & \seqsplit{status=IN\_PROGRESS}, closedAt=null. \\
+    \hline
+    TC16 & Valid Issue, type=BUG. & setType(FEATURE) & None & type=FEATURE. \\
+    \hline
+    TC17 & Valid Issue. & setType(null) & \seqsplit{IllegalArgumentException} & type unchanged. \\
+    \hline
+    TC18 & Issue, no originalIssue. & getOriginalIssueId() & null & --- \\
+    \hline
+    TC19 & Issue with \seqsplit{markAsDuplicateOf} called. & getOriginalIssueId() & Returns ID (or null if not persisted) & --- \\
+    \hline
+    TC20 & Two distinct Issues (TODO). & \seqsplit{markAsDuplicateOf(original)} & None & status=CLOSED, closedAt $\neq$ null. \\
+    \hline
+    TC21 & Valid Issue. & \seqsplit{markAsDuplicateOf(null)} & \seqsplit{IllegalArgumentException} & No state change. \\
+    \hline
+    TC22 & Valid Issue. & \seqsplit{markAsDuplicateOf(this)} & \seqsplit{IllegalArgumentException} & No state change. \\
+    \hline
+    TC23 & Issue already CLOSED. & \seqsplit{markAsDuplicateOf(other)} & \seqsplit{IllegalStateException} & No state change. \\
+    \hline
+    TC24--28 & Valid Issue. & setPriority, \seqsplit{setDescription}, \seqsplit{setAssignee}, \seqsplit{setAttachmentPath}, getId & Values set/read correctly & Fields updated. \\
+    \hline
+    TC29 & Two Issues, same id=100 (via reflection). & \seqsplit{markAsDuplicateOf(other)} & \seqsplit{IllegalArgumentException} & No state change. \\
+    \hline
+    TC30 & Two Issues, id=100 and id=200 (via reflection). & \seqsplit{markAsDuplicateOf(other)} & None & status=CLOSED, closedAt $\neq$ null. \\
+    \hline
+\end{tabularx}
+}
+
+\paragraph{Risultato JaCoCo:} Copertura raggiunta: \textbf{98\% istruzioni, 100\% branch}. L'unica istruzione non coperta è il costruttore protetto \texttt{Issue()} richiesto da JPA (mai invocato direttamente nei test).
+
+\clearpage
+
+\subsubsection{IssueService — Copertura Completa dei Metodi}
+
+La seguente tabella descrive i test case aggiuntivi (TC16--TC43) progettati per ottenere il 100\% di branch coverage su tutti i metodi dell'\texttt{IssueService}, oltre ai TC1--TC15 già documentati (\texttt{processDuplicate}, \texttt{searchIssues}, \texttt{getDashboardStats}).\\
+
+\vspace{-4pt}
+\noindent{\footnotesize
+\begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
+    \hline
+    TC16 & Reporter with ID=1 in DB. & \seqsplit{createIssue(title, desc, 1L, BUG)} & Issue ID & Issue saved with reporter. \\
+    \hline
+    TC17 & No reporter needed. & \seqsplit{createIssue(title, desc, null, FEATURE)} & Issue ID & Issue saved with null reporter. \\
+    \hline
+    TC18 & Reporter and assignee exist. & \seqsplit{createIssue(DTO with priority, assignee)} & Issue ID & Issue saved with priority and assignee. \\
+    \hline
+    TC19 & Reporter exists. & \seqsplit{createIssue(DTO, null priority)} & Issue ID & Issue saved with default priority. \\
+    \hline
+    TC20 & Reporter exists. & \seqsplit{createIssue(DTO, blank assignee)} & Issue ID & Issue saved without assignee. \\
+    \hline
+    TC21 & Assignee username not in DB. & \seqsplit{createIssue(DTO, unknown assignee)} & \seqsplit{IllegalArgumentException} & No Issue created. \\
+    \hline
+    TC22 & Reporter exists. & \seqsplit{createIssue(DTO, null type)} & \seqsplit{IllegalArgumentException} & No Issue created. \\
+    \hline
+    TC23 & No reporter needed. & \seqsplit{createIssue(DTO, null reporterId)} & Issue ID & Issue saved with null reporter. \\
+    \hline
+    TC24 & Issue with ID=1 exists. & \seqsplit{updateStatus(1, IN\_PROGRESS)} & None & \seqsplit{Status=IN\_PROGRESS}, repo.save called. \\
+    \hline
+    TC25 & Issue with ID=999 not in DB. & \seqsplit{updateStatus(999, CLOSED)} & \seqsplit{IllegalArgumentException} & No state changes. \\
+    \hline
+    TC26 & Issue with ID=1 exists. & \seqsplit{setAttachmentPath(1, path)} & None & Attachment path set. \\
+    \hline
+    TC27 & Issue with ID=999 not in DB. & \seqsplit{setAttachmentPath(999, path)} & \seqsplit{IllegalArgumentException} & No state changes. \\
+    \hline
+    TC28 & Issue with attachment exists. & \seqsplit{removeAttachment(1)} & Old path (String) & Attachment cleared, repo.save called. \\
+    \hline
+    TC29 & Issue not in DB. & \seqsplit{removeAttachment(999)} & \seqsplit{IllegalArgumentException} & No state changes. \\
+    \hline
+    TC30 & Issue exists. & \seqsplit{validateIssueExists(1)} & true & --- \\
+    \hline
+    TC31 & Issue not in DB. & \seqsplit{validateIssueExists(999)} & false & --- \\
+    \hline
+    TC32 & Issue with attachment. & \seqsplit{getIssueAttachmentPath(1)} & Path (String) & --- \\
+    \hline
+    TC33 & Issue not in DB. & \seqsplit{getIssueAttachmentPath(999)} & \seqsplit{IllegalArgumentException} & --- \\
+    \hline
+    TC34 & Issue has attachment. & \seqsplit{issueHasAttachment(1)} & true & --- \\
+    \hline
+    TC35 & Issue without attachment. & \seqsplit{issueHasAttachment(1)} & false & --- \\
+    \hline
+    TC36 & 2 Issues in DB. & getAllIssues() & List of 2 DTOs & --- \\
+    \hline
+    TC37 & Issue with ID=1 exists. & getIssueById(1) & IssueDTO & --- \\
+    \hline
+    TC38 & Issue not in DB. & getIssueById(999) & \seqsplit{IllegalArgumentException} & --- \\
+    \hline
+    TC39 & Issue with null reporter. & getIssueById(1) & DTO with \seqsplit{reporterName=``Unknown''} & --- \\
+    \hline
+    TC40 & Issue with reporter username. & getIssueById(1) & DTO with reporterName set & --- \\
+    \hline
+    TC41 & Issue with assignee. & getIssueById(1) & DTO with \seqsplit{assigneeUsername} set & --- \\
+    \hline
+    TC42 & Issue without assignee. & getIssueById(1) & DTO with \seqsplit{assigneeUsername}=null & --- \\
+    \hline
+    TC43 & Daily data non-empty. & getDashboardStats() & Stats with \seqsplit{issuesCreatedPerDay} populated & Map has 2 entries. \\
+    \hline
+\end{tabularx}
+}
+
+\paragraph{Risultato JaCoCo:} Copertura raggiunta: \textbf{97\% istruzioni, 100\% branch}. Le uniche istruzioni non coperte sono due overload di backward compatibility di \texttt{searchIssues} (delegano direttamente al metodo principale già coperto).
 
 \clearpage
 
@@ -371,15 +513,19 @@ La suite di test è stata progettata seguendo un approccio di \textbf{White Box 
 
 \subsubsection{Copertura e Validazione}
 
-La suite di test raggiunge una copertura di codice elevata per i tre metodi critici testati:
+La suite di test raggiunge il \textbf{100\% di branch coverage} sulle classi \texttt{Issue} e \texttt{IssueService}, verificate tramite report JaCoCo:
 
 \begin{itemize}
-    \item \textbf{processDuplicate}: 11 test case coprono tutti i rami decisionali (controlli di sicurezza, validazione input, verifiche di esistenza, gestione degli stati).
-    \item \textbf{searchIssues}: 3 test case verificano il filtraggio per tipo, per assegnatario e la combinazione di tutti i filtri senza risultati.
-    \item \textbf{getDashboardStats}: 1 test case valida il corretto calcolo della statistica \texttt{issuesAssignedPerUser} con dati aggregati per utente assegnato.
-    \item \textbf{createUser}: 9 test case coprono l'autenticazione, la validazione degli input, i permessi amministrativi e il vincolo di unicità dell'email.
-    \item \textbf{finalizeProfile}: 6 test case coprono la validazione dei parametri, il controllo di unicità dello username e l'aggiornamento dello stato.
+    \item \textbf{Issue (Entità di Dominio)}: 30 test case — 98\% istruzioni, 100\% branch. Coprono costruttore, setter validati, gestione transizioni di stato, \texttt{markAsDuplicateOf} (incluso ramo di uguaglianza su ID con reflection).
+    \item \textbf{IssueService.processDuplicate}: 11 test case — tutti i rami decisionali (controlli di sicurezza, validazione input, verifiche di esistenza, gestione degli stati).
+    \item \textbf{IssueService.searchIssues}: 3 test case — filtraggio per tipo, assegnatario e combinazione completa.
+    \item \textbf{IssueService.getDashboardStats}: 2 test case — aggregazione per assegnatario e dati giornalieri non vuoti.
+    \item \textbf{IssueService (metodi aggiuntivi)}: 27 test case (TC16--TC42) — createIssue (entrambi gli overload), updateStatus, attachment CRUD, validateIssueExists, getAllIssues, getIssueById, convertSingleToDTO (reporter null/presente, assignee null/presente). 97\% istruzioni, 100\% branch.
+    \item \textbf{AuthService.createUser}: 9 test case — autenticazione, validazione input, permessi e unicità email.
+    \item \textbf{AuthService.finalizeProfile}: 6 test case — validazione parametri, unicità username, aggiornamento stato.
 \end{itemize}
+
+Totale: \textbf{88 test case}, tutti verdi (\texttt{Tests run: 88, Failures: 0, Errors: 0}).
 
 I test sono configurati per essere eseguiti automaticamente durante la build Maven (fase \texttt{test}) e i report di copertura JaCoCo sono generati in \texttt{target/site/jacoco/index.html}, fornendo una visione dettagliata della completezza della suite di test.
 
