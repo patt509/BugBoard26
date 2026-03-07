@@ -89,7 +89,36 @@ possiamo categorizzarli come segue.
 \subsection{Casi d'Uso: Formalizzazione e Mockup}
 % Formalizzazione Cockburn di 2 use case principali e visualizzazione mock up
 
-\section{sezione 2}
+\section{Design del Sistema}
+
+\subsection{Scelte Tecnologiche - Frontend e Backend}
+
+Il sistema BugBoard26 è implementato con un'architettura client-server basata su una \textbf{Single Page Application (SPA)} sviluppata in React 18+ con bundler Vite, che comunica con un backend RESTful in Java 16+ con Jakarta EE 10.
+
+\paragraph{Backend:}
+Il backend utilizza:
+\begin{itemize}
+    \item \textbf{Java 16+} come linguaggio di programmazione con Jakarta EE 10 (ex Java EE).
+    \item \textbf{JPA (Java Persistence API)} per la persistenza dati e l'ORM (Object-Relational Mapping).
+    \item Architettura a strati: Controllers (REST endpoints), Services (logica di business), Repositories (data access), Models (entità di dominio).
+    \item \textbf{PostgreSQL} come database relazionale.
+    \item API REST esposta su \texttt{http://localhost:8080/api} con endpoint per autenticazione, gestione issue, commenti, allegati e statistiche.
+\end{itemize}
+
+\paragraph{Frontend:}
+Il frontend utilizza:
+\begin{itemize}
+    \item \textbf{React 18+} con Vite come bundler, garantendo hot module replacement e build ottimizzate.
+    \item \textbf{Functional Components e Hooks React} esclusivamente (nessun component basato su classi).
+    \item \textbf{React Router v6+} per il routing SPA, gestendo navigazione tra pagine pubbliche (/login) e protette (/finalize-profile, /).
+    \item \textbf{Context API} per la gestione dello stato globale (AuthContext), evitando la complessità di Redux. Lo stato di autenticazione include user, loading, e metodi login/logout/updateUser.
+    \item \textbf{localStorage} per la persistenza dei dati di sessione (user object e userId) tra ricariche della pagina.
+    \item \textbf{Fetch API} centralizzata in un servizio (src/services/api.js) per la comunicazione REST con il backend, con gestione automatica degli errori e injection dell'header di autenticazione \texttt{X-User-Id}.
+    \item \textbf{ProtectedRoute} wrapper component che verifica l'autenticazione prima di rendere rotte protette, reindirizzando a /login se non autenticato.
+\end{itemize}
+
+\paragraph{Flusso di Autenticazione:}
+L'utente accede tramite /login, fornendo email e password. Il frontend chiama l'endpoint POST /auth/login sul backend, che valida le credenziali e ritorna l'oggetto user (con flag firstLogin se è primo accesso). Se firstLogin=true, l'utente è reindirizzato a /finalize-profile per scegliere uno username permanente; altrimenti alla Dashboard. Tutte le richieste successive includono automaticamente l'header \texttt{X-User-Id} per identificare l'utente richiedente.
 
 \subsection{Filtraggio esteso e Dashboard (Requisiti 3 e 7)}
 Il sistema implementa un meccanismo di filtraggio esteso delle issue (Requisito 3) che consente agli utenti di cercare e filtrare per: \textbf{testo libero} (titolo, descrizione, reporter), \textbf{priorità} (\texttt{PriorityLevel}), \textbf{stato} (\texttt{IssueStatus}), \textbf{tipo} (\texttt{IssueType}: QUESTION, BUG, DOCUMENTATION, FEATURE) e \textbf{assegnatario} (\texttt{assigneeId}). I filtri sono tutti opzionali e componibili: la query JPQL viene costruita dinamicamente aggiungendo le clausole \texttt{WHERE} solo per i parametri non null.
