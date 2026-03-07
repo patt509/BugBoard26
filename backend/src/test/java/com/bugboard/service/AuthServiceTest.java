@@ -1,29 +1,39 @@
 package com.bugboard.service;
 
-import static org.mockito.Mockito.*;
-import static org.junit.Assert.*;
-
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import static org.mockito.ArgumentMatchers.any;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.bugboard.dto.PasswordResetRequestDTO;
 import com.bugboard.dto.UserDTO;
+import static com.bugboard.enums.UserRole.ADMIN;
+import static com.bugboard.enums.UserRole.USER;
 import com.bugboard.model.PasswordResetRequest;
 import com.bugboard.model.User;
 import com.bugboard.repository.PasswordResetRequestRepository;
 import com.bugboard.repository.UserRepository;
 import com.bugboard.security.PasswordHasher;
-
-import static com.bugboard.enums.UserRole.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AuthServiceTest {
