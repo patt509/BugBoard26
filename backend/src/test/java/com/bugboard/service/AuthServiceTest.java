@@ -2,16 +2,27 @@ package com.bugboard.service;
 
 import static org.mockito.Mockito.*;
 import static org.junit.Assert.*;
+
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import com.bugboard.repository.UserRepository;
-import com.bugboard.model.User;
+
+import com.bugboard.dto.PasswordResetRequestDTO;
 import com.bugboard.dto.UserDTO;
-import java.util.Optional;
+import com.bugboard.model.PasswordResetRequest;
+import com.bugboard.model.User;
+import com.bugboard.repository.PasswordResetRequestRepository;
+import com.bugboard.repository.UserRepository;
+import com.bugboard.security.PasswordHasher;
+
 import static com.bugboard.enums.UserRole.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -19,6 +30,9 @@ public class AuthServiceTest {
 
    @Mock
    private UserRepository userRepository;
+
+   @Mock
+   private PasswordResetRequestRepository resetRequestRepository;
 
    @InjectMocks
    private AuthService authService;
@@ -221,5 +235,491 @@ public class AuthServiceTest {
    public void testFinalizeProfile_TC6_UserNotFound() {
       when(userRepository.findById(5L)).thenReturn(Optional.empty());
       authService.finalizeProfile(5L, "user5");
+   }
+
+   /* _________________________________________________________________________ */
+
+   /* Test on resetUserPassword method */
+
+   /**
+    * TC1: Success scenario - Admin resets a user's password.
+    * Expected Output: New temporary password (String).
+    * PostConditions: User's password is updated and firstLogin set to true.
+    */
+   @Test
+   public void testResetUserPassword_TC1_Success() {
+      // Arrange
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+      when(userRepository.findById(2L)).thenReturn(Optional.of(normalUser));
+
+      // Act
+      String newTempPassword = authService.resetUserPassword(2L, 1L);
+
+      // Assert
+      assertNotNull("PostCond failed: temp password should not be null", newTempPassword);
+      assertTrue("PostCond failed: firstLogin should be true", normalUser.isFirstLogin());
+      verify(userRepository).save(normalUser);
+   }
+
+   /**
+    * TC2: Failure scenario - User ID is null.
+    * Expected Output: IllegalArgumentException.
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testResetUserPassword_TC2_NullUserId() {
+      // Arrange
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+
+      // Act
+      authService.resetUserPassword(null, 1L);
+   }
+
+   /**
+    * TC3: Failure scenario - User not found in database.
+    * Expected Output: IllegalArgumentException.
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testResetUserPassword_TC3_UserNotFound() {
+      // Arrange
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+      when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+      // Act
+      authService.resetUserPassword(999L, 1L);
+   }
+
+   /**
+    * TC4: Failure scenario - Admin ID is null.
+    * Expected Output: SecurityException.
+    */
+   @Test(expected = SecurityException.class)
+   public void testResetUserPassword_TC4_NullAdminId() {
+      // Act
+      authService.resetUserPassword(2L, null);
+   }
+
+   /**
+    * TC5: Failure scenario - Non-admin caller.
+    * Expected Output: SecurityException.
+    */
+   @Test(expected = SecurityException.class)
+   public void testResetUserPassword_TC5_NonAdmin() {
+      // Arrange
+      when(userRepository.findById(2L)).thenReturn(Optional.of(normalUser));
+
+      // Act
+      authService.resetUserPassword(3L, 2L);
+   }
+
+   /* _________________________________________________________________________ */
+
+   /* Test on processPasswordResetRequest method */
+
+   /**
+    * TC1: Success scenario - Admin approves a pending request.
+    * Expected Output: New temporary password (String).
+    * PostConditions: Request marked completed, user password reset.
+    */
+   @Test
+   public void testProcessPasswordResetRequest_TC1_Approve() {
+      // Arrange
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+      PasswordResetRequest request = mock(PasswordResetRequest.class);
+      when(resetRequestRepository.findById(10L)).thenReturn(Optional.of(request));
+      when(request.isPending()).thenReturn(true);
+      when(request.getUser()).thenReturn(normalUser);
+      when(normalUser.getId()).thenReturn(2L);
+      when(userRepository.findById(2L)).thenReturn(Optional.of(normalUser));
+
+      // Act
+      String result = authService.processPasswordResetRequest(10L, true, 1L);
+
+      // Assert
+      assertNotNull("PostCond failed: temp password should not be null", result);
+      verify(request).markAsCompleted(admin);
+      verify(resetRequestRepository).save(request);
+   }
+
+   /**
+    * TC2: Success scenario - Admin rejects a pending request.
+    * Expected Output: null.
+    * PostConditions: Request marked as rejected.
+    */
+   @Test
+   public void testProcessPasswordResetRequest_TC2_Reject() {
+      // Arrange
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+      PasswordResetRequest request = mock(PasswordResetRequest.class);
+      when(resetRequestRepository.findById(10L)).thenReturn(Optional.of(request));
+      when(request.isPending()).thenReturn(true);
+      User requestUser = mock(User.class);
+      when(request.getUser()).thenReturn(requestUser);
+      when(requestUser.getEmail()).thenReturn("user@test.com");
+
+      // Act
+      String result = authService.processPasswordResetRequest(10L, false, 1L);
+
+      // Assert
+      assertNull("PostCond failed: result should be null on reject", result);
+      verify(request).markAsRejected(admin);
+      verify(resetRequestRepository).save(request);
+   }
+
+   /**
+    * TC3: Failure scenario - Request ID is null.
+    * Expected Output: IllegalArgumentException.
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testProcessPasswordResetRequest_TC3_NullRequestId() {
+      // Arrange
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+
+      // Act
+      authService.processPasswordResetRequest(null, true, 1L);
+   }
+
+   /**
+    * TC4: Failure scenario - Request not found.
+    * Expected Output: IllegalArgumentException.
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testProcessPasswordResetRequest_TC4_RequestNotFound() {
+      // Arrange
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+      when(resetRequestRepository.findById(999L)).thenReturn(Optional.empty());
+
+      // Act
+      authService.processPasswordResetRequest(999L, true, 1L);
+   }
+
+   /**
+    * TC5: Failure scenario - Request already processed (not pending).
+    * Expected Output: IllegalStateException.
+    */
+   @Test(expected = IllegalStateException.class)
+   public void testProcessPasswordResetRequest_TC5_AlreadyProcessed() {
+      // Arrange
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+      PasswordResetRequest request = mock(PasswordResetRequest.class);
+      when(resetRequestRepository.findById(10L)).thenReturn(Optional.of(request));
+      when(request.isPending()).thenReturn(false);
+
+      // Act
+      authService.processPasswordResetRequest(10L, true, 1L);
+   }
+
+   /**
+    * TC6: Failure scenario - Admin ID is null.
+    * Expected Output: SecurityException.
+    */
+   @Test(expected = SecurityException.class)
+   public void testProcessPasswordResetRequest_TC6_NullAdminId() {
+      // Act
+      authService.processPasswordResetRequest(10L, true, null);
+   }
+
+   /* _________________________________________________________________________ */
+
+   /* Test on login method */
+
+   /**
+    * TC1: Success scenario - Valid email and password.
+    * Expected Output: Optional containing UserDTO.
+    * PostConditions: DTO contains all user fields.
+    */
+   @Test
+   public void testLogin_TC1_Success() {
+      // Arrange
+      String hash = PasswordHasher.hash("correctPassword");
+      User userWithHash = spy(new User("login@test.com", hash, USER));
+      when(userWithHash.getId()).thenReturn(5L);
+      when(userRepository.findByEmail("login@test.com")).thenReturn(Optional.of(userWithHash));
+
+      // Act
+      Optional<UserDTO> result = authService.login("login@test.com", "correctPassword".toCharArray());
+
+      // Assert
+      assertTrue("PostCond failed: should return a UserDTO", result.isPresent());
+      assertEquals("PostCond failed: email should match", "login@test.com", result.get().getEmail());
+   }
+
+   /**
+    * TC2: Failure scenario - Email not found.
+    * Expected Output: Empty Optional.
+    */
+   @Test
+   public void testLogin_TC2_UserNotFound() {
+      // Arrange
+      when(userRepository.findByEmail("unknown@test.com")).thenReturn(Optional.empty());
+
+      // Act
+      Optional<UserDTO> result = authService.login("unknown@test.com", "any".toCharArray());
+
+      // Assert
+      assertFalse("PostCond failed: should return empty", result.isPresent());
+   }
+
+   /**
+    * TC3: Failure scenario - Wrong password.
+    * Expected Output: Empty Optional.
+    */
+   @Test
+   public void testLogin_TC3_WrongPassword() {
+      // Arrange
+      String hash = PasswordHasher.hash("correctPassword");
+      User userWithHash = new User("login@test.com", hash, USER);
+      when(userRepository.findByEmail("login@test.com")).thenReturn(Optional.of(userWithHash));
+
+      // Act
+      Optional<UserDTO> result = authService.login("login@test.com", "wrongPassword".toCharArray());
+
+      // Assert
+      assertFalse("PostCond failed: should return empty", result.isPresent());
+   }
+
+   /* _________________________________________________________________________ */
+
+   /* Test on getPendingResetRequests method */
+
+   /**
+    * TC1: Success scenario - Pending requests exist.
+    * Expected Output: List with one PasswordResetRequestDTO.
+    */
+   @Test
+   public void testGetPendingResetRequests_TC1_WithRequests() {
+      // Arrange
+      PasswordResetRequest req = mock(PasswordResetRequest.class);
+      User reqUser = mock(User.class);
+      when(req.getId()).thenReturn(1L);
+      when(req.getUser()).thenReturn(reqUser);
+      when(reqUser.getId()).thenReturn(2L);
+      when(reqUser.getEmail()).thenReturn("user@test.com");
+      when(reqUser.getUsername()).thenReturn("testuser");
+      when(req.getRequestedAt()).thenReturn(LocalDateTime.of(2025, 1, 1, 12, 0));
+      when(req.getStatus()).thenReturn(PasswordResetRequest.RequestStatus.PENDING);
+      when(resetRequestRepository.findAllPending()).thenReturn(List.of(req));
+
+      // Act
+      List<PasswordResetRequestDTO> result = authService.getPendingResetRequests();
+
+      // Assert
+      assertEquals("PostCond failed: should contain 1 request", 1, result.size());
+      assertEquals("PostCond failed: userEmail should match", "user@test.com", result.get(0).getUserEmail());
+   }
+
+   /**
+    * TC2: Success scenario - No pending requests.
+    * Expected Output: Empty list.
+    */
+   @Test
+   public void testGetPendingResetRequests_TC2_Empty() {
+      // Arrange
+      when(resetRequestRepository.findAllPending()).thenReturn(Collections.emptyList());
+
+      // Act
+      List<PasswordResetRequestDTO> result = authService.getPendingResetRequests();
+
+      // Assert
+      assertTrue("PostCond failed: should be empty", result.isEmpty());
+   }
+
+   /* _________________________________________________________________________ */
+
+   /* Test on requestPasswordReset method */
+
+   /**
+    * TC1: Success scenario - User requests password reset.
+    * PostConditions: PasswordResetRequest saved.
+    */
+   @Test
+   public void testRequestPasswordReset_TC1_Success() {
+      // Arrange
+      when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(normalUser));
+      when(resetRequestRepository.hasPendingRequest(normalUser)).thenReturn(false);
+
+      // Act
+      authService.requestPasswordReset("user@test.com");
+
+      // Assert
+      verify(resetRequestRepository).save(any(PasswordResetRequest.class));
+   }
+
+   /**
+    * TC2: Failure scenario - Null email.
+    * Expected Output: IllegalArgumentException.
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testRequestPasswordReset_TC2_NullEmail() {
+      // Act
+      authService.requestPasswordReset(null);
+   }
+
+   /**
+    * TC3: Failure scenario - Empty email.
+    * Expected Output: IllegalArgumentException.
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testRequestPasswordReset_TC3_EmptyEmail() {
+      // Act
+      authService.requestPasswordReset("");
+   }
+
+   /**
+    * TC4: Failure scenario - Email not found in database.
+    * Expected Output: IllegalArgumentException.
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testRequestPasswordReset_TC4_EmailNotFound() {
+      // Arrange
+      when(userRepository.findByEmail("unknown@test.com")).thenReturn(Optional.empty());
+
+      // Act
+      authService.requestPasswordReset("unknown@test.com");
+   }
+
+   /**
+    * TC5: Failure scenario - Pending request already exists.
+    * Expected Output: IllegalStateException.
+    */
+   @Test(expected = IllegalStateException.class)
+   public void testRequestPasswordReset_TC5_AlreadyPending() {
+      // Arrange
+      when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(normalUser));
+      when(resetRequestRepository.hasPendingRequest(normalUser)).thenReturn(true);
+
+      // Act
+      authService.requestPasswordReset("user@test.com");
+   }
+
+   /* _________________________________________________________________________ */
+
+   /* Test on validateAdminPrivileges method */
+
+   /**
+    * TC1: Success scenario - Valid admin.
+    * Expected Output: No exception thrown.
+    */
+   @Test
+   public void testValidateAdminPrivileges_TC1_ValidAdmin() {
+      // Arrange
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+
+      // Act & Assert (no exception)
+      authService.validateAdminPrivileges(1L);
+   }
+
+   /**
+    * TC2: Failure scenario - Null admin ID.
+    * Expected Output: SecurityException.
+    */
+   @Test(expected = SecurityException.class)
+   public void testValidateAdminPrivileges_TC2_NullAdminId() {
+      // Act
+      authService.validateAdminPrivileges(null);
+   }
+
+   /**
+    * TC3: Failure scenario - Admin not found.
+    * Expected Output: SecurityException.
+    */
+   @Test(expected = SecurityException.class)
+   public void testValidateAdminPrivileges_TC3_AdminNotFound() {
+      // Arrange
+      when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+      // Act
+      authService.validateAdminPrivileges(999L);
+   }
+
+   /**
+    * TC4: Failure scenario - User is not an admin.
+    * Expected Output: SecurityException.
+    */
+   @Test(expected = SecurityException.class)
+   public void testValidateAdminPrivileges_TC4_NotAdmin() {
+      // Arrange
+      when(userRepository.findById(2L)).thenReturn(Optional.of(normalUser));
+
+      // Act
+      authService.validateAdminPrivileges(2L);
+   }
+
+   /* _________________________________________________________________________ */
+
+   /* Test on registerUser (legacy) method */
+
+   /**
+    * TC1: Success scenario - Legacy user registration.
+    * PostConditions: User saved with hashed password.
+    */
+   @Test
+   public void testRegisterUser_TC1_Success() {
+      // Arrange
+      User newUser = new User("new@test.com", "placeholder", USER);
+
+      // Act
+      authService.registerUser(newUser, "rawPassword".toCharArray());
+
+      // Assert
+      verify(userRepository).save(newUser);
+      assertNotNull("PostCond failed: password should be hashed", newUser.getPassword());
+      assertNotEquals("PostCond failed: password should differ from raw",
+            "rawPassword", newUser.getPassword());
+   }
+
+   /* _________________________________________________________________________ */
+
+   /* Test on authenticate (legacy) method */
+
+   /**
+    * TC1: Success scenario - Valid credentials.
+    * Expected Output: true.
+    */
+   @Test
+   public void testAuthenticate_TC1_ValidCredentials() {
+      // Arrange
+      String hash = PasswordHasher.hash("correct");
+      User userWithHash = new User("auth@test.com", hash, USER);
+      when(userRepository.findByEmail("auth@test.com")).thenReturn(Optional.of(userWithHash));
+
+      // Act
+      boolean result = authService.authenticate("auth@test.com", "correct".toCharArray());
+
+      // Assert
+      assertTrue("PostCond failed: should return true", result);
+   }
+
+   /**
+    * TC2: Failure scenario - Wrong password.
+    * Expected Output: false.
+    */
+   @Test
+   public void testAuthenticate_TC2_WrongPassword() {
+      // Arrange
+      String hash = PasswordHasher.hash("correct");
+      User userWithHash = new User("auth@test.com", hash, USER);
+      when(userRepository.findByEmail("auth@test.com")).thenReturn(Optional.of(userWithHash));
+
+      // Act
+      boolean result = authService.authenticate("auth@test.com", "wrong".toCharArray());
+
+      // Assert
+      assertFalse("PostCond failed: should return false", result);
+   }
+
+   /**
+    * TC3: Failure scenario - User not found.
+    * Expected Output: false.
+    */
+   @Test
+   public void testAuthenticate_TC3_UserNotFound() {
+      // Arrange
+      when(userRepository.findByEmail("unknown@test.com")).thenReturn(Optional.empty());
+
+      // Act
+      boolean result = authService.authenticate("unknown@test.com", "any".toCharArray());
+
+      // Assert
+      assertFalse("PostCond failed: should return false", result);
    }
 }
