@@ -1,9 +1,12 @@
 package com.bugboard.service;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -14,8 +17,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import com.bugboard.dto.DashboardStatsDTO;
+import com.bugboard.dto.IssueDTO;
 import com.bugboard.enums.IssueStatus;
 import com.bugboard.enums.IssueType;
+import com.bugboard.enums.PriorityLevel;
 import com.bugboard.enums.UserRole;
 import com.bugboard.model.Issue;
 import com.bugboard.model.User;
@@ -200,5 +206,100 @@ public class IssueServiceTest {
       when(repository.findById(10L)).thenReturn(null);
       when(repository.findById(20L)).thenReturn(null);
       issueService.processDuplicate(10L, 20L, 1L);
+   }
+
+   // ==================== searchIssues TESTS ====================
+
+   /**
+    * TC12: Search issues filtering by IssueType only.
+    * Expected Output: List of IssueDTO matching the type filter.
+    */
+   @Test
+   public void testSearchIssues_TC12_FilterByType() {
+      // Arrange
+      Issue bugIssue = spy(new Issue("Bug title long enough", "Bug description", reporter, IssueType.BUG));
+      when(repository.search(null, null, null, IssueType.BUG, null))
+            .thenReturn(List.of(bugIssue));
+
+      // Act
+      List<IssueDTO> results = issueService.searchIssues(null, null, null, IssueType.BUG, null);
+
+      // Assert
+      assertEquals("PostCond failed: should return 1 issue", 1, results.size());
+      assertEquals("PostCond failed: type should be BUG", "BUG", results.get(0).getType());
+   }
+
+   /**
+    * TC13: Search issues filtering by assigneeId only.
+    * Expected Output: List of IssueDTO assigned to the given user.
+    */
+   @Test
+   public void testSearchIssues_TC13_FilterByAssignee() {
+      // Arrange
+      Issue assigned = spy(new Issue("Assigned issue title", "Description assigned", reporter, IssueType.FEATURE));
+      assigned.setAssignee(normalUser);
+      when(repository.search(null, null, null, null, 2L))
+            .thenReturn(List.of(assigned));
+
+      // Act
+      List<IssueDTO> results = issueService.searchIssues(null, null, null, null, 2L);
+
+      // Assert
+      assertEquals("PostCond failed: should return 1 issue", 1, results.size());
+   }
+
+   /**
+    * TC14: Search with all filters combined returns empty when nothing matches.
+    * Expected Output: Empty list.
+    */
+   @Test
+   public void testSearchIssues_TC14_AllFiltersCombinedNoMatch() {
+      // Arrange
+      when(repository.search("xyz", PriorityLevel.CRITICAL, IssueStatus.TODO, IssueType.DOCUMENTATION, 999L))
+            .thenReturn(List.of());
+
+      // Act
+      List<IssueDTO> results = issueService.searchIssues("xyz", PriorityLevel.CRITICAL, IssueStatus.TODO,
+            IssueType.DOCUMENTATION, 999L);
+
+      // Assert
+      assertTrue("PostCond failed: result list should be empty", results.isEmpty());
+   }
+
+   // ==================== getDashboardStats TESTS ====================
+
+   /**
+    * TC15: Dashboard stats include issuesAssignedPerUser.
+    * Expected Output: DashboardStatsDTO with populated issuesAssignedPerUser map.
+    */
+   @Test
+   public void testGetDashboardStats_TC15_IssuesAssignedPerUser() {
+      // Arrange
+      for (IssueStatus s : IssueStatus.values()) {
+         when(repository.countByStatus(s)).thenReturn(0L);
+      }
+      for (PriorityLevel p : PriorityLevel.values()) {
+         when(repository.countByPriority(p)).thenReturn(0L);
+      }
+      when(repository.countAll()).thenReturn(5L);
+      when(repository.countDuplicates()).thenReturn(0L);
+      when(repository.getIssuesCreatedPerDaySince(org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
+      when(repository.getAverageResolutionTimeHours()).thenReturn(0.0);
+      when(repository.countCreatedToday()).thenReturn(0L);
+      when(repository.countClosedToday()).thenReturn(0L);
+
+      // Simulate 2 users with open assigned issues
+      Object[] row1 = new Object[] { "user1", 3L };
+      Object[] row2 = new Object[] { "user2", 1L };
+      when(repository.countOpenIssuesPerAssignee()).thenReturn(Arrays.asList(row1, row2));
+
+      // Act
+      DashboardStatsDTO stats = issueService.getDashboardStats();
+
+      // Assert
+      assertNotNull("PostCond failed: issuesAssignedPerUser should not be null", stats.getIssuesAssignedPerUser());
+      assertEquals("PostCond failed: should have 2 entries", 2, stats.getIssuesAssignedPerUser().size());
+      assertEquals("PostCond failed: user1 should have 3 issues", Long.valueOf(3L), stats.getIssuesAssignedPerUser().get("user1"));
+      assertEquals("PostCond failed: user2 should have 1 issue", Long.valueOf(1L), stats.getIssuesAssignedPerUser().get("user2"));
    }
 }
