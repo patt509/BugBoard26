@@ -1,17 +1,5 @@
 package com.bugboard.service;
 
-import com.bugboard.dto.DashboardStatsDTO;
-import com.bugboard.dto.IssueDTO;
-import com.bugboard.enums.IssueStatus;
-import com.bugboard.enums.PriorityLevel;
-import com.bugboard.model.Issue;
-import com.bugboard.model.User;
-import com.bugboard.repository.IssueRepository;
-import com.bugboard.repository.UserRepository;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
@@ -19,6 +7,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import com.bugboard.dto.DashboardStatsDTO;
+import com.bugboard.dto.IssueDTO;
+import com.bugboard.enums.IssueStatus;
+import com.bugboard.enums.IssueType;
+import com.bugboard.enums.PriorityLevel;
+import com.bugboard.model.Issue;
+import com.bugboard.model.User;
+import com.bugboard.repository.IssueRepository;
+import com.bugboard.repository.UserRepository;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 
 @ApplicationScoped
 public class IssueService {
@@ -38,9 +40,9 @@ public class IssueService {
 
    // Create a new issue with minimal parameters
    @Transactional
-   public Long createIssue(String title, String description, Long reporterId) {
+   public Long createIssue(String title, String description, Long reporterId, IssueType type) {
       User reporter = reporterId != null ? userRepository.findById(reporterId).orElse(null) : null;
-      Issue issue = new Issue(title, description, reporter);
+      Issue issue = new Issue(title, description, reporter, type);
       repository.save(issue);
       return issue.getId();
    }
@@ -49,12 +51,24 @@ public class IssueService {
    public Long createIssue(IssueDTO dto, Long reporterId) {
       // Fetch reporter from repository if provided
       User reporter = reporterId != null ? userRepository.findById(reporterId).orElse(null) : null;
-      
+
+      // Parse type from DTO (mandatory)
+      IssueType type = dto.getType() != null ? IssueType.valueOf(dto.getType()) : null;
+
       // Service creates the entity from the DTO
-      Issue issue = new Issue(dto.getTitle(), dto.getDescription(), reporter);
+      Issue issue = new Issue(dto.getTitle(), dto.getDescription(), reporter, type);
 
       if (dto.getPriority() != null) {
          issue.setPriority(PriorityLevel.valueOf(dto.getPriority()));
+      }
+
+      // Handle optional assignee
+      if (dto.getAssigneeUsername() != null && !dto.getAssigneeUsername().isBlank()) {
+         User assignee = userRepository.findByUsername(dto.getAssigneeUsername()).orElse(null);
+         if (assignee == null) {
+            throw new IllegalArgumentException("Assignee user not found: " + dto.getAssigneeUsername());
+         }
+         issue.setAssignee(assignee);
       }
 
       repository.save(issue);
@@ -278,13 +292,19 @@ public class IssueService {
             ? issue.getReporter().getUsername()
             : "Unknown";
 
+      String assigneeUsername = issue.getAssignee() != null
+            ? issue.getAssignee().getUsername()
+            : null;
+
       return IssueDTO.builder()
             .id(issue.getId())
             .title(issue.getTitle())
             .description(issue.getDescription())
             .status(issue.getStatus().toString())
             .priority(issue.getPriority().toString())
+            .type(issue.getType().toString())
             .reporterName(reporterName)
+            .assigneeUsername(assigneeUsername)
             .createdAt(issue.getCreatedAt())
             .closedAt(issue.getClosedAt())
             .attachmentPath(issue.getAttachmentPath())

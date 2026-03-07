@@ -1,10 +1,21 @@
 package com.bugboard.model;
 
-import com.bugboard.enums.IssueStatus;
-import com.bugboard.enums.PriorityLevel;
-import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
+
+import com.bugboard.enums.IssueStatus;
+import com.bugboard.enums.IssueType;
+import com.bugboard.enums.PriorityLevel;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "issues")
@@ -24,10 +35,19 @@ public class Issue {
    @Enumerated(EnumType.STRING)
    private PriorityLevel priority;
 
+   @Enumerated(EnumType.STRING)
+   @Column(nullable = false)
+   private IssueType type;
+
    // User who reported the issue
    @ManyToOne
    @JoinColumn(name = "reporter_id", nullable = false)
    private User reporter;
+
+   // User assigned to the issue (optional)
+   @ManyToOne
+   @JoinColumn(name = "assignee_id")
+   private User assignee;
 
    // In case this issue is marked as duplicate
    @ManyToOne
@@ -42,16 +62,27 @@ public class Issue {
    }// JPA requires a default constructor
 
    // 2. CONSTRUCTOR
-   public Issue(String title, String description, User reporter) {
+   /**
+    * Creates a new Issue with mandatory fields.
+    * @param title       must be at least 10 characters
+    * @param description cannot be empty
+    * @param reporter    the user reporting the issue
+    * @param type        the issue type (QUESTION, BUG, DOCUMENTATION, FEATURE)
+    */
+   public Issue(String title, String description, User reporter, IssueType type) {
       if (title == null || title.trim().length() < 10) {
          throw new IllegalArgumentException("Title must be at least 10 characters.");
       }
       if (description == null || description.trim().isEmpty()) {
          throw new IllegalArgumentException("Description cannot be empty.");
       }
+      if (type == null) {
+         throw new IllegalArgumentException("Issue type is required.");
+      }
       this.title = title;
       this.description = description;
       this.reporter = reporter;
+      this.type = type;
       // Initialize default values
       this.status = IssueStatus.TODO;
       this.priority = PriorityLevel.MEDIUM;
@@ -107,8 +138,27 @@ public class Issue {
       this.status = status;
    }
 
+   public IssueType getType() {
+      return type;
+   }
+
+   public void setType(IssueType type) {
+      if (type == null) {
+         throw new IllegalArgumentException("Issue type is required.");
+      }
+      this.type = type;
+   }
+
    public User getReporter() {
       return reporter;
+   }
+
+   public User getAssignee() {
+      return assignee;
+   }
+
+   public void setAssignee(User assignee) {
+      this.assignee = assignee;
    }
 
    public Long getOriginalIssueId() {

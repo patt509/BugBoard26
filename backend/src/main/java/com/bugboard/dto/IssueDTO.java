@@ -13,6 +13,8 @@ public class IssueDTO {
    private LocalDateTime closedAt;
    private String attachmentPath;
    private Long originalIssueId; // If this issue is a duplicate, reference to original
+   private String type;
+   private String assigneeUsername;
 
    public IssueDTO() {
    }
@@ -28,6 +30,8 @@ public class IssueDTO {
       this.closedAt = builder.closedAt;
       this.attachmentPath = builder.attachmentPath;
       this.originalIssueId = builder.originalIssueId;
+      this.type = builder.type;
+      this.assigneeUsername = builder.assigneeUsername;
    }
 
    public static Builder builder() {
@@ -45,6 +49,8 @@ public class IssueDTO {
       private LocalDateTime closedAt;
       private String attachmentPath;
       private Long originalIssueId;
+      private String type;
+      private String assigneeUsername;
 
       public Builder id(Long id) {
          this.id = id;
@@ -96,6 +102,16 @@ public class IssueDTO {
          return this;
       }
 
+      public Builder type(String type) {
+         this.type = type;
+         return this;
+      }
+
+      public Builder assigneeUsername(String assigneeUsername) {
+         this.assigneeUsername = assigneeUsername;
+         return this;
+      }
+
       public IssueDTO build() {
          return new IssueDTO(this);
       }
@@ -142,6 +158,14 @@ public class IssueDTO {
       return originalIssueId;
    }
 
+   public String getType() {
+      return type;
+   }
+
+   public String getAssigneeUsername() {
+      return assigneeUsername;
+   }
+
    // Setters
    public void setId(Long id) {
       this.id = id;
@@ -181,5 +205,13 @@ public class IssueDTO {
 
    public void setOriginalIssueId(Long originalIssueId) {
       this.originalIssueId = originalIssueId;
+   }
+
+   public void setType(String type) {
+      this.type = type;
+   }
+
+   public void setAssigneeUsername(String assigneeUsername) {
+      this.assigneeUsername = assigneeUsername;
    }
 }
