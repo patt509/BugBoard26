@@ -16,6 +16,7 @@ public class DashboardStatsDTO {
    private Map<String, Long> issuesByStatus; // Count per status
    private Map<String, Long> issuesByPriority; // Count per priority
    private Map<String, Long> issuesCreatedPerDay; // Last 7 days trend
+   private Map<String, Long> issuesAssignedPerUser; // Open issues per assignee (R7)
 
    private double avgResolutionTimeHours; // Average time to resolve
    private long issuesCreatedToday;
@@ -33,6 +34,7 @@ public class DashboardStatsDTO {
       this.issuesByStatus = builder.issuesByStatus;
       this.issuesByPriority = builder.issuesByPriority;
       this.issuesCreatedPerDay = builder.issuesCreatedPerDay;
+      this.issuesAssignedPerUser = builder.issuesAssignedPerUser;
       this.avgResolutionTimeHours = builder.avgResolutionTimeHours;
       this.issuesCreatedToday = builder.issuesCreatedToday;
       this.issuesClosedToday = builder.issuesClosedToday;
@@ -51,6 +53,7 @@ public class DashboardStatsDTO {
       private Map<String, Long> issuesByStatus;
       private Map<String, Long> issuesByPriority;
       private Map<String, Long> issuesCreatedPerDay;
+      private Map<String, Long> issuesAssignedPerUser;
       private double avgResolutionTimeHours;
       private long issuesCreatedToday;
       private long issuesClosedToday;
@@ -92,6 +95,11 @@ public class DashboardStatsDTO {
 
       public Builder issuesCreatedPerDay(Map<String, Long> issuesCreatedPerDay) {
          this.issuesCreatedPerDay = issuesCreatedPerDay;
+         return this;
+      }
+
+      public Builder issuesAssignedPerUser(Map<String, Long> issuesAssignedPerUser) {
+         this.issuesAssignedPerUser = issuesAssignedPerUser;
          return this;
       }
 
@@ -146,6 +154,10 @@ public class DashboardStatsDTO {
 
    public Map<String, Long> getIssuesCreatedPerDay() {
       return issuesCreatedPerDay;
+   }
+
+   public Map<String, Long> getIssuesAssignedPerUser() {
+      return issuesAssignedPerUser;
    }
 
    public double getAvgResolutionTimeHours() {

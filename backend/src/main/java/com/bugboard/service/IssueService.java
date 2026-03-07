@@ -165,14 +165,20 @@ public class IssueService {
     * Search issues with optional filters.
     * Available to all authenticated users.
     */
-   public List<IssueDTO> searchIssues(String query, PriorityLevel priority, IssueStatus status) {
-      List<Issue> issues = repository.search(query, priority, status);
+   public List<IssueDTO> searchIssues(String query, PriorityLevel priority, IssueStatus status,
+         IssueType type, Long assigneeId) {
+      List<Issue> issues = repository.search(query, priority, status, type, assigneeId);
       return convertToDTO(issues);
    }
 
    // Overload for backward compatibility
+   public List<IssueDTO> searchIssues(String query, PriorityLevel priority, IssueStatus status) {
+      return searchIssues(query, priority, status, null, null);
+   }
+
+   // Overload for backward compatibility
    public List<IssueDTO> searchIssues(String query, PriorityLevel priority) {
-      return searchIssues(query, priority, null);
+      return searchIssues(query, priority, null, null, null);
    }
 
    /**
@@ -264,6 +270,15 @@ public class IssueService {
       long openIssues = repository.countByStatus(IssueStatus.TODO) +
             repository.countByStatus(IssueStatus.IN_PROGRESS);
 
+      // Count open issues per assignee (Requisito 7)
+      Map<String, Long> issuesAssignedPerUser = new LinkedHashMap<>();
+      List<Object[]> assigneeData = repository.countOpenIssuesPerAssignee();
+      for (Object[] row : assigneeData) {
+         String username = (String) row[0];
+         Long count = (Long) row[1];
+         issuesAssignedPerUser.put(username, count);
+      }
+
       return DashboardStatsDTO.builder()
             .totalIssues(repository.countAll())
             .openIssues(openIssues)
@@ -276,6 +291,7 @@ public class IssueService {
             .avgResolutionTimeHours(repository.getAverageResolutionTimeHours())
             .issuesCreatedToday(repository.countCreatedToday())
             .issuesClosedToday(repository.countClosedToday())
+            .issuesAssignedPerUser(issuesAssignedPerUser)
             .build();
    }
 

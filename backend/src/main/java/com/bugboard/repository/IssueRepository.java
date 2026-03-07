@@ -1,6 +1,7 @@
 package com.bugboard.repository;
 
 import com.bugboard.enums.IssueStatus;
+import com.bugboard.enums.IssueType;
 import com.bugboard.enums.PriorityLevel;
 import com.bugboard.model.Issue;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -40,7 +41,7 @@ public class IssueRepository {
    }
 
    // Dynamic filtering and search of issues (Requisito 3)
-   public List<Issue> search(String term, PriorityLevel priority, IssueStatus status) {
+   public List<Issue> search(String term, PriorityLevel priority, IssueStatus status, IssueType type, Long assigneeId) {
       StringBuilder jpql = new StringBuilder("SELECT i FROM Issue i LEFT JOIN i.reporter u WHERE 1=1");
 
       if (term != null && !term.trim().isEmpty()) {
@@ -52,6 +53,12 @@ public class IssueRepository {
       }
       if (status != null) {
          jpql.append(" AND i.status = :status");
+      }
+      if (type != null) {
+         jpql.append(" AND i.type = :type");
+      }
+      if (assigneeId != null) {
+         jpql.append(" AND i.assignee.id = :assigneeId");
       }
 
       jpql.append(" ORDER BY i.createdAt DESC");
@@ -67,8 +74,19 @@ public class IssueRepository {
       if (status != null) {
          query.setParameter("status", status);
       }
+      if (type != null) {
+         query.setParameter("type", type);
+      }
+      if (assigneeId != null) {
+         query.setParameter("assigneeId", assigneeId);
+      }
 
       return query.getResultList();
+   }
+
+   // Overload for backward compatibility (3-param)
+   public List<Issue> search(String term, PriorityLevel priority, IssueStatus status) {
+      return search(term, priority, status, null, null);
    }
 
    // Overload for backward compatibility
@@ -77,6 +95,21 @@ public class IssueRepository {
    }
 
    // ==================== STATISTICS FOR ADMIN DASHBOARD ====================
+
+   /**
+    * Count open issues (TODO or IN_PROGRESS) grouped by assignee username.
+    * @return list of Object[] where [0] = username (String), [1] = count (Long)
+    */
+   public List<Object[]> countOpenIssuesPerAssignee() {
+      return em.createQuery(
+            "SELECT i.assignee.username, COUNT(i) FROM Issue i " +
+                  "WHERE i.assignee IS NOT NULL AND (i.status = :todo OR i.status = :inProgress) " +
+                  "GROUP BY i.assignee.username",
+            Object[].class)
+            .setParameter("todo", IssueStatus.TODO)
+            .setParameter("inProgress", IssueStatus.IN_PROGRESS)
+            .getResultList();
+   }
 
    public long countAll() {
       return em.createQuery("SELECT COUNT(i) FROM Issue i", Long.class)

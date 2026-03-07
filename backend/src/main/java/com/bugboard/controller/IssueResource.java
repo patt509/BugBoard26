@@ -3,6 +3,7 @@ package com.bugboard.controller;
 import com.bugboard.dto.DashboardStatsDTO;
 import com.bugboard.dto.IssueDTO;
 import com.bugboard.enums.IssueStatus;
+import com.bugboard.enums.IssueType;
 import com.bugboard.enums.PriorityLevel;
 import com.bugboard.service.AuthService;
 import com.bugboard.service.IssueService;
@@ -74,9 +75,11 @@ public class IssueResource {
    public Response search(
          @QueryParam("term") String term,
          @QueryParam("priority") PriorityLevel priority,
-         @QueryParam("status") IssueStatus status) {
+         @QueryParam("status") IssueStatus status,
+         @QueryParam("type") IssueType type,
+         @QueryParam("assigneeId") Long assigneeId) {
       try {
-         List<IssueDTO> results = issueService.searchIssues(term, priority, status);
+         List<IssueDTO> results = issueService.searchIssues(term, priority, status, type, assigneeId);
          return Response.ok(results).build();
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error searching issues", e);
