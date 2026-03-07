@@ -1,23 +1,26 @@
 package com.bugboard.service;
 
-import static org.mockito.Mockito.*;
-import static org.junit.Assert.*;
+import java.util.Optional;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.bugboard.enums.IssueStatus;
+import com.bugboard.enums.IssueType;
 import com.bugboard.enums.UserRole;
 import com.bugboard.model.Issue;
 import com.bugboard.model.User;
 import com.bugboard.repository.IssueRepository;
 import com.bugboard.repository.UserRepository;
-
-import java.util.Optional;
 
 @RunWith(MockitoJUnitRunner.class) // Lenient runner to avoid unnecessary stubbing errors
 public class IssueServiceTest {
@@ -53,8 +56,8 @@ public class IssueServiceTest {
    @Test
    public void testProcessDuplicate_TC1_Success() {
       // Arrange
-      Issue duplicate = new Issue("Title for Issue A (DUPLICATE", "Description A", reporter);
-      Issue original = new Issue("Title for Issue B (ORIGINAL)", "Description B", reporter);
+      Issue duplicate = new Issue("Title for Issue A (DUPLICATE", "Description A", reporter, IssueType.BUG);
+      Issue original = new Issue("Title for Issue B (ORIGINAL)", "Description B", reporter, IssueType.BUG);
 
       Issue spyDuplicate = spy(duplicate);
       Issue spyOriginal = spy(original);
@@ -128,7 +131,7 @@ public class IssueServiceTest {
    @Test(expected = IllegalArgumentException.class)
    public void testProcessDuplicate_TC7_DuplicateIssueNotFound() {
       User testReporter = new User("test@test.com", "pass", UserRole.USER);
-      Issue original = new Issue("Original", "Desc", testReporter);
+      Issue original = new Issue("Original Issue Title", "Desc", testReporter, IssueType.BUG);
       
       when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
       when(repository.findById(10L)).thenReturn(null);
@@ -143,7 +146,7 @@ public class IssueServiceTest {
    @Test(expected = IllegalArgumentException.class)
    public void testProcessDuplicate_TC8_OriginalIssueNotFound() {
       User testReporter = new User("test@test.com", "pass", UserRole.USER);
-      Issue duplicate = new Issue("Title for Issue A", "Description A", testReporter);
+      Issue duplicate = new Issue("Title for Issue A", "Description A", testReporter, IssueType.BUG);
 
       when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
       when(repository.findById(10L)).thenReturn(duplicate);
@@ -157,7 +160,7 @@ public class IssueServiceTest {
     */
    @Test(expected = IllegalArgumentException.class)
    public void testProcessDuplicate_TC9_SelfDuplication() {
-      Issue issue = new Issue("Title must be long enough", "Description", reporter);
+      Issue issue = new Issue("Title must be long enough", "Description", reporter, IssueType.BUG);
       Issue spyIssue = spy(issue);
 
       when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
@@ -173,9 +176,9 @@ public class IssueServiceTest {
     */
    @Test(expected = IllegalStateException.class)
    public void testProcessDuplicate_TC10_AlreadyClosed() {
-      Issue alreadyClosedIssue = new Issue("Title for Closed Issue", "Description", reporter);
+      Issue alreadyClosedIssue = new Issue("Title for Closed Issue", "Description", reporter, IssueType.BUG);
       alreadyClosedIssue.setStatus(IssueStatus.CLOSED);
-      Issue original = new Issue("Title for Original Issue", "Description", reporter);
+      Issue original = new Issue("Title for Original Issue", "Description", reporter, IssueType.BUG);
 
       Issue spyClosed = spy(alreadyClosedIssue);
       Issue spyOriginal = spy(original);
