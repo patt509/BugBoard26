@@ -463,6 +463,253 @@ La seguente tabella descrive i test case progettati per verificare il comportame
 
 \clearpage
 
+\subsubsection{User (Entità di Dominio)}
+
+La seguente tabella descrive i test case progettati per verificare il comportamento dell'entità \texttt{User}. I test coprono costruttore, setter validati, metodo \texttt{finalizeProfile} e metodo \texttt{isAdmin}, garantendo 100\% branch coverage.\\
+
+\vspace{-8pt}
+\noindent{\footnotesize
+\begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
+    \hline
+    TC1 & --- & \seqsplit{User(`user@test.com', `password', USER)} & User object & All fields set, \seqsplit{isFirstLogin}=true. \\
+    \hline
+    TC2 & --- & \seqsplit{User(`admin@test.com', `password', ADMIN)} & User object & role=ADMIN. \\
+    \hline
+    TC3 & --- & \seqsplit{User(null, `password', USER)} & \seqsplit{IllegalArgumentException} & --- \\
+    \hline
+    TC4 & --- & \seqsplit{User(`invalidemail', `password', USER)} & \seqsplit{IllegalArgumentException} & --- \\
+    \hline
+    TC5 & --- & new User() (JPA no-arg) & User object & All fields null/default. \\
+    \hline
+    TC6 & User exists. & \seqsplit{setPassword(`newPwd')} & --- & Password updated. \\
+    \hline
+    TC7 & User exists. & setPassword(null) & \seqsplit{IllegalArgumentException} & --- \\
+    \hline
+    TC8 & User exists. & setPassword("") & \seqsplit{IllegalArgumentException} & --- \\
+    \hline
+    TC9 & User exists. & setPassword("~~~") & \seqsplit{IllegalArgumentException} & --- \\
+    \hline
+    TC10 & User, \seqsplit{isFirstLogin}=true. & \seqsplit{finalizeProfile(`validUser')} & --- & Username set, \seqsplit{isFirstLogin}=false. \\
+    \hline
+    TC11 & User, \seqsplit{isFirstLogin}=false. & \seqsplit{finalizeProfile(`name')} & \seqsplit{IllegalStateException} & --- \\
+    \hline
+    TC12 & User, \seqsplit{isFirstLogin}=true. & \seqsplit{finalizeProfile(null)} & \seqsplit{IllegalArgumentException} & --- \\
+    \hline
+    TC13 & User, \seqsplit{isFirstLogin}=true. & \seqsplit{finalizeProfile(`ab')} & \seqsplit{IllegalArgumentException} & --- \\
+    \hline
+    TC14 & User, \seqsplit{isFirstLogin}=true. & \seqsplit{finalizeProfile(`abc')} & --- & Username=`abc'. \\
+    \hline
+    TC15 & User, \seqsplit{isFirstLogin}=true. & \seqsplit{finalizeProfile("")} & \seqsplit{IllegalArgumentException} & --- \\
+    \hline
+    TC16 & User with role ADMIN. & isAdmin() & true & --- \\
+    \hline
+    TC17 & User with role USER. & isAdmin() & false & --- \\
+    \hline
+    TC18 & User exists. & \seqsplit{setUsername(`newName')} & --- & Username updated. \\
+    \hline
+    TC19 & User exists. & setRole(ADMIN) & --- & Role updated. \\
+    \hline
+    TC20 & User exists. & \seqsplit{setFirstLogin(false)} & --- & \seqsplit{isFirstLogin}=false. \\
+    \hline
+\end{tabularx}
+}
+
+\paragraph{Risultato JaCoCo:} Copertura raggiunta: \textbf{100\% istruzioni, 100\% branch}.
+
+\clearpage
+
+\subsubsection{PasswordResetRequest (Entità di Dominio)}
+
+La seguente tabella descrive i test case progettati per verificare il comportamento dell'entità \texttt{PasswordResetRequest}. I test coprono costruttori, metodi di business (\texttt{markAsCompleted}, \texttt{markAsRejected}, \texttt{isPending}) e getters, garantendo 100\% branch coverage.\\
+
+\vspace{-8pt}
+\noindent{\footnotesize
+\begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
+    \hline
+    TC1 & User exists. & \seqsplit{PasswordResetRequest(user)} & Request object & \seqsplit{status=PENDING}, \seqsplit{requestedAt} set. \\
+    \hline
+    TC2 & --- & \seqsplit{PasswordResetRequest(null)} & \seqsplit{IllegalArgumentException} & --- \\
+    \hline
+    TC3 & --- & new \seqsplit{PasswordResetRequest()} (JPA) & Request object & All fields null/default. \\
+    \hline
+    TC4 & Pending request, admin exists. & \seqsplit{markAsCompleted(admin)} & --- & \seqsplit{status=COMPLETED}, \seqsplit{processedAt} set. \\
+    \hline
+    TC5 & Pending request. & \seqsplit{markAsCompleted(nonAdmin)} & \seqsplit{IllegalArgumentException} & --- \\
+    \hline
+    TC6 & Pending request, admin exists. & \seqsplit{markAsRejected(admin)} & --- & \seqsplit{status=REJECTED}, \seqsplit{processedAt} set. \\
+    \hline
+    TC7 & Pending request. & \seqsplit{markAsRejected(nonAdmin)} & \seqsplit{IllegalArgumentException} & --- \\
+    \hline
+    TC8 & \seqsplit{status=PENDING}. & isPending() & true & --- \\
+    \hline
+    TC9 & \seqsplit{status=COMPLETED}. & isPending() & false & --- \\
+    \hline
+    TC10 & \seqsplit{status=REJECTED}. & isPending() & false & --- \\
+    \hline
+\end{tabularx}
+}
+
+\paragraph{Risultato JaCoCo:} Copertura raggiunta: \textbf{100\% istruzioni, 100\% branch}.
+
+\clearpage
+
+\subsubsection{AuthService.resetUserPassword()}
+
+La seguente tabella descrive i test case progettati per verificare il metodo \texttt{resetUserPassword}. Il metodo consente a un amministratore di reimpostare la password di un utente, generando una nuova password temporanea.\\
+
+\vspace{-8pt}
+\noindent{\footnotesize
+\begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
+    \hline
+    TC1 & Admin (ID=1) and target user (ID=2) exist. & \seqsplit{userId}=2, \seqsplit{adminId}=1 & New temp password (String) & Password reset, \seqsplit{firstLogin}=true. \\
+    \hline
+    TC2 & Admin (ID=1) exists. & \seqsplit{userId}=null, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes. \\
+    \hline
+    TC3 & Admin (ID=1) exists, user ID=999 not in DB. & \seqsplit{userId}=999, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes. \\
+    \hline
+    TC4 & System active. & \seqsplit{userId}=2, \seqsplit{adminId}=null & \seqsplit{SecurityException} & No changes. \\
+    \hline
+    TC5 & Non-admin user (ID=2) exists. & \seqsplit{userId}=3, \seqsplit{adminId}=2 & \seqsplit{SecurityException} & No changes. \\
+    \hline
+\end{tabularx}
+}
+
+\subsubsection{AuthService.processPasswordResetRequest()}
+
+La seguente tabella descrive i test case per il metodo \texttt{processPasswordResetRequest}. Il metodo consente all'amministratore di approvare o rifiutare le richieste di reset password.\\
+
+\vspace{-8pt}
+\noindent{\footnotesize
+\begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
+    \hline
+    TC1 & Admin exists, pending request (ID=10). & \seqsplit{requestId}=10, approve=true, \seqsplit{adminId}=1 & Temp password (String) & Request completed, password reset. \\
+    \hline
+    TC2 & Admin exists, pending request (ID=10). & \seqsplit{requestId}=10, approve=false, \seqsplit{adminId}=1 & null & Request rejected. \\
+    \hline
+    TC3 & Admin (ID=1) exists. & \seqsplit{requestId}=null, approve=true, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes. \\
+    \hline
+    TC4 & Admin exists, request ID=999 not in DB. & \seqsplit{requestId}=999, approve=true, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes. \\
+    \hline
+    TC5 & Admin exists, request already processed. & \seqsplit{requestId}=10, approve=true, \seqsplit{adminId}=1 & \seqsplit{IllegalStateException} & No changes. \\
+    \hline
+    TC6 & System active. & \seqsplit{requestId}=10, approve=true, \seqsplit{adminId}=null & \seqsplit{SecurityException} & No changes. \\
+    \hline
+\end{tabularx}
+}
+
+\subsubsection{AuthService.login()}
+
+La seguente tabella descrive i test case per il metodo \texttt{login}. Il metodo verifica le credenziali e ritorna un DTO con i dati dell'utente.\\
+
+\vspace{-8pt}
+\noindent{\footnotesize
+\begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
+    \hline
+    TC1 & User with valid hash in DB. & email, correct password & Optional<UserDTO> present & --- \\
+    \hline
+    TC2 & Email not in DB. & unknown email, any password & Optional.empty() & --- \\
+    \hline
+    TC3 & User in DB. & email, wrong password & Optional.empty() & --- \\
+    \hline
+\end{tabularx}
+}
+
+\subsubsection{AuthService.getPendingResetRequests()}
+
+La seguente tabella descrive i test case per il metodo \texttt{getPendingResetRequests}. Il metodo ritorna la lista delle richieste di reset password pendenti.\\
+
+\vspace{-8pt}
+\noindent{\footnotesize
+\begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
+    \hline
+    TC1 & Pending requests exist. & --- & List with DTOs & --- \\
+    \hline
+    TC2 & No pending requests. & --- & Empty list & --- \\
+    \hline
+\end{tabularx}
+}
+
+\subsubsection{AuthService.requestPasswordReset()}
+
+La seguente tabella descrive i test case per il metodo \texttt{requestPasswordReset}. Il metodo consente a un utente di richiedere il reset della propria password.\\
+
+\vspace{-8pt}
+\noindent{\footnotesize
+\begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
+    \hline
+    TC1 & User exists, no pending request. & \seqsplit{email=`user@test.com'} & --- & Request saved. \\
+    \hline
+    TC2 & System active. & email=null & \seqsplit{IllegalArgumentException} & No changes. \\
+    \hline
+    TC3 & System active. & email="" & \seqsplit{IllegalArgumentException} & No changes. \\
+    \hline
+    TC4 & Email not in DB. & \seqsplit{email=`unknown@test.com'} & \seqsplit{IllegalArgumentException} & No changes. \\
+    \hline
+    TC5 & User exists, pending request exists. & \seqsplit{email=`user@test.com'} & \seqsplit{IllegalStateException} & No changes. \\
+    \hline
+\end{tabularx}
+}
+
+\subsubsection{AuthService.validateAdminPrivileges()}
+
+La seguente tabella descrive i test case per il metodo \texttt{validateAdminPrivileges}. Il metodo verifica che un dato ID corrisponda a un utente amministratore autenticato.\\
+
+\vspace{-8pt}
+\noindent{\footnotesize
+\begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
+    \hline
+    TC1 & Admin (ID=1) exists. & \seqsplit{adminId}=1 & No exception & --- \\
+    \hline
+    TC2 & System active. & \seqsplit{adminId}=null & \seqsplit{SecurityException} & --- \\
+    \hline
+    TC3 & ID=999 not in DB. & \seqsplit{adminId}=999 & \seqsplit{SecurityException} & --- \\
+    \hline
+    TC4 & Non-admin (ID=2) exists. & \seqsplit{adminId}=2 & \seqsplit{SecurityException} & --- \\
+    \hline
+\end{tabularx}
+}
+
+\subsubsection{AuthService — Metodi Legacy}
+
+La seguente tabella descrive i test case per i metodi deprecati \texttt{registerUser} e \texttt{authenticate}, necessari per garantire la copertura completa.\\
+
+\vspace{-8pt}
+\noindent{\footnotesize
+\begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
+    \hline
+    \multicolumn{5}{|l|}{\textbf{registerUser (deprecated)}} \\
+    \hline
+    TC1 & --- & User object, raw password & --- & User saved with hashed password. \\
+    \hline
+    \multicolumn{5}{|l|}{\textbf{authenticate (deprecated)}} \\
+    \hline
+    TC1 & User with hashed password in DB. & email, correct password & true & --- \\
+    \hline
+    TC2 & User with hashed password in DB. & email, wrong password & false & --- \\
+    \hline
+    TC3 & Email not in DB. & unknown email, any password & false & --- \\
+    \hline
+\end{tabularx}
+}
+
 \subsection{Strategie e Tecnologie di Testing (8.4.b)}
 
 La suite di test è stata progettata seguendo un approccio di \textbf{White Box Testing}, focalizzato sulla copertura strutturale del codice sorgente e sulla verifica completa di tutti i rami decisionali.
@@ -513,7 +760,7 @@ La suite di test è stata progettata seguendo un approccio di \textbf{White Box 
 
 \subsubsection{Copertura e Validazione}
 
-La suite di test raggiunge il \textbf{100\% di branch coverage} sulle classi \texttt{Issue} e \texttt{IssueService}, verificate tramite report JaCoCo:
+La suite di test raggiunge il \textbf{100\% di branch coverage} sulle classi \texttt{Issue}, \texttt{IssueService}, \texttt{User}, \texttt{PasswordResetRequest} e \texttt{AuthService}, verificate tramite report JaCoCo:
 
 \begin{itemize}
     \item \textbf{Issue (Entità di Dominio)}: 30 test case — 98\% istruzioni, 100\% branch. Coprono costruttore, setter validati, gestione transizioni di stato, \texttt{markAsDuplicateOf} (incluso ramo di uguaglianza su ID con reflection).
@@ -521,11 +768,21 @@ La suite di test raggiunge il \textbf{100\% di branch coverage} sulle classi \te
     \item \textbf{IssueService.searchIssues}: 3 test case — filtraggio per tipo, assegnatario e combinazione completa.
     \item \textbf{IssueService.getDashboardStats}: 2 test case — aggregazione per assegnatario e dati giornalieri non vuoti.
     \item \textbf{IssueService (metodi aggiuntivi)}: 27 test case (TC16--TC42) — createIssue (entrambi gli overload), updateStatus, attachment CRUD, validateIssueExists, getAllIssues, getIssueById, convertSingleToDTO (reporter null/presente, assignee null/presente). 97\% istruzioni, 100\% branch.
+    \item \textbf{User (Entità di Dominio)}: 20 test case — 100\% istruzioni, 100\% branch. Coprono costruttore (email valida/null/senza @), setter \texttt{setPassword} (null/vuoto/spazi), \texttt{finalizeProfile} (successo, già finalizzato, username null/corto/vuoto), \texttt{isAdmin} (ADMIN/USER), getters/setters e costruttore JPA.
+    \item \textbf{PasswordResetRequest (Entità di Dominio)}: 10 test case — 100\% istruzioni, 100\% branch. Coprono costruttore (valido/null), costruttore JPA, \texttt{markAsCompleted} (admin/non-admin), \texttt{markAsRejected} (admin/non-admin), \texttt{isPending} (PENDING/COMPLETED/REJECTED).
     \item \textbf{AuthService.createUser}: 9 test case — autenticazione, validazione input, permessi e unicità email.
     \item \textbf{AuthService.finalizeProfile}: 6 test case — validazione parametri, unicità username, aggiornamento stato.
+    \item \textbf{AuthService.resetUserPassword}: 5 test case — successo, userId null/non trovato, adminId null/non-admin.
+    \item \textbf{AuthService.processPasswordResetRequest}: 6 test case — approvazione, rifiuto, requestId null/non trovato, richiesta già processata, adminId null.
+    \item \textbf{AuthService.login}: 3 test case — credenziali valide, email non trovata, password errata.
+    \item \textbf{AuthService.getPendingResetRequests}: 2 test case — lista con richieste, lista vuota.
+    \item \textbf{AuthService.requestPasswordReset}: 5 test case — successo, email null/vuota/non trovata, richiesta già pendente.
+    \item \textbf{AuthService.validateAdminPrivileges}: 4 test case — admin valido, adminId null/non trovato/non-admin.
+    \item \textbf{AuthService (metodi legacy)}: 4 test case — registerUser (successo), authenticate (credenziali valide/errate, utente non trovato).
+    \item \textbf{AuthService}: Copertura complessiva — 100\% istruzioni, 100\% branch (44 test case totali).
 \end{itemize}
 
-Totale: \textbf{88 test case}, tutti verdi (\texttt{Tests run: 88, Failures: 0, Errors: 0}).
+Totale: \textbf{147 test case}, tutti verdi (\texttt{Tests run: 147, Failures: 0, Errors: 0}).
 
 I test sono configurati per essere eseguiti automaticamente durante la build Maven (fase \texttt{test}) e i report di copertura JaCoCo sono generati in \texttt{target/site/jacoco/index.html}, fornendo una visione dettagliata della completezza della suite di test.
 
