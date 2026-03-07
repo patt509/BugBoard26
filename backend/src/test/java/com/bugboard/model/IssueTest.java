@@ -1,11 +1,10 @@
 package com.bugboard.model;
 
+import java.lang.reflect.Field;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-
-import java.lang.reflect.Field;
-
 import org.junit.Before;
 import org.junit.Test;
 
