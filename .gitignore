@@ -20,3 +20,5 @@ vp.log
 target/
 build/
 
+.copilot/
+
