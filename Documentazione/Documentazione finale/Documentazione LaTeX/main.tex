@@ -91,6 +91,11 @@ possiamo categorizzarli come segue.
 
 \section{sezione 2}
 
+\subsection{Filtraggio esteso e Dashboard (Requisiti 3 e 7)}
+Il sistema implementa un meccanismo di filtraggio esteso delle issue (Requisito 3) che consente agli utenti di cercare e filtrare per: \textbf{testo libero} (titolo, descrizione, reporter), \textbf{priorità} (\texttt{PriorityLevel}), \textbf{stato} (\texttt{IssueStatus}), \textbf{tipo} (\texttt{IssueType}: QUESTION, BUG, DOCUMENTATION, FEATURE) e \textbf{assegnatario} (\texttt{assigneeId}). I filtri sono tutti opzionali e componibili: la query JPQL viene costruita dinamicamente aggiungendo le clausole \texttt{WHERE} solo per i parametri non null.
+
+Per il Requisito 7 (Dashboard Admin), la statistica \texttt{issuesAssignedPerUser} aggrega il numero di issue aperte (stato TODO o IN\_PROGRESS) per ciascun assegnatario, permettendo all'amministratore di monitorare il carico di lavoro distribuito tra i membri del team.
+
 % ------------------------------------------------- % 
 \section{Formalizzazione R16}
 
@@ -370,6 +375,8 @@ La suite di test raggiunge una copertura di codice elevata per i tre metodi crit
 
 \begin{itemize}
     \item \textbf{processDuplicate}: 11 test case coprono tutti i rami decisionali (controlli di sicurezza, validazione input, verifiche di esistenza, gestione degli stati).
+    \item \textbf{searchIssues}: 3 test case verificano il filtraggio per tipo, per assegnatario e la combinazione di tutti i filtri senza risultati.
+    \item \textbf{getDashboardStats}: 1 test case valida il corretto calcolo della statistica \texttt{issuesAssignedPerUser} con dati aggregati per utente assegnato.
     \item \textbf{createUser}: 9 test case coprono l'autenticazione, la validazione degli input, i permessi amministrativi e il vincolo di unicità dell'email.
     \item \textbf{finalizeProfile}: 6 test case coprono la validazione dei parametri, il controllo di unicità dello username e l'aggiornamento dello stato.
 \end{itemize}
