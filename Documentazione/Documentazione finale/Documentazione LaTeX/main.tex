@@ -94,6 +94,23 @@ possiamo categorizzarli come segue.
 % ------------------------------------------------- % 
 \section{Formalizzazione R16}
 
+\subsection{Schema per la persistenza dati e Diagramma delle classi di design}
+
+Per soddisfare i Requisiti R2 (creazione issue con tipo) e R7 (assegnazione), l'entità \texttt{Issue} è stata estesa con i seguenti campi:
+
+\begin{itemize}
+    \item \textbf{type} (\texttt{IssueType}, \texttt{@Enumerated(EnumType.STRING)}, \texttt{NOT NULL}): indica la tipologia dell'issue. I valori ammessi sono \texttt{QUESTION}, \texttt{BUG}, \texttt{DOCUMENTATION} e \texttt{FEATURE}. Il campo è obbligatorio e validato sia a livello di costruttore Java sia di vincolo DB (\texttt{nullable = false}).
+    \item \textbf{assignee\_id} (\texttt{@ManyToOne} verso \texttt{User}, \texttt{NULLABLE}): foreign key che referenzia l'utente a cui è assegnata la issue. La relazione è opzionale: una issue può esistere senza assegnatario.
+\end{itemize}
+
+\noindent Di conseguenza, la tabella \texttt{issues} nel database include ora le colonne aggiuntive:
+\begin{itemize}
+    \item \texttt{type VARCHAR(255) NOT NULL} --- mappato dall'enum \texttt{IssueType}.
+    \item \texttt{assignee\_id BIGINT NULL REFERENCES users(id)} --- FK verso la tabella \texttt{users}.
+\end{itemize}
+
+\noindent È stato inoltre creato l'enum \texttt{IssueType} nel package \texttt{com.bugboard.enums}, ed il DTO \texttt{IssueDTO} è stato arricchito con i campi \texttt{type} (String) e \texttt{assigneeUsername} (String) per il trasferimento dati verso il frontend.
+
 \subsection{processDuplicate}
 Il metodo \texttt{processDuplicate} gestisce la marcatura di una issue come duplicato di un'altra. Il metodo esegue le seguenti azioni principali: verifica la legittimità dell'operatore (deve essere un Admin), valida gli identificativi passati, controlla l'esistenza delle issue coinvolte, e in caso di successo imposta lo stato della issue duplicata su CLOSED, registra la data di chiusura e mantiene il riferimento all'originale.
 
