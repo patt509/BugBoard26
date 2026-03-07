@@ -5,7 +5,9 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
@@ -301,5 +303,510 @@ public class IssueServiceTest {
       assertEquals("PostCond failed: should have 2 entries", 2, stats.getIssuesAssignedPerUser().size());
       assertEquals("PostCond failed: user1 should have 3 issues", Long.valueOf(3L), stats.getIssuesAssignedPerUser().get("user1"));
       assertEquals("PostCond failed: user2 should have 1 issue", Long.valueOf(1L), stats.getIssuesAssignedPerUser().get("user2"));
+   }
+
+   // ==================== createIssue(String, String, Long, IssueType) TESTS ====================
+
+   /**
+    * TC16: createIssue with non-null reporterId finds the reporter.
+    */
+   @Test
+   public void testCreateIssue_TC16_WithReporter() {
+      // Arrange
+      when(userRepository.findById(1L)).thenReturn(Optional.of(reporter));
+
+      // Act
+      issueService.createIssue("Valid title for new issue", "Description", 1L, IssueType.BUG);
+
+      // Assert
+      verify(repository).save(org.mockito.ArgumentMatchers.any(Issue.class));
+   }
+
+   /**
+    * TC17: createIssue with null reporterId creates issue with null reporter.
+    */
+   @Test
+   public void testCreateIssue_TC17_NullReporter() {
+      // Arrange - no stubbing needed for null reporterId
+
+      // Act
+      issueService.createIssue("Valid title for new issue", "Description", null, IssueType.FEATURE);
+
+      // Assert
+      verify(repository).save(org.mockito.ArgumentMatchers.any(Issue.class));
+   }
+
+   // ==================== createIssue(IssueDTO, Long) TESTS ====================
+
+   /**
+    * TC18: createIssue from DTO with all fields including assignee.
+    */
+   @Test
+   public void testCreateIssueDTO_TC18_WithPriorityAndAssignee() {
+      // Arrange
+      IssueDTO dto = IssueDTO.builder()
+            .title("Valid title from DTO test")
+            .description("DTO description")
+            .type("BUG")
+            .priority("CRITICAL")
+            .assigneeUsername("assigneeUser")
+            .build();
+
+      when(userRepository.findById(1L)).thenReturn(Optional.of(reporter));
+      when(userRepository.findByUsername("assigneeUser")).thenReturn(Optional.of(normalUser));
+
+      // Act
+      issueService.createIssue(dto, 1L);
+
+      // Assert
+      verify(repository).save(org.mockito.ArgumentMatchers.any(Issue.class));
+   }
+
+   /**
+    * TC19: createIssue from DTO without priority (null priority branch).
+    */
+   @Test
+   public void testCreateIssueDTO_TC19_NullPriority() {
+      // Arrange
+      IssueDTO dto = IssueDTO.builder()
+            .title("Valid title from DTO test")
+            .description("DTO description")
+            .type("FEATURE")
+            .build();
+
+      when(userRepository.findById(1L)).thenReturn(Optional.of(reporter));
+
+      // Act
+      issueService.createIssue(dto, 1L);
+
+      // Assert
+      verify(repository).save(org.mockito.ArgumentMatchers.any(Issue.class));
+   }
+
+   /**
+    * TC20: createIssue from DTO with blank assignee (skips assignee lookup).
+    */
+   @Test
+   public void testCreateIssueDTO_TC20_BlankAssignee() {
+      // Arrange
+      IssueDTO dto = IssueDTO.builder()
+            .title("Valid title from DTO test")
+            .description("DTO description")
+            .type("BUG")
+            .assigneeUsername("   ")
+            .build();
+
+      when(userRepository.findById(1L)).thenReturn(Optional.of(reporter));
+
+      // Act
+      issueService.createIssue(dto, 1L);
+
+      // Assert
+      verify(repository).save(org.mockito.ArgumentMatchers.any(Issue.class));
+   }
+
+   /**
+    * TC21: createIssue from DTO with unknown assignee throws IllegalArgumentException.
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testCreateIssueDTO_TC21_UnknownAssignee() {
+      // Arrange
+      IssueDTO dto = IssueDTO.builder()
+            .title("Valid title from DTO test")
+            .description("DTO description")
+            .type("BUG")
+            .assigneeUsername("nonExistentUser")
+            .build();
+
+      when(userRepository.findById(1L)).thenReturn(Optional.of(reporter));
+      when(userRepository.findByUsername("nonExistentUser")).thenReturn(Optional.empty());
+
+      // Act
+      issueService.createIssue(dto, 1L);
+   }
+
+   /**
+    * TC22: createIssue from DTO with null type (passed to Issue constructor which throws).
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testCreateIssueDTO_TC22_NullType() {
+      // Arrange
+      IssueDTO dto = IssueDTO.builder()
+            .title("Valid title from DTO test")
+            .description("DTO description")
+            .build();
+
+      when(userRepository.findById(1L)).thenReturn(Optional.of(reporter));
+
+      // Act
+      issueService.createIssue(dto, 1L);
+   }
+
+   /**
+    * TC23: createIssue from DTO with null reporterId.
+    */
+   @Test
+   public void testCreateIssueDTO_TC23_NullReporterId() {
+      // Arrange
+      IssueDTO dto = IssueDTO.builder()
+            .title("Valid title from DTO test")
+            .description("DTO description")
+            .type("DOCUMENTATION")
+            .build();
+
+      // Act
+      issueService.createIssue(dto, null);
+
+      // Assert
+      verify(repository).save(org.mockito.ArgumentMatchers.any(Issue.class));
+   }
+
+   // ==================== updateStatus TESTS ====================
+
+   /**
+    * TC24: updateStatus on existing issue succeeds.
+    */
+   @Test
+   public void testUpdateStatus_TC24_Success() {
+      // Arrange
+      Issue issue = spy(new Issue("Valid title for status", "Desc", reporter, IssueType.BUG));
+      when(repository.findById(1L)).thenReturn(issue);
+
+      // Act
+      issueService.updateStatus(1L, IssueStatus.IN_PROGRESS);
+
+      // Assert
+      assertEquals("PostCond failed: status should be IN_PROGRESS", IssueStatus.IN_PROGRESS, issue.getStatus());
+      verify(repository).save(issue);
+   }
+
+   /**
+    * TC25: updateStatus on non-existent issue throws IllegalArgumentException.
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testUpdateStatus_TC25_IssueNotFound() {
+      // Arrange
+      when(repository.findById(999L)).thenReturn(null);
+
+      // Act
+      issueService.updateStatus(999L, IssueStatus.CLOSED);
+   }
+
+   // ==================== setAttachmentPath TESTS ====================
+
+   /**
+    * TC26: setAttachmentPath on existing issue succeeds.
+    */
+   @Test
+   public void testSetAttachmentPath_TC26_Success() {
+      // Arrange
+      Issue issue = spy(new Issue("Valid title for attach", "Desc", reporter, IssueType.BUG));
+      when(repository.findById(1L)).thenReturn(issue);
+
+      // Act
+      issueService.setAttachmentPath(1L, "/uploads/test.png");
+
+      // Assert
+      assertEquals("PostCond failed: attachmentPath should be set", "/uploads/test.png", issue.getAttachmentPath());
+      verify(repository).save(issue);
+   }
+
+   /**
+    * TC27: setAttachmentPath on non-existent issue throws IllegalArgumentException.
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testSetAttachmentPath_TC27_IssueNotFound() {
+      // Arrange
+      when(repository.findById(999L)).thenReturn(null);
+
+      // Act
+      issueService.setAttachmentPath(999L, "/uploads/test.png");
+   }
+
+   // ==================== removeAttachment TESTS ====================
+
+   /**
+    * TC28: removeAttachment on existing issue returns old path.
+    */
+   @Test
+   public void testRemoveAttachment_TC28_Success() {
+      // Arrange
+      Issue issue = spy(new Issue("Valid title for remove att", "Desc", reporter, IssueType.BUG));
+      issue.setAttachmentPath("/uploads/old.png");
+      when(repository.findById(1L)).thenReturn(issue);
+
+      // Act
+      String oldPath = issueService.removeAttachment(1L);
+
+      // Assert
+      assertEquals("PostCond failed: should return old path", "/uploads/old.png", oldPath);
+      assertNull("PostCond failed: attachmentPath should be null after removal", issue.getAttachmentPath());
+      verify(repository).save(issue);
+   }
+
+   /**
+    * TC29: removeAttachment on non-existent issue throws IllegalArgumentException.
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testRemoveAttachment_TC29_IssueNotFound() {
+      // Arrange
+      when(repository.findById(999L)).thenReturn(null);
+
+      // Act
+      issueService.removeAttachment(999L);
+   }
+
+   // ==================== validateIssueExists TESTS ====================
+
+   /**
+    * TC30: validateIssueExists returns true when issue exists.
+    */
+   @Test
+   public void testValidateIssueExists_TC30_Exists() {
+      // Arrange
+      Issue issue = new Issue("Valid title for validate", "Desc", reporter, IssueType.BUG);
+      when(repository.findById(1L)).thenReturn(issue);
+
+      // Act
+      boolean result = issueService.validateIssueExists(1L);
+
+      // Assert
+      assertTrue("PostCond failed: should return true for existing issue", result);
+   }
+
+   /**
+    * TC31: validateIssueExists returns false when issue does not exist.
+    */
+   @Test
+   public void testValidateIssueExists_TC31_NotExists() {
+      // Arrange
+      when(repository.findById(999L)).thenReturn(null);
+
+      // Act
+      boolean result = issueService.validateIssueExists(999L);
+
+      // Assert
+      assertFalse("PostCond failed: should return false for non-existing issue", result);
+   }
+
+   // ==================== getIssueAttachmentPath TESTS ====================
+
+   /**
+    * TC32: getIssueAttachmentPath on existing issue returns path.
+    */
+   @Test
+   public void testGetIssueAttachmentPath_TC32_Success() {
+      // Arrange
+      Issue issue = new Issue("Valid title for get path", "Desc", reporter, IssueType.BUG);
+      issue.setAttachmentPath("/uploads/doc.pdf");
+      when(repository.findById(1L)).thenReturn(issue);
+
+      // Act
+      String path = issueService.getIssueAttachmentPath(1L);
+
+      // Assert
+      assertEquals("PostCond failed: should return attachment path", "/uploads/doc.pdf", path);
+   }
+
+   /**
+    * TC33: getIssueAttachmentPath on non-existent issue throws IllegalArgumentException.
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testGetIssueAttachmentPath_TC33_IssueNotFound() {
+      // Arrange
+      when(repository.findById(999L)).thenReturn(null);
+
+      // Act
+      issueService.getIssueAttachmentPath(999L);
+   }
+
+   // ==================== issueHasAttachment TESTS ====================
+
+   /**
+    * TC34: issueHasAttachment returns true when attachment exists.
+    */
+   @Test
+   public void testIssueHasAttachment_TC34_HasAttachment() {
+      // Arrange
+      Issue issue = new Issue("Valid title for has attach", "Desc", reporter, IssueType.BUG);
+      issue.setAttachmentPath("/uploads/file.png");
+      when(repository.findById(1L)).thenReturn(issue);
+
+      // Act
+      boolean result = issueService.issueHasAttachment(1L);
+
+      // Assert
+      assertTrue("PostCond failed: should return true when attachment present", result);
+   }
+
+   /**
+    * TC35: issueHasAttachment returns false when no attachment.
+    */
+   @Test
+   public void testIssueHasAttachment_TC35_NoAttachment() {
+      // Arrange
+      Issue issue = new Issue("Valid title for no attach", "Desc", reporter, IssueType.BUG);
+      when(repository.findById(1L)).thenReturn(issue);
+
+      // Act
+      boolean result = issueService.issueHasAttachment(1L);
+
+      // Assert
+      assertFalse("PostCond failed: should return false when no attachment", result);
+   }
+
+   // ==================== getAllIssues TESTS ====================
+
+   /**
+    * TC36: getAllIssues returns converted DTOs.
+    */
+   @Test
+   public void testGetAllIssues_TC36_ReturnsList() {
+      // Arrange
+      Issue issue1 = spy(new Issue("First issue title long", "Desc1", reporter, IssueType.BUG));
+      Issue issue2 = spy(new Issue("Second issue title long", "Desc2", reporter, IssueType.FEATURE));
+      when(repository.findAll()).thenReturn(List.of(issue1, issue2));
+
+      // Act
+      List<IssueDTO> result = issueService.getAllIssues();
+
+      // Assert
+      assertEquals("PostCond failed: should return 2 DTOs", 2, result.size());
+   }
+
+   // ==================== getIssueById TESTS ====================
+
+   /**
+    * TC37: getIssueById returns DTO for existing issue.
+    */
+   @Test
+   public void testGetIssueById_TC37_Success() {
+      // Arrange
+      Issue issue = spy(new Issue("Valid title for get by id", "Desc", reporter, IssueType.BUG));
+      when(repository.findById(1L)).thenReturn(issue);
+
+      // Act
+      IssueDTO dto = issueService.getIssueById(1L);
+
+      // Assert
+      assertNotNull("PostCond failed: DTO should not be null", dto);
+      assertEquals("PostCond failed: title should match", "Valid title for get by id", dto.getTitle());
+   }
+
+   /**
+    * TC38: getIssueById throws IllegalArgumentException when issue not found.
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testGetIssueById_TC38_NotFound() {
+      // Arrange
+      when(repository.findById(999L)).thenReturn(null);
+
+      // Act
+      issueService.getIssueById(999L);
+   }
+
+   // ==================== convertSingleToDTO branch coverage ====================
+
+   /**
+    * TC39: convertSingleToDTO with null reporter produces "Unknown" reporterName.
+    */
+   @Test
+   public void testConvertSingleToDTO_TC39_NullReporter() {
+      // Arrange - create issue with null reporter
+      Issue issue = spy(new Issue("Valid title null reporter", "Desc", null, IssueType.BUG));
+      when(repository.findById(1L)).thenReturn(issue);
+
+      // Act
+      IssueDTO dto = issueService.getIssueById(1L);
+
+      // Assert
+      assertEquals("PostCond failed: reporterName should be 'Unknown'", "Unknown", dto.getReporterName());
+   }
+
+   /**
+    * TC40: convertSingleToDTO with non-null reporter produces the username.
+    */
+   @Test
+   public void testConvertSingleToDTO_TC40_WithReporter() {
+      // Arrange
+      when(reporter.getUsername()).thenReturn("reporterUser");
+      Issue issue = spy(new Issue("Valid title with reporter", "Desc", reporter, IssueType.BUG));
+      when(repository.findById(1L)).thenReturn(issue);
+
+      // Act
+      IssueDTO dto = issueService.getIssueById(1L);
+
+      // Assert
+      assertEquals("PostCond failed: reporterName should be 'reporterUser'", "reporterUser", dto.getReporterName());
+   }
+
+   /**
+    * TC41: convertSingleToDTO with non-null assignee produces the assignee username.
+    */
+   @Test
+   public void testConvertSingleToDTO_TC41_WithAssignee() {
+      // Arrange
+      when(normalUser.getUsername()).thenReturn("assignedUser");
+      Issue issue = spy(new Issue("Valid title with assignee", "Desc", reporter, IssueType.BUG));
+      issue.setAssignee(normalUser);
+      when(repository.findById(1L)).thenReturn(issue);
+
+      // Act
+      IssueDTO dto = issueService.getIssueById(1L);
+
+      // Assert
+      assertEquals("PostCond failed: assigneeUsername should be 'assignedUser'", "assignedUser", dto.getAssigneeUsername());
+   }
+
+   /**
+    * TC42: convertSingleToDTO with null assignee produces null assigneeUsername.
+    */
+   @Test
+   public void testConvertSingleToDTO_TC42_NullAssignee() {
+      // Arrange
+      Issue issue = spy(new Issue("Valid title no assignee", "Desc", reporter, IssueType.BUG));
+      when(repository.findById(1L)).thenReturn(issue);
+
+      // Act
+      IssueDTO dto = issueService.getIssueById(1L);
+
+      // Assert
+      assertNull("PostCond failed: assigneeUsername should be null", dto.getAssigneeUsername());
+   }
+
+   // ==================== getDashboardStats additional branch coverage ====================
+
+   /**
+    * TC43: getDashboardStats with non-empty daily data covers the for-loop body.
+    */
+   @Test
+   public void testGetDashboardStats_TC43_WithDailyData() {
+      // Arrange
+      for (IssueStatus s : IssueStatus.values()) {
+         when(repository.countByStatus(s)).thenReturn(0L);
+      }
+      for (PriorityLevel p : PriorityLevel.values()) {
+         when(repository.countByPriority(p)).thenReturn(0L);
+      }
+      when(repository.countAll()).thenReturn(3L);
+      when(repository.countDuplicates()).thenReturn(0L);
+      when(repository.getAverageResolutionTimeHours()).thenReturn(2.5);
+      when(repository.countCreatedToday()).thenReturn(1L);
+      when(repository.countClosedToday()).thenReturn(0L);
+      when(repository.countOpenIssuesPerAssignee()).thenReturn(List.of());
+
+      // Non-empty daily data to cover the for-loop body
+      Object[] day1 = new Object[] { "2026-03-06", 2L };
+      Object[] day2 = new Object[] { "2026-03-07", 1L };
+      when(repository.getIssuesCreatedPerDaySince(org.mockito.ArgumentMatchers.any()))
+            .thenReturn(Arrays.asList(day1, day2));
+
+      // Act
+      DashboardStatsDTO stats = issueService.getDashboardStats();
+
+      // Assert
+      assertNotNull("PostCond failed: issuesCreatedPerDay should not be null", stats.getIssuesCreatedPerDay());
+      assertEquals("PostCond failed: should have 2 daily entries", 2, stats.getIssuesCreatedPerDay().size());
+      assertEquals("PostCond failed: day1 should have 2 issues", Long.valueOf(2L), stats.getIssuesCreatedPerDay().get("2026-03-06"));
    }
 }
