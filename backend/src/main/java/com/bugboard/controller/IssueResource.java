@@ -1,5 +1,10 @@
 package com.bugboard.controller;
 
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import com.bugboard.dto.DashboardStatsDTO;
 import com.bugboard.dto.IssueDTO;
 import com.bugboard.enums.IssueStatus;
@@ -7,15 +12,19 @@ import com.bugboard.enums.IssueType;
 import com.bugboard.enums.PriorityLevel;
 import com.bugboard.service.AuthService;
 import com.bugboard.service.IssueService;
+
 import jakarta.inject.Inject;
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
+import jakarta.ws.rs.PATCH;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * REST Controller for Issue management.
