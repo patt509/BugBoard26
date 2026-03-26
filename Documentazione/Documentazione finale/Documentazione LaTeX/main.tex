@@ -149,6 +149,22 @@ Nel ciclo corrente e' stata adottata una strategia \textbf{API-first}: prima con
     R16 & Workflow duplicate con chiusura immediata e controlli di autorizzazione & Coperto backend \\ \hline
 \end{tabularx}
 
+\subsection{Evidenze API-First per R1-R2-R3-R7-R11-R16}
+La seguente matrice collega i requisiti obbligatori agli endpoint e alle regole implementate nel backend dopo l'attivita' di hardening.
+
+\begin{tabularx}{\textwidth}{|l|X|X|}
+    \hline
+    \textbf{Req} & \textbf{API e regole implementate} & \textbf{Evidenze di verifica} \\ \hline
+    R1 & \texttt{POST /auth/admin/users}: solo admin, validazione email, ruolo e unicita'. Password temporanea generata server-side. & Test unitari \texttt{AuthServiceTest} su casi validi, ruolo/permessi, email duplicate e formato non valido. \\ \hline
+    R2 & \texttt{POST /issues}: tipo obbligatorio, priorita' validata, assegnazione supportata sia per \texttt{assigneeId} sia per \texttt{assigneeUsername}. & Test \texttt{IssueServiceTest} su creazione da DTO con assignee valido/non valido, tipo nullo e reporter opzionale. \\ \hline
+    R3 & \texttt{GET /issues/search}: filtri opzionali combinabili (\texttt{term}, \texttt{status}, \texttt{priority}, \texttt{type}, \texttt{assigneeId}) con validazione input. & Test su ricerca con combinazioni multiple e query normalizzata (trim), risposta deterministica. \\ \hline
+    R7 & \texttt{GET /issues/admin/dashboard}: metriche aggregate e \texttt{issuesAssignedPerUser} con contratto stabile per la UI admin. & Test \texttt{IssueServiceTest} su popolamento mappa per assegnatario e dati giornalieri dashboard. \\ \hline
+    R11 & Ricerca keyword su titolo, descrizione e reporter tramite query JPQL dinamica con ordinamento stabile. & Test su filtro testuale e regressione sui filtri composti. \\ \hline
+    R16 & \texttt{POST /issues/\{id\}/duplicate/\{originalId\}}: solo admin, ID distinti, issue esistenti e vincolo tipo BUG per entrambe le issue. & Test \texttt{IssueServiceTest} su successo, permessi, self-duplicate, issue chiuse/risolte e tipi non BUG. \\ \hline
+\end{tabularx}
+
+L'approccio API-first riduce regressioni frontend durante i refactor: la UI viene allineata a contratti backend gia' consolidati, mentre le funzionalita' extra (commenti, allegati, reset password) restano operative con controlli di regressione dedicati.
+
 % ------------------------------------------------- % 
 \section{Formalizzazione R16}
 
