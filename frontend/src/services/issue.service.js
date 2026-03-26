@@ -21,6 +21,30 @@ const resolveStoredUserId = () => {
   }
 };
 
+const resolveAuthHeaders = (userId, { required = false } = {}) => {
+  const resolvedUserId = userId ?? resolveStoredUserId();
+  if (required && (resolvedUserId == null || resolvedUserId === '')) {
+    throw new Error('User authentication is required. Please login again.');
+  }
+
+  return resolvedUserId == null || resolvedUserId === ''
+    ? {}
+    : { 'X-User-Id': String(resolvedUserId) };
+};
+
+const buildQueryString = (params = {}) =>
+  new URLSearchParams(
+    Object.entries(params).filter(([_, value]) => {
+      if (value == null) {
+        return false;
+      }
+      if (typeof value === 'string') {
+        return value.trim().length > 0;
+      }
+      return true;
+    })
+  ).toString();
+
 /**
  * Issue Service
  * Handles all issue-related API calls
@@ -50,12 +74,8 @@ export const issueService = {
    * @returns {Promise<Object>} Created issue response with id
    */
   create(issueData, userId) {
-    const resolvedUserId = userId ?? resolveStoredUserId();
-
     return httpClient.post(API_ENDPOINTS.ISSUES, issueData, {
-      headers: {
-        'X-User-Id': resolvedUserId
-      }
+      headers: resolveAuthHeaders(userId, { required: true })
     });
   },
 
@@ -80,15 +100,6 @@ export const issueService = {
   },
 
   /**
-   * Delete issue
-   * @param {number} id - Issue ID
-   * @returns {Promise<void>}
-   */
-  delete(id) {
-    return httpClient.delete(API_ENDPOINTS.ISSUES_BY_ID(id));
-  },
-
-  /**
    * Search issues with filters
    * @param {Object} params - Search parameters
    * @param {string} params.term - Search term
@@ -97,9 +108,7 @@ export const issueService = {
    * @returns {Promise<Array>} Filtered issues
    */
   search(params) {
-    const queryString = new URLSearchParams(
-      Object.entries(params).filter(([_, v]) => v != null)
-    ).toString();
+    const queryString = buildQueryString(params);
 
     const endpoint = queryString
       ? `${API_ENDPOINTS.ISSUES_SEARCH}?${queryString}`
@@ -114,14 +123,8 @@ export const issueService = {
    * @returns {Promise<Object>} Dashboard stats
    */
   getDashboardStats(userId) {
-    const resolvedUserId = userId ?? resolveStoredUserId();
-
     return httpClient.get(API_ENDPOINTS.ISSUES_ADMIN_DASHBOARD, {
-      headers: resolvedUserId
-        ? {
-            'X-User-Id': resolvedUserId
-          }
-        : {}
+      headers: resolveAuthHeaders(userId, { required: true })
     });
   },
 
@@ -134,9 +137,7 @@ export const issueService = {
    */
   flagAsDuplicate(duplicateId, originalId, adminId) {
     return httpClient.post(API_ENDPOINTS.ISSUE_FLAG_DUPLICATE(duplicateId, originalId), null, {
-      headers: {
-        'X-User-Id': adminId
-      }
+      headers: resolveAuthHeaders(adminId, { required: true })
     });
   },
 };

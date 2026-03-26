@@ -17,24 +17,44 @@ class HttpClient {
    */
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
-    
+
     // Extract headers separately to avoid being overwritten by spread
     const { headers: customHeaders, ...restOptions } = options;
-    
+    const hasBody = Object.prototype.hasOwnProperty.call(restOptions, 'body');
+
+    const headers = {
+      ...customHeaders,
+    };
+
+    if (!headers['Content-Type'] && !headers['content-type'] && hasBody) {
+      headers['Content-Type'] = 'application/json';
+    }
+
     const config = {
       ...restOptions,
-      headers: {
-        'Content-Type': 'application/json',
-        ...customHeaders,
-      },
+      headers,
     };
 
     try {
       const response = await fetch(url, config);
+      const contentType = response.headers.get('content-type') || '';
+      const isJsonResponse = contentType.includes('application/json');
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.error || `HTTP error! status: ${response.status}`);
+        const errorPayload = isJsonResponse ? await response.json().catch(() => ({})) : {};
+        throw new Error(
+          errorPayload.error ||
+            errorPayload.message ||
+            `HTTP error! status: ${response.status}`
+        );
+      }
+
+      if (response.status === 204) {
+        return null;
+      }
+
+      if (!isJsonResponse) {
+        return null;
       }
 
       return response.json();
