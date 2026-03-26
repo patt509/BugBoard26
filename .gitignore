@@ -20,5 +20,5 @@ vp.log
 target/
 build/
 
-.copilot/
-
+codebase*
+.copilot

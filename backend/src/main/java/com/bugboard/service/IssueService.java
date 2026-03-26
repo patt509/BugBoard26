@@ -30,6 +30,12 @@ public class IssueService {
    private final IssueRepository repository;
    private final UserRepository userRepository;
 
+   // CDI requires no-arg constructor for proxy
+   protected IssueService() {
+      this.repository = null;
+      this.userRepository = null;
+   }
+
    @Inject
    public IssueService(IssueRepository repository, UserRepository userRepository) {
       this.repository = repository;
@@ -49,12 +55,25 @@ public class IssueService {
 
    @Transactional
    public Long createIssue(IssueDTO dto, Long reporterId) {
+<<<<<<< HEAD
       // Fetch reporter from repository if provided
       User reporter = reporterId != null ? userRepository.findById(reporterId).orElse(null) : null;
 
       // Parse type from DTO (mandatory)
       IssueType type = dto.getType() != null ? IssueType.valueOf(dto.getType()) : null;
 
+=======
+      // Validate reporter exists
+      if (reporterId == null) {
+         throw new IllegalArgumentException("Reporter ID is required");
+      }
+      
+      User reporter = userRepository.findById(reporterId).orElse(null);
+      if (reporter == null) {
+         throw new IllegalArgumentException("Reporter not found with ID: " + reporterId);
+      }
+      
+>>>>>>> frontend
       // Service creates the entity from the DTO
       Issue issue = new Issue(dto.getTitle(), dto.getDescription(), reporter, type);
 
@@ -73,6 +92,27 @@ public class IssueService {
 
       repository.save(issue);
       return issue.getId();
+   }
+
+   @Transactional
+   public void updateIssue(Long id, IssueDTO dto) {
+      Issue issue = repository.findById(id);
+      if (issue == null) {
+         throw new IllegalArgumentException("Issue not found");
+      }
+
+      // Update fields if provided
+      if (dto.getTitle() != null && !dto.getTitle().trim().isEmpty()) {
+         issue.setTitle(dto.getTitle().trim());
+      }
+      if (dto.getDescription() != null) {
+         issue.setDescription(dto.getDescription().trim());
+      }
+      if (dto.getPriority() != null) {
+         issue.setPriority(PriorityLevel.valueOf(dto.getPriority()));
+      }
+
+      repository.save(issue);
    }
 
    @Transactional
@@ -322,6 +362,7 @@ public class IssueService {
             .reporterName(reporterName)
             .assigneeUsername(assigneeUsername)
             .createdAt(issue.getCreatedAt())
+            .updatedAt(issue.getUpdatedAt())
             .closedAt(issue.getClosedAt())
             .attachmentPath(issue.getAttachmentPath())
             .originalIssueId(issue.getOriginalIssueId())

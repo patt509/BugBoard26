@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bugboard-db
+    environment:
+      POSTGRES_DB: bugboard
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - bugboard-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: bugboard-backend
+    environment:
+      DB_HOST: postgres
+      DB_NAME: bugboard
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    ports:
+      - "8080:8080"
+      - "4848:4848"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - bugboard-network
+
+  frontend:
+    build: ./frontend
+    container_name: bugboard-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - bugboard-network
+
+networks:
+  bugboard-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

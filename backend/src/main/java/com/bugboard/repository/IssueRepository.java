@@ -25,6 +25,7 @@ public class IssueRepository {
    public void save(Issue issue) {
       if (issue.getId() == null) {
          em.persist(issue); // New issue
+         em.flush(); // Force ID generation
       } else {
          em.merge(issue); // Updates already existing issue
       }

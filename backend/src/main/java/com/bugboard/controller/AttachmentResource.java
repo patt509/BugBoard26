@@ -85,8 +85,13 @@ public class AttachmentResource {
                   .build();
          }
 
-         // Extract actual content type from multipart header if needed
-         String actualContentType = extractContentType(contentType);
+         // Derive content type from file name (more reliable than Content-Type header
+         // for multipart)
+         String actualContentType = deriveContentTypeFromFileName(fileName);
+         if (actualContentType == null) {
+            // Fallback to extracting from header
+            actualContentType = extractContentType(contentType);
+         }
 
          // Validate file before saving
          attachmentService.validateAttachment(actualContentType, fileSize, fileName);
@@ -97,9 +102,12 @@ public class AttachmentResource {
             attachmentService.deleteAttachment(existingPath);
          }
 
+         // Extract actual file content from multipart body
+         java.io.InputStream cleanFileStream = attachmentService.extractFileFromMultipart(fileInputStream);
+
          // Save new attachment
          String relativePath = attachmentService.saveAttachment(
-               fileInputStream, fileName, actualContentType, fileSize, "issues", issueId);
+               cleanFileStream, fileName, actualContentType, fileSize, "issues", issueId);
 
          // Update issue with new attachment path
          issueService.setAttachmentPath(issueId, relativePath);
@@ -239,7 +247,13 @@ public class AttachmentResource {
                   .build();
          }
 
-         String actualContentType = extractContentType(contentType);
+         // Derive content type from file name (more reliable than Content-Type header
+         // for multipart)
+         String actualContentType = deriveContentTypeFromFileName(fileName);
+         if (actualContentType == null) {
+            // Fallback to extracting from header
+            actualContentType = extractContentType(contentType);
+         }
          attachmentService.validateAttachment(actualContentType, fileSize, fileName);
 
          // Delete old attachment if exists
@@ -248,9 +262,12 @@ public class AttachmentResource {
             attachmentService.deleteAttachment(existingPath);
          }
 
+         // Extract actual file content from multipart body
+         java.io.InputStream cleanFileStream = attachmentService.extractFileFromMultipart(fileInputStream);
+
          // Save new attachment
          String relativePath = attachmentService.saveAttachment(
-               fileInputStream, fileName, actualContentType, fileSize, "comments", commentId);
+               cleanFileStream, fileName, actualContentType, fileSize, "comments", commentId);
 
          // Update comment with new attachment path via service
          commentService.setCommentAttachmentPath(commentId, relativePath);
@@ -386,5 +403,22 @@ public class AttachmentResource {
          return contentType.split(";")[0].trim();
       }
       return contentType;
+   }
+
+   /**
+    * Derives the content type from the file extension.
+    * More reliable than parsing multipart headers.
+    */
+   private String deriveContentTypeFromFileName(String fileName) {
+      if (fileName == null) {
+         return null;
+      }
+      String lowerName = fileName.toLowerCase();
+      if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg")) {
+         return "image/jpeg";
+      } else if (lowerName.endsWith(".png")) {
+         return "image/png";
+      }
+      return null;
    }
 }

@@ -29,6 +29,12 @@ public class AuthService {
    private final UserRepository userRepository;
    private final PasswordResetRequestRepository resetRequestRepository;
 
+   // CDI requires no-arg constructor for proxy
+   protected AuthService() {
+      this.userRepository = null;
+      this.resetRequestRepository = null;
+   }
+
    @Inject
    public AuthService(UserRepository userRepository, PasswordResetRequestRepository resetRequestRepository) {
       this.userRepository = userRepository;

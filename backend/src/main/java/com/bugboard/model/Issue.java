@@ -55,6 +55,7 @@ public class Issue {
    private Issue originalIssue;
 
    private LocalDateTime createdAt;
+   private LocalDateTime updatedAt;
    private LocalDateTime closedAt;
    private String attachmentPath; // Requisito 7
 
@@ -87,6 +88,7 @@ public class Issue {
       this.status = IssueStatus.TODO;
       this.priority = PriorityLevel.MEDIUM;
       this.createdAt = LocalDateTime.now();
+      this.updatedAt = LocalDateTime.now();
    }
 
    // 3. GETTERS AND SETTERS
@@ -100,6 +102,7 @@ public class Issue {
          throw new IllegalArgumentException("Title must be at least 10 characters.");
       }
       this.title = title;
+      this.updatedAt = LocalDateTime.now();
    }
 
    public PriorityLevel getPriority() {
@@ -108,6 +111,7 @@ public class Issue {
 
    public void setPriority(PriorityLevel priority) {
       this.priority = priority;
+      this.updatedAt = LocalDateTime.now();
    }
 
    public String getDescription() {
@@ -116,6 +120,7 @@ public class Issue {
 
    public void setDescription(String description) {
       this.description = description;
+      this.updatedAt = LocalDateTime.now();
    }
 
    public Long getId() {
@@ -127,15 +132,18 @@ public class Issue {
    }
 
    public void setStatus(IssueStatus status) {
-      // If the status is being set to CLOSED, we should record the closing time
-      if (status == IssueStatus.CLOSED && this.status != IssueStatus.CLOSED) {
+      // If the status is being set to CLOSED or RESOLVED, we should record the closing time
+      // RESOLVED is also considered closed because a resolved issue is essentially closed
+      if ((status == IssueStatus.CLOSED || status == IssueStatus.RESOLVED) 
+          && this.status != IssueStatus.CLOSED && this.status != IssueStatus.RESOLVED) {
          this.closedAt = LocalDateTime.now();
       }
-      // If the issue is being reopened, clear the closedAt timestamp
-      else if (status != IssueStatus.CLOSED) {
+      // If the issue is being reopened (back to TODO or IN_PROGRESS), clear the closedAt timestamp
+      else if (status != IssueStatus.CLOSED && status != IssueStatus.RESOLVED) {
          this.closedAt = null;
       }
       this.status = status;
+      this.updatedAt = LocalDateTime.now();
    }
 
    public IssueType getType() {
@@ -171,10 +179,15 @@ public class Issue {
 
    public void setAttachmentPath(String attachmentPath) {
       this.attachmentPath = attachmentPath;
+      this.updatedAt = LocalDateTime.now();
    }
 
    public LocalDateTime getCreatedAt() {
       return createdAt;
+   }
+
+   public LocalDateTime getUpdatedAt() {
+      return updatedAt;
    }
 
    public LocalDateTime getClosedAt() {
@@ -191,8 +204,9 @@ public class Issue {
          throw new IllegalArgumentException("An issue cannot be a duplicate of itself.");
       }
 
-      if (this.status == IssueStatus.CLOSED) {
-         throw new IllegalStateException("The issue is already closed.");
+      // Check both CLOSED and RESOLVED - a resolved issue is also considered closed
+      if (this.status == IssueStatus.CLOSED || this.status == IssueStatus.RESOLVED) {
+         throw new IllegalStateException("The issue is already closed or resolved.");
       }
 
       this.originalIssue = original;

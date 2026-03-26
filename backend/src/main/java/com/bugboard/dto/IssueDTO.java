@@ -10,6 +10,7 @@ public class IssueDTO {
    private String priority;
    private String reporterName;
    private LocalDateTime createdAt;
+   private LocalDateTime updatedAt;
    private LocalDateTime closedAt;
    private String attachmentPath;
    private Long originalIssueId; // If this issue is a duplicate, reference to original
@@ -27,6 +28,7 @@ public class IssueDTO {
       this.priority = builder.priority;
       this.reporterName = builder.reporterName;
       this.createdAt = builder.createdAt;
+      this.updatedAt = builder.updatedAt;
       this.closedAt = builder.closedAt;
       this.attachmentPath = builder.attachmentPath;
       this.originalIssueId = builder.originalIssueId;
@@ -46,6 +48,7 @@ public class IssueDTO {
       private String priority;
       private String reporterName;
       private LocalDateTime createdAt;
+      private LocalDateTime updatedAt;
       private LocalDateTime closedAt;
       private String attachmentPath;
       private Long originalIssueId;
@@ -84,6 +87,11 @@ public class IssueDTO {
 
       public Builder createdAt(LocalDateTime createdAt) {
          this.createdAt = createdAt;
+         return this;
+      }
+
+      public Builder updatedAt(LocalDateTime updatedAt) {
+         this.updatedAt = updatedAt;
          return this;
       }
 
@@ -146,6 +154,10 @@ public class IssueDTO {
       return createdAt;
    }
 
+   public LocalDateTime getUpdatedAt() {
+      return updatedAt;
+   }
+
    public LocalDateTime getClosedAt() {
       return closedAt;
    }
@@ -193,6 +205,10 @@ public class IssueDTO {
 
    public void setCreatedAt(LocalDateTime createdAt) {
       this.createdAt = createdAt;
+   }
+
+   public void setUpdatedAt(LocalDateTime updatedAt) {
+      this.updatedAt = updatedAt;
    }
 
    public void setClosedAt(LocalDateTime closedAt) {
