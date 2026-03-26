@@ -19,6 +19,7 @@ vp.log
 # Build outputs
 target/
 build/
+backend/uploads/
 
 codebase*
 .copilot

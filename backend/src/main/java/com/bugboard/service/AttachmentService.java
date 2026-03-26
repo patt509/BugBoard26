@@ -33,7 +33,9 @@ public class AttachmentService {
          ".png");
 
    // Base directory for storing attachments
-   private static final String UPLOAD_DIR = "uploads/attachments";
+   private static final String DEFAULT_UPLOAD_DIR = "uploads/attachments";
+   private static final String ATTACHMENTS_DIR_ENV = "BUGBOARD_ATTACHMENTS_DIR";
+   private static final Path UPLOAD_BASE_PATH = resolveUploadBasePath();
 
    /**
     * Extracts the actual file content from a multipart/form-data body.
@@ -145,11 +147,11 @@ public class AttachmentService {
       String uniqueFileName = generateUniqueFileName(entityId, extension);
 
       // Create directory structure
-      Path uploadPath = Paths.get(UPLOAD_DIR, subDirectory, entityId.toString());
+      Path uploadPath = resolvePath(subDirectory, entityId.toString());
       Files.createDirectories(uploadPath);
 
       // Save file
-      Path filePath = uploadPath.resolve(uniqueFileName);
+      Path filePath = resolvePath(subDirectory, entityId.toString(), uniqueFileName);
       Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
 
       // Return relative path for storage in database
@@ -172,7 +174,7 @@ public class AttachmentService {
       }
 
       try {
-         Path filePath = Paths.get(UPLOAD_DIR, relativePath);
+         Path filePath = resolvePath(relativePath);
          boolean deleted = Files.deleteIfExists(filePath);
 
          if (deleted) {
@@ -193,7 +195,7 @@ public class AttachmentService {
     * @return The full Path object
     */
    public Path getAttachmentPath(String relativePath) {
-      return Paths.get(UPLOAD_DIR, relativePath);
+      return resolvePath(relativePath);
    }
 
    /**
@@ -203,7 +205,7 @@ public class AttachmentService {
       if (relativePath == null || relativePath.trim().isEmpty()) {
          return false;
       }
-      return Files.exists(Paths.get(UPLOAD_DIR, relativePath));
+      return Files.exists(resolvePath(relativePath));
    }
 
    /**
@@ -246,6 +248,29 @@ public class AttachmentService {
             entityId,
             UUID.randomUUID().toString().substring(0, 8),
             extension.toLowerCase());
+   }
+
+   private static Path resolveUploadBasePath() {
+      String configuredPath = System.getenv(ATTACHMENTS_DIR_ENV);
+      if (configuredPath == null || configuredPath.isBlank()) {
+         configuredPath = DEFAULT_UPLOAD_DIR;
+      }
+
+      Path basePath = Paths.get(configuredPath).toAbsolutePath().normalize();
+      try {
+         Files.createDirectories(basePath);
+      } catch (IOException e) {
+         throw new IllegalStateException("Cannot initialize attachment upload directory: " + basePath, e);
+      }
+      return basePath;
+   }
+
+   private Path resolvePath(String... pathParts) {
+      Path resolved = UPLOAD_BASE_PATH.resolve(Paths.get("", pathParts)).normalize();
+      if (!resolved.startsWith(UPLOAD_BASE_PATH)) {
+         throw new IllegalArgumentException("Invalid attachment path.");
+      }
+      return resolved;
    }
 
    // Getters for configuration (useful for API documentation)

@@ -61,14 +61,15 @@ public class IssueService {
                .orElseThrow(() -> new IllegalArgumentException("Reporter not found with ID: " + reporterId));
       }
 
-      // Backward compatibility: default to BUG if old clients don't send issue type.
-      IssueType type = IssueType.BUG;
-      if (dto.getType() != null && !dto.getType().isBlank()) {
-         try {
-            type = IssueType.valueOf(dto.getType().trim().toUpperCase());
-         } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("Invalid issue type: " + dto.getType());
-         }
+      if (dto.getType() == null || dto.getType().isBlank()) {
+         throw new IllegalArgumentException("Issue type is required.");
+      }
+
+      IssueType type;
+      try {
+         type = IssueType.valueOf(dto.getType().trim().toUpperCase());
+      } catch (IllegalArgumentException ex) {
+         throw new IllegalArgumentException("Invalid issue type: " + dto.getType());
       }
 
       // Service creates the entity from the DTO

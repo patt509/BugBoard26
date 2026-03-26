@@ -248,37 +248,48 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, onNavigate, succe
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {issues.map((issue) => (
-                    <tr 
-                      key={issue.id} 
-                      className={`hover:bg-gray-50 cursor-pointer transition-colors ${
-                        (issue.status === 'CLOSED' || issue.status === 'RESOLVED') 
-                          ? 'bg-gray-50 opacity-75' 
-                          : ''
-                      }`}
-                      onClick={() => onIssueClick && onIssueClick(issue.id)}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        #{issue.id}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        {issue.title}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(issue.status)}`}>
-                          {getStatusLabel(issue.status)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${getPriorityBadgeClass(issue.priority)}`}>
-                          {getPriorityLabel(issue.priority)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {issue.updatedAt ? new Date(issue.updatedAt).toLocaleString() : 'N/A'}
-                      </td>
-                    </tr>
-                  ))}
+                  {issues.map((issue) => {
+                    const isClosedIssue = issue.status === 'CLOSED';
+                    const isResolvedIssue = issue.status === 'RESOLVED';
+                    const isCompletedIssue = isClosedIssue || isResolvedIssue;
+                    const rowClassName = isClosedIssue
+                      ? 'bg-slate-300 hover:bg-slate-400'
+                      : isResolvedIssue
+                        ? 'bg-indigo-100 hover:bg-indigo-200'
+                        : 'hover:bg-gray-50';
+
+                    return (
+                      <tr 
+                        key={issue.id} 
+                        className={`cursor-pointer transition-colors ${rowClassName}`}
+                        onClick={() => onIssueClick && onIssueClick(issue.id)}
+                      >
+                        <td className={`px-6 py-4 whitespace-nowrap border-l-4 text-sm font-medium ${
+                          isCompletedIssue ? 'border-l-slate-700 text-slate-700' : 'border-l-transparent text-gray-900'
+                        }`}>
+                          #{issue.id}
+                        </td>
+                        <td className={`px-6 py-4 text-sm ${
+                          isCompletedIssue ? 'text-slate-700 line-through' : 'text-gray-900'
+                        }`}>
+                          {issue.title}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(issue.status)}`}>
+                            {getStatusLabel(issue.status)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${getPriorityBadgeClass(issue.priority)}`}>
+                            {getPriorityLabel(issue.priority)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {issue.updatedAt ? new Date(issue.updatedAt).toLocaleString() : 'N/A'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
