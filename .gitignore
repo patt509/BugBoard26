@@ -20,3 +20,4 @@ vp.log
 target/
 build/
 
+codebase*
