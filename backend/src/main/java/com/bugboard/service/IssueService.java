@@ -55,25 +55,14 @@ public class IssueService {
 
    @Transactional
    public Long createIssue(IssueDTO dto, Long reporterId) {
-<<<<<<< HEAD
-      // Fetch reporter from repository if provided
-      User reporter = reporterId != null ? userRepository.findById(reporterId).orElse(null) : null;
+      User reporter = null;
+      if (reporterId != null) {
+         reporter = userRepository.findById(reporterId)
+               .orElseThrow(() -> new IllegalArgumentException("Reporter not found with ID: " + reporterId));
+      }
 
-      // Parse type from DTO (mandatory)
       IssueType type = dto.getType() != null ? IssueType.valueOf(dto.getType()) : null;
 
-=======
-      // Validate reporter exists
-      if (reporterId == null) {
-         throw new IllegalArgumentException("Reporter ID is required");
-      }
-      
-      User reporter = userRepository.findById(reporterId).orElse(null);
-      if (reporter == null) {
-         throw new IllegalArgumentException("Reporter not found with ID: " + reporterId);
-      }
-      
->>>>>>> frontend
       // Service creates the entity from the DTO
       Issue issue = new Issue(dto.getTitle(), dto.getDescription(), reporter, type);
 
