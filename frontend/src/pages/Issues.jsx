@@ -2,12 +2,24 @@ import { useState, useEffect, useCallback } from 'react';
 import { Search, Plus, CheckCircle, X } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { issueService } from '../services/issue.service';
+import { authService } from '../services/auth.service';
 
 function Issues({ user, onLogout, onCreateIssue, onIssueClick, onNavigate, successMessage, onDismissSuccess }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [assigneeFilter, setAssigneeFilter] = useState('all');
+  const [debouncedFilters, setDebouncedFilters] = useState({
+    term: '',
+    status: 'all',
+    priority: 'all',
+    type: 'all',
+    assigneeId: 'all'
+  });
+  const [assignableUsers, setAssignableUsers] = useState([]);
+  const [assignableUsersLoading, setAssignableUsersLoading] = useState(false);
+  const [assignableUsersError, setAssignableUsersError] = useState(null);
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -15,29 +27,73 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, onNavigate, succe
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery.trim());
+      setDebouncedFilters({
+        term: searchQuery.trim(),
+        status: statusFilter,
+        priority: priorityFilter,
+        type: typeFilter,
+        assigneeId: assigneeFilter
+      });
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, statusFilter, priorityFilter, typeFilter, assigneeFilter]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        setAssignableUsersLoading(true);
+        setAssignableUsersError(null);
+        const users = await authService.getAssignableUsers(user?.id);
+        if (!mounted) {
+          return;
+        }
+        setAssignableUsers(Array.isArray(users) ? users : []);
+      } catch (err) {
+        console.warn('Unable to load assignable users for filters', err);
+        if (mounted) {
+          setAssignableUsers([]);
+          setAssignableUsersError(err.message || 'Failed to load assignee options.');
+        }
+      } finally {
+        if (mounted) {
+          setAssignableUsersLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id]);
 
   const buildSearchParams = useCallback(() => {
     const params = {};
 
-    if (debouncedSearchQuery) {
-      params.term = debouncedSearchQuery;
+    if (debouncedFilters.term) {
+      params.term = debouncedFilters.term;
     }
 
-    if (statusFilter !== 'all') {
-      params.status = statusFilter;
+    if (debouncedFilters.status !== 'all') {
+      params.status = debouncedFilters.status;
     }
 
-    if (priorityFilter !== 'all') {
-      params.priority = priorityFilter;
+    if (debouncedFilters.priority !== 'all') {
+      params.priority = debouncedFilters.priority;
+    }
+
+    if (debouncedFilters.type !== 'all') {
+      params.type = debouncedFilters.type;
+    }
+
+    if (debouncedFilters.assigneeId !== 'all') {
+      params.assigneeId = debouncedFilters.assigneeId;
     }
 
     return params;
-  }, [debouncedSearchQuery, statusFilter, priorityFilter]);
+  }, [debouncedFilters]);
 
   const fetchIssues = useCallback(async () => {
     try {
@@ -47,7 +103,7 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, onNavigate, succe
       setIssues(data);
     } catch (err) {
       console.error('Error fetching issues:', err);
-      setError(err.message);
+      setError(err.message || 'Failed to load issues.');
     } finally {
       setLoading(false);
     }
@@ -109,6 +165,16 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, onNavigate, succe
       'LOW': 'Low',
     };
     return labels[priority] || priority;
+  };
+
+  const getTypeLabel = (type) => {
+    const labels = {
+      BUG: 'Bug',
+      FEATURE: 'Feature',
+      DOCUMENTATION: 'Documentation',
+      QUESTION: 'Question'
+    };
+    return labels[type] || type || 'Bug';
   };
 
   return (
@@ -179,12 +245,32 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, onNavigate, succe
               <option value="LOW">Low</option>
             </select>
 
-            <select className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-              <option>Assignee</option>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              <option value="all">Type</option>
+              <option value="BUG">Bug</option>
+              <option value="FEATURE">Feature</option>
+              <option value="DOCUMENTATION">Documentation</option>
+              <option value="QUESTION">Question</option>
             </select>
 
-            <select className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-              <option>Sort by</option>
+            <select
+              value={assigneeFilter}
+              onChange={(e) => setAssigneeFilter(e.target.value)}
+              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-100"
+              disabled={assignableUsersLoading}
+            >
+              <option value="all">
+                {assignableUsersLoading ? 'Loading assignees...' : 'Assignee'}
+              </option>
+              {assignableUsers.map((assignableUser) => (
+                <option key={assignableUser.id} value={assignableUser.id}>
+                  {assignableUser.username || assignableUser.email}
+                </option>
+              ))}
             </select>
 
             {/* New Issue Button */}
@@ -196,6 +282,9 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, onNavigate, succe
               New Issue
             </button>
           </div>
+          {assignableUsersError && (
+            <p className="mb-4 text-sm text-red-600">{assignableUsersError}</p>
+          )}
 
           {/* Table */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -243,6 +332,12 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, onNavigate, succe
                       Priority
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Type
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Assignee
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Updated
                     </th>
                   </tr>
@@ -283,6 +378,12 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, onNavigate, succe
                           <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${getPriorityBadgeClass(issue.priority)}`}>
                             {getPriorityLabel(issue.priority)}
                           </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          {getTypeLabel(issue.type)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          {issue.assigneeUsername || 'Unassigned'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {issue.updatedAt ? new Date(issue.updatedAt).toLocaleString() : 'N/A'}
