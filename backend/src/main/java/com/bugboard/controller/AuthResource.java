@@ -55,9 +55,7 @@ public class AuthResource {
    public Response login(LoginRequest request) {
       try {
          if (request.getEmail() == null || request.getPassword() == null) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                  .entity(Map.of("error", "Email and password are required"))
-                  .build();
+            return ApiResponses.error(Response.Status.BAD_REQUEST, "Email and password are required");
          }
 
          Optional<UserDTO> userOpt = authService.login(
@@ -65,9 +63,7 @@ public class AuthResource {
                request.getPassword().toCharArray());
 
          if (userOpt.isEmpty()) {
-            return Response.status(Response.Status.UNAUTHORIZED)
-                  .entity(Map.of("error", "Invalid credentials"))
-                  .build();
+            return ApiResponses.error(Response.Status.UNAUTHORIZED, "Invalid credentials");
          }
 
          UserDTO user = userOpt.get();
@@ -77,9 +73,7 @@ public class AuthResource {
 
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Login error", e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Internal server error"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Internal server error");
       }
    }
 
@@ -93,34 +87,24 @@ public class AuthResource {
          Map<String, String> body) {
       try {
          if (userId == null) {
-            return Response.status(Response.Status.UNAUTHORIZED)
-                  .entity(Map.of("error", "User not authenticated"))
-                  .build();
+            return ApiResponses.error(Response.Status.UNAUTHORIZED, "User not authenticated");
          }
 
          String username = body.get("username");
          if (username == null || username.trim().isEmpty()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                  .entity(Map.of("error", "Username is required"))
-                  .build();
+            return ApiResponses.error(Response.Status.BAD_REQUEST, "Username is required");
          }
 
          UserDTO updatedUser = authService.finalizeProfile(userId, username.trim());
          return Response.ok(updatedUser).build();
 
       } catch (IllegalArgumentException e) {
-         return Response.status(Response.Status.BAD_REQUEST)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.BAD_REQUEST, e.getMessage());
       } catch (IllegalStateException e) {
-         return Response.status(Response.Status.CONFLICT)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.CONFLICT, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error setting username", e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Internal server error"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Internal server error");
       }
    }
 
@@ -133,9 +117,7 @@ public class AuthResource {
       try {
          String email = body.get("email");
          if (email == null || email.trim().isEmpty()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                  .entity(Map.of("error", "Email is required"))
-                  .build();
+            return ApiResponses.error(Response.Status.BAD_REQUEST, "Email is required");
          }
 
          authService.requestPasswordReset(email.trim());
@@ -148,14 +130,10 @@ public class AuthResource {
          return Response.ok(Map.of(
                "message", "If the email exists, a password reset request has been submitted.")).build();
       } catch (IllegalStateException e) {
-         return Response.status(Response.Status.CONFLICT)
-               .entity(Map.of("error", "A reset request is already pending for this account."))
-               .build();
+         return ApiResponses.error(Response.Status.CONFLICT, "A reset request is already pending for this account.");
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error requesting password reset", e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Internal server error"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Internal server error");
       }
    }
 
@@ -175,9 +153,7 @@ public class AuthResource {
          // Admin validation is done inside the service method
 
          if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                  .entity(Map.of("error", "Email is required"))
-                  .build();
+            return ApiResponses.error(Response.Status.BAD_REQUEST, "Email is required");
          }
 
          UserRole role = UserRole.USER; // Default
@@ -185,9 +161,7 @@ public class AuthResource {
             try {
                role = UserRole.valueOf(request.getRole().toUpperCase());
             } catch (IllegalArgumentException e) {
-               return Response.status(Response.Status.BAD_REQUEST)
-                     .entity(Map.of("error", "Invalid role. Use USER or ADMIN"))
-                     .build();
+               return ApiResponses.error(Response.Status.BAD_REQUEST, "Invalid role. Use USER or ADMIN");
             }
          }
 
@@ -202,18 +176,12 @@ public class AuthResource {
                .build();
 
       } catch (SecurityException e) {
-         return Response.status(Response.Status.FORBIDDEN)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
       } catch (IllegalArgumentException e) {
-         return Response.status(Response.Status.BAD_REQUEST)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.BAD_REQUEST, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error creating user", e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Internal server error"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Internal server error");
       }
    }
 
@@ -230,14 +198,10 @@ public class AuthResource {
          return Response.ok(requests).build();
 
       } catch (SecurityException e) {
-         return Response.status(Response.Status.FORBIDDEN)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error getting reset requests", e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Internal server error"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Internal server error");
       }
    }
 
@@ -257,9 +221,7 @@ public class AuthResource {
 
          Boolean approve = body.get("approve");
          if (approve == null) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                  .entity(Map.of("error", "Field 'approve' (true/false) is required"))
-                  .build();
+            return ApiResponses.error(Response.Status.BAD_REQUEST, "Field 'approve' (true/false) is required");
          }
 
          String newPassword = authService.processPasswordResetRequest(requestId, approve, adminId);
@@ -275,22 +237,14 @@ public class AuthResource {
          }
 
       } catch (SecurityException e) {
-         return Response.status(Response.Status.FORBIDDEN)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
       } catch (IllegalArgumentException e) {
-         return Response.status(Response.Status.NOT_FOUND)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.NOT_FOUND, e.getMessage());
       } catch (IllegalStateException e) {
-         return Response.status(Response.Status.CONFLICT)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.CONFLICT, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error processing reset request", e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Internal server error"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Internal server error");
       }
    }
 
@@ -312,18 +266,12 @@ public class AuthResource {
                "note", "Communicate this password to the employee in person")).build();
 
       } catch (SecurityException e) {
-         return Response.status(Response.Status.FORBIDDEN)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
       } catch (IllegalArgumentException e) {
-         return Response.status(Response.Status.NOT_FOUND)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.NOT_FOUND, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error resetting password", e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Internal server error"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Internal server error");
       }
    }
 }

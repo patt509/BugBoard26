@@ -70,9 +70,7 @@ public class IssueResource {
          return Response.ok(issues).build();
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error retrieving all issues", e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Error retrieving issues"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error retrieving issues");
       }
    }
 
@@ -93,9 +91,7 @@ public class IssueResource {
          return Response.ok(results).build();
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error searching issues", e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Error searching issues"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error searching issues");
       }
    }
 
@@ -109,14 +105,10 @@ public class IssueResource {
          IssueDTO issue = issueService.getIssueById(id);
          return Response.ok(issue).build();
       } catch (IllegalArgumentException e) {
-         return Response.status(Response.Status.NOT_FOUND)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.NOT_FOUND, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error retrieving issue", e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Error retrieving issue"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error retrieving issue");
       }
    }
 
@@ -130,31 +122,23 @@ public class IssueResource {
       try {
          // Validate userId is provided
          if (userId == null) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                  .entity(Map.of("error", "X-User-Id header is required"))
-                  .build();
+            return ApiResponses.error(Response.Status.BAD_REQUEST, "X-User-Id header is required");
          }
          
          Long id = issueService.createIssue(issueDTO, userId);
          
          if (id == null) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                  .entity(Map.of("error", "Failed to create issue - no ID returned"))
-                  .build();
+            return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Failed to create issue - no ID returned");
          }
          
          return Response.status(Response.Status.CREATED)
                .entity(Map.of("id", id, "message", "Issue created successfully"))
                .build();
       } catch (IllegalArgumentException e) {
-         return Response.status(Response.Status.BAD_REQUEST)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.BAD_REQUEST, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error creating issue", e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Error creating issue: " + e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error creating issue: " + e.getMessage());
       }
    }
 
@@ -170,14 +154,10 @@ public class IssueResource {
          issueService.updateIssue(id, issueDTO);
          return Response.ok(Map.of("message", "Issue updated successfully")).build();
       } catch (IllegalArgumentException e) {
-         return Response.status(Response.Status.NOT_FOUND)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.NOT_FOUND, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error updating issue", e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Error updating issue: " + e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error updating issue: " + e.getMessage());
       }
    }
 
@@ -191,22 +171,16 @@ public class IssueResource {
          @QueryParam("newStatus") IssueStatus newStatus) {
       try {
          if (newStatus == null) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                  .entity(Map.of("error", "newStatus parameter is required"))
-                  .build();
+            return ApiResponses.error(Response.Status.BAD_REQUEST, "newStatus parameter is required");
          }
 
          issueService.updateStatus(id, newStatus);
          return Response.ok(Map.of("message", "Status updated successfully")).build();
       } catch (IllegalArgumentException e) {
-         return Response.status(Response.Status.NOT_FOUND)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.NOT_FOUND, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error updating issue status", e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Error updating status"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error updating status");
       }
    }
 
@@ -226,14 +200,10 @@ public class IssueResource {
          DashboardStatsDTO stats = issueService.getDashboardStats();
          return Response.ok(stats).build();
       } catch (SecurityException e) {
-         return Response.status(Response.Status.FORBIDDEN)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error retrieving dashboard stats", e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Error retrieving statistics"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error retrieving statistics");
       }
    }
 
@@ -255,26 +225,18 @@ public class IssueResource {
                "duplicateId", duplicateId,
                "originalId", originalId)).build();
       } catch (SecurityException e) {
-         return Response.status(Response.Status.FORBIDDEN)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
       } catch (IllegalArgumentException e) {
          logger.log(Level.WARNING, "Invalid argument for duplicate processing: {0}", e.getMessage());
-         return Response.status(Response.Status.NOT_FOUND)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.NOT_FOUND, e.getMessage());
       } catch (IllegalStateException e) {
          logger.log(Level.WARNING, "Invalid state for duplicate processing: {0}", e.getMessage());
-         return Response.status(Response.Status.BAD_REQUEST)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.BAD_REQUEST, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, String.format(
                "Error processing duplicate request for duplicateId=%d, originalId=%d",
                duplicateId, originalId), e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "An unexpected error occurred"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
       }
    }
 }

@@ -73,16 +73,12 @@ public class AttachmentResource {
       try {
          // Verify user is authenticated
          if (userId == null) {
-            return Response.status(Response.Status.UNAUTHORIZED)
-                  .entity(Map.of("error", "Authentication required"))
-                  .build();
+            return ApiResponses.error(Response.Status.UNAUTHORIZED, "Authentication required");
          }
 
          // Verify issue exists (throws if not found)
          if (!issueService.validateIssueExists(issueId)) {
-            return Response.status(Response.Status.NOT_FOUND)
-                  .entity(Map.of("error", "Issue not found"))
-                  .build();
+            return ApiResponses.error(Response.Status.NOT_FOUND, "Issue not found");
          }
 
          // Derive content type from file name (more reliable than Content-Type header
@@ -120,14 +116,10 @@ public class AttachmentResource {
                "path", relativePath)).build();
 
       } catch (IllegalArgumentException e) {
-         return Response.status(Response.Status.BAD_REQUEST)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.BAD_REQUEST, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error uploading issue attachment", e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Error uploading attachment"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error uploading attachment");
       }
    }
 
@@ -142,21 +134,15 @@ public class AttachmentResource {
 
       try {
          if (userId == null) {
-            return Response.status(Response.Status.UNAUTHORIZED)
-                  .entity(Map.of("error", "Authentication required"))
-                  .build();
+            return ApiResponses.error(Response.Status.UNAUTHORIZED, "Authentication required");
          }
 
          if (!issueService.validateIssueExists(issueId)) {
-            return Response.status(Response.Status.NOT_FOUND)
-                  .entity(Map.of("error", "Issue not found"))
-                  .build();
+            return ApiResponses.error(Response.Status.NOT_FOUND, "Issue not found");
          }
 
          if (!issueService.issueHasAttachment(issueId)) {
-            return Response.status(Response.Status.NOT_FOUND)
-                  .entity(Map.of("error", "No attachment found"))
-                  .build();
+            return ApiResponses.error(Response.Status.NOT_FOUND, "No attachment found");
          }
 
          // Delete file and clear path
@@ -167,9 +153,7 @@ public class AttachmentResource {
 
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error deleting issue attachment", e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Error deleting attachment"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error deleting attachment");
       }
    }
 
@@ -236,15 +220,11 @@ public class AttachmentResource {
 
       try {
          if (userId == null) {
-            return Response.status(Response.Status.UNAUTHORIZED)
-                  .entity(Map.of("error", "Authentication required"))
-                  .build();
+            return ApiResponses.error(Response.Status.UNAUTHORIZED, "Authentication required");
          }
 
          if (!commentService.validateCommentExists(commentId)) {
-            return Response.status(Response.Status.NOT_FOUND)
-                  .entity(Map.of("error", "Comment not found"))
-                  .build();
+            return ApiResponses.error(Response.Status.NOT_FOUND, "Comment not found");
          }
 
          // Derive content type from file name (more reliable than Content-Type header
@@ -280,14 +260,10 @@ public class AttachmentResource {
                "path", relativePath)).build();
 
       } catch (IllegalArgumentException e) {
-         return Response.status(Response.Status.BAD_REQUEST)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.BAD_REQUEST, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error uploading comment attachment", e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Error uploading attachment"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error uploading attachment");
       }
    }
 
@@ -302,21 +278,15 @@ public class AttachmentResource {
 
       try {
          if (userId == null) {
-            return Response.status(Response.Status.UNAUTHORIZED)
-                  .entity(Map.of("error", "Authentication required"))
-                  .build();
+            return ApiResponses.error(Response.Status.UNAUTHORIZED, "Authentication required");
          }
 
          if (!commentService.validateCommentExists(commentId)) {
-            return Response.status(Response.Status.NOT_FOUND)
-                  .entity(Map.of("error", "Comment not found"))
-                  .build();
+            return ApiResponses.error(Response.Status.NOT_FOUND, "Comment not found");
          }
 
          if (!commentService.commentHasAttachment(commentId)) {
-            return Response.status(Response.Status.NOT_FOUND)
-                  .entity(Map.of("error", "No attachment found"))
-                  .build();
+            return ApiResponses.error(Response.Status.NOT_FOUND, "No attachment found");
          }
 
          // Delete file and clear path via service
@@ -327,9 +297,7 @@ public class AttachmentResource {
 
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error deleting comment attachment", e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Error deleting attachment"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error deleting attachment");
       }
    }
 

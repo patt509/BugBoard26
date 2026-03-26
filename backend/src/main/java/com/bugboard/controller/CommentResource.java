@@ -44,9 +44,7 @@ public class CommentResource {
          return Response.ok(comments).build();
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error retrieving comments for issue " + issueId, e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Error retrieving comments"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error retrieving comments");
       }
    }
 
@@ -60,15 +58,11 @@ public class CommentResource {
          CommentDTO commentDTO) {
       try {
          if (userId == null) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                  .entity(Map.of("error", "X-User-Id header is required"))
-                  .build();
+            return ApiResponses.error(Response.Status.BAD_REQUEST, "X-User-Id header is required");
          }
 
          if (commentDTO.getText() == null || commentDTO.getText().trim().isEmpty()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                  .entity(Map.of("error", "Comment text is required"))
-                  .build();
+            return ApiResponses.error(Response.Status.BAD_REQUEST, "Comment text is required");
          }
 
          // Use authorId from DTO if provided, otherwise use userId from header
@@ -76,28 +70,20 @@ public class CommentResource {
          
          Long commentId = commentService.createComment(issueId, commentDTO.getText(), authorId);
          if (commentId == null) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                  .entity(Map.of("error", "Error creating comment"))
-                  .build();
+            return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error creating comment");
          }
          
          return Response.status(Response.Status.CREATED)
                .entity(Map.of("id", commentId, "message", "Comment created successfully"))
                .build();
       } catch (IllegalArgumentException e) {
-         return Response.status(Response.Status.BAD_REQUEST)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.BAD_REQUEST, e.getMessage());
       } catch (IllegalStateException e) {
          logger.log(Level.SEVERE, "Comment persistence failed for issue " + issueId, e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Error creating comment"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error creating comment");
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error creating comment for issue " + issueId, e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Error creating comment"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error creating comment");
       }
    }
 
@@ -113,33 +99,23 @@ public class CommentResource {
          CommentDTO commentDTO) {
       try {
          if (userId == null) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                  .entity(Map.of("error", "X-User-Id header is required"))
-                  .build();
+            return ApiResponses.error(Response.Status.BAD_REQUEST, "X-User-Id header is required");
          }
 
          if (commentDTO.getText() == null || commentDTO.getText().trim().isEmpty()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                  .entity(Map.of("error", "Comment text is required"))
-                  .build();
+            return ApiResponses.error(Response.Status.BAD_REQUEST, "Comment text is required");
          }
 
          commentService.updateComment(commentId, commentDTO.getText(), userId);
          
          return Response.ok(Map.of("message", "Comment updated successfully")).build();
       } catch (SecurityException e) {
-         return Response.status(Response.Status.FORBIDDEN)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
       } catch (IllegalArgumentException e) {
-         return Response.status(Response.Status.NOT_FOUND)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.NOT_FOUND, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error updating comment " + commentId, e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Error updating comment"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error updating comment");
       }
    }
 
@@ -154,23 +130,17 @@ public class CommentResource {
          @HeaderParam("X-User-Id") Long userId) {
       try {
          if (userId == null) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                  .entity(Map.of("error", "X-User-Id header is required"))
-                  .build();
+            return ApiResponses.error(Response.Status.BAD_REQUEST, "X-User-Id header is required");
          }
 
          commentService.deleteComment(commentId);
          
          return Response.ok(Map.of("message", "Comment deleted successfully")).build();
       } catch (IllegalArgumentException e) {
-         return Response.status(Response.Status.NOT_FOUND)
-               .entity(Map.of("error", e.getMessage()))
-               .build();
+         return ApiResponses.error(Response.Status.NOT_FOUND, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error deleting comment " + commentId, e);
-         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-               .entity(Map.of("error", "Error deleting comment"))
-               .build();
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error deleting comment");
       }
    }
 }
