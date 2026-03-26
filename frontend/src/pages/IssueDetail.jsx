@@ -35,22 +35,14 @@ const formatRelativeTime = (dateString, nowMs) => {
   }
 
   const diffMs = Math.max(0, nowMs - parsedDate.getTime());
-  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffMs / 60000);
 
-  if (diffSecs < 5) {
-    return 'Just now';
+  if (diffMins < 1) {
+    return 'Less than 1 min ago';
   }
 
-  if (diffSecs < 60) {
-    return `${diffSecs} sec ago`;
-  }
-
-  const diffMins = Math.floor(diffSecs / 60);
-  const remainingSecs = diffSecs % 60;
   if (diffMins < 60) {
-    return remainingSecs > 0
-      ? `${diffMins} min ${remainingSecs} sec ago`
-      : `${diffMins} min ago`;
+    return `${diffMins} min ago`;
   }
 
   const diffHours = Math.floor(diffMins / 60);
@@ -123,7 +115,7 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
   useEffect(() => {
     const timerId = setInterval(() => {
       setNowMs(Date.now());
-    }, 1000);
+    }, 60000);
 
     return () => clearInterval(timerId);
   }, []);
