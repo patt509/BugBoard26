@@ -5,6 +5,69 @@ import { issueService } from '../services/issue.service';
 import { commentService } from '../services/comment.service';
 import { attachmentService } from '../services/attachment.service';
 
+const API_TIMESTAMP_WITH_TIMEZONE_REGEX = /(Z|[+-]\d{2}:?\d{2})$/i;
+
+const parseApiDate = (input) => {
+  if (!input) {
+    return null;
+  }
+
+  const rawValue = String(input).trim();
+  if (!rawValue) {
+    return null;
+  }
+
+  const normalizedValue = rawValue.includes('T')
+    ? rawValue
+    : rawValue.replace(' ', 'T');
+  const valueWithTimezone = API_TIMESTAMP_WITH_TIMEZONE_REGEX.test(normalizedValue)
+    ? normalizedValue
+    : `${normalizedValue}Z`;
+  const parsedDate = new Date(valueWithTimezone);
+
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+};
+
+const formatRelativeTime = (dateString, nowMs) => {
+  const parsedDate = parseApiDate(dateString);
+  if (!parsedDate) {
+    return 'N/A';
+  }
+
+  const diffMs = Math.max(0, nowMs - parsedDate.getTime());
+  const diffSecs = Math.floor(diffMs / 1000);
+
+  if (diffSecs < 5) {
+    return 'Just now';
+  }
+
+  if (diffSecs < 60) {
+    return `${diffSecs} sec ago`;
+  }
+
+  const diffMins = Math.floor(diffSecs / 60);
+  const remainingSecs = diffSecs % 60;
+  if (diffMins < 60) {
+    return remainingSecs > 0
+      ? `${diffMins} min ${remainingSecs} sec ago`
+      : `${diffMins} min ago`;
+  }
+
+  const diffHours = Math.floor(diffMins / 60);
+  const remainingMins = diffMins % 60;
+  if (diffHours < 24) {
+    return remainingMins > 0
+      ? `${diffHours} h ${remainingMins} min ago`
+      : `${diffHours} h ago`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+  const remainingHours = diffHours % 24;
+  return remainingHours > 0
+    ? `${diffDays} d ${remainingHours} h ago`
+    : `${diffDays} d ago`;
+};
+
 const resolveCurrentUserId = (user) => {
   if (user?.id != null) {
     return user.id;
@@ -53,8 +116,17 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
   const [flaggingDuplicate, setFlaggingDuplicate] = useState(false);
   const [duplicateSuccess, setDuplicateSuccess] = useState(null);
   const [historyExpanded, setHistoryExpanded] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const duplicateCandidatesCacheRef = useRef(null);
   const currentUserId = resolveCurrentUserId(user);
+
+  useEffect(() => {
+    const timerId = setInterval(() => {
+      setNowMs(Date.now());
+    }, 1000);
+
+    return () => clearInterval(timerId);
+  }, []);
 
   // Fetch attachment constraints
   useEffect(() => {
@@ -347,24 +419,13 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
   };
 
   const formatTimeAgo = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} minutes ago`;
-    if (diffHours < 24) return `${diffHours} hours ago`;
-    if (diffDays === 1) return 'Yesterday';
-    return `${diffDays} days ago`;
+    return formatRelativeTime(dateString, nowMs);
   };
 
   const formatTime = (dateString) => {
-    if (!dateString) return '';
-    return new Date(dateString).toLocaleTimeString('en-US', {
+    const parsedDate = parseApiDate(dateString);
+    if (!parsedDate) return '';
+    return parsedDate.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true
@@ -372,8 +433,9 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
   };
 
   const formatDateTime = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleString('en-US', {
+    const parsedDate = parseApiDate(dateString);
+    if (!parsedDate) return 'N/A';
+    return parsedDate.toLocaleString('en-US', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
@@ -388,6 +450,11 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
       return [];
     }
 
+    const createdDate = parseApiDate(issue.createdAt);
+    if (!createdDate) {
+      return [];
+    }
+
     const events = [
       {
         id: 'created',
@@ -397,8 +464,9 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
       }
     ];
 
-    const createdMs = new Date(issue.createdAt).getTime();
-    const updatedMs = issue.updatedAt ? new Date(issue.updatedAt).getTime() : null;
+    const createdMs = createdDate.getTime();
+    const updatedDate = issue.updatedAt ? parseApiDate(issue.updatedAt) : null;
+    const updatedMs = updatedDate ? updatedDate.getTime() : null;
     const hasMeaningfulUpdate = updatedMs != null && Math.abs(updatedMs - createdMs) > 1000;
 
     if (hasMeaningfulUpdate) {
@@ -428,7 +496,13 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
 
     return events
       .filter((event) => event.timestamp)
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      .sort((a, b) => {
+        const dateA = parseApiDate(a.timestamp);
+        const dateB = parseApiDate(b.timestamp);
+        const aMs = dateA ? dateA.getTime() : 0;
+        const bMs = dateB ? dateB.getTime() : 0;
+        return bMs - aMs;
+      });
   }, [issue]);
 
   const statusOptions = ['TODO', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
@@ -802,7 +876,7 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
                   {/* Created */}
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">Created</span>
-                    <span className="text-sm text-gray-900">
+                    <span className="text-sm text-gray-900" title={formatDateTime(issue?.createdAt)}>
                       {formatTimeAgo(issue?.createdAt)}
                     </span>
                   </div>
@@ -810,7 +884,7 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
                   {/* Updated */}
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">Updated</span>
-                    <span className="text-sm text-gray-900">
+                    <span className="text-sm text-gray-900" title={formatDateTime(issue?.updatedAt || issue?.createdAt)}>
                       {formatTimeAgo(issue?.updatedAt || issue?.createdAt)}
                     </span>
                   </div>
