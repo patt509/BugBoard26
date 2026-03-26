@@ -54,6 +54,10 @@ public class AuthResource {
    @Path("/login")
    public Response login(LoginRequest request) {
       try {
+         if (request == null) {
+            return ApiResponses.error(Response.Status.BAD_REQUEST, "Request body is required");
+         }
+
          if (request.getEmail() == null || request.getPassword() == null) {
             return ApiResponses.error(Response.Status.BAD_REQUEST, "Email and password are required");
          }
@@ -90,6 +94,10 @@ public class AuthResource {
             return ApiResponses.error(Response.Status.UNAUTHORIZED, "User not authenticated");
          }
 
+         if (body == null) {
+            return ApiResponses.error(Response.Status.BAD_REQUEST, "Request body is required");
+         }
+
          String username = body.get("username");
          if (username == null || username.trim().isEmpty()) {
             return ApiResponses.error(Response.Status.BAD_REQUEST, "Username is required");
@@ -115,6 +123,10 @@ public class AuthResource {
    @Path("/password-reset-request")
    public Response requestPasswordReset(Map<String, String> body) {
       try {
+         if (body == null) {
+            return ApiResponses.error(Response.Status.BAD_REQUEST, "Request body is required");
+         }
+
          String email = body.get("email");
          if (email == null || email.trim().isEmpty()) {
             return ApiResponses.error(Response.Status.BAD_REQUEST, "Email is required");
@@ -151,6 +163,9 @@ public class AuthResource {
          CreateUserRequest request) {
       try {
          // Admin validation is done inside the service method
+         if (request == null) {
+            return ApiResponses.error(Response.Status.BAD_REQUEST, "Request body is required");
+         }
 
          if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
             return ApiResponses.error(Response.Status.BAD_REQUEST, "Email is required");
@@ -159,7 +174,7 @@ public class AuthResource {
          UserRole role = UserRole.USER; // Default
          if (request.getRole() != null) {
             try {
-               role = UserRole.valueOf(request.getRole().toUpperCase());
+               role = UserRole.valueOf(request.getRole().trim().toUpperCase());
             } catch (IllegalArgumentException e) {
                return ApiResponses.error(Response.Status.BAD_REQUEST, "Invalid role. Use USER or ADMIN");
             }
@@ -218,6 +233,9 @@ public class AuthResource {
          Map<String, Boolean> body) {
       try {
          // Admin validation is done inside the service method
+         if (body == null) {
+            return ApiResponses.error(Response.Status.BAD_REQUEST, "Request body is required");
+         }
 
          Boolean approve = body.get("approve");
          if (approve == null) {

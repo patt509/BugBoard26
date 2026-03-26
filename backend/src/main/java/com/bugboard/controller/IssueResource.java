@@ -82,13 +82,18 @@ public class IssueResource {
    @Path("/search")
    public Response search(
          @QueryParam("term") String term,
-         @QueryParam("priority") PriorityLevel priority,
-         @QueryParam("status") IssueStatus status,
-         @QueryParam("type") IssueType type,
+         @QueryParam("priority") String rawPriority,
+         @QueryParam("status") String rawStatus,
+         @QueryParam("type") String rawType,
          @QueryParam("assigneeId") Long assigneeId) {
       try {
+         PriorityLevel priority = parsePriority(rawPriority);
+         IssueStatus status = parseStatus(rawStatus);
+         IssueType type = parseType(rawType);
          List<IssueDTO> results = issueService.searchIssues(term, priority, status, type, assigneeId);
          return Response.ok(results).build();
+      } catch (IllegalArgumentException e) {
+         return ApiResponses.error(Response.Status.BAD_REQUEST, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error searching issues", e);
          return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error searching issues");
@@ -120,6 +125,10 @@ public class IssueResource {
          @HeaderParam("X-User-Id") Long userId,
          IssueDTO issueDTO) {
       try {
+         if (issueDTO == null) {
+            return ApiResponses.error(Response.Status.BAD_REQUEST, "Request body is required");
+         }
+
          // Validate userId is provided
          if (userId == null) {
             return ApiResponses.error(Response.Status.BAD_REQUEST, "X-User-Id header is required");
@@ -151,6 +160,10 @@ public class IssueResource {
          @PathParam("id") Long id,
          IssueDTO issueDTO) {
       try {
+         if (issueDTO == null) {
+            return ApiResponses.error(Response.Status.BAD_REQUEST, "Request body is required");
+         }
+
          issueService.updateIssue(id, issueDTO);
          return Response.ok(Map.of("message", "Issue updated successfully")).build();
       } catch (IllegalArgumentException e) {
@@ -168,8 +181,9 @@ public class IssueResource {
    @Path("/{id}/status")
    public Response updateStatus(
          @PathParam("id") Long id,
-         @QueryParam("newStatus") IssueStatus newStatus) {
+         @QueryParam("newStatus") String rawNewStatus) {
       try {
+         IssueStatus newStatus = parseStatus(rawNewStatus);
          if (newStatus == null) {
             return ApiResponses.error(Response.Status.BAD_REQUEST, "newStatus parameter is required");
          }
@@ -237,6 +251,39 @@ public class IssueResource {
                "Error processing duplicate request for duplicateId=%d, originalId=%d",
                duplicateId, originalId), e);
          return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
+      }
+   }
+
+   private PriorityLevel parsePriority(String rawPriority) {
+      if (rawPriority == null || rawPriority.trim().isEmpty()) {
+         return null;
+      }
+      try {
+         return PriorityLevel.valueOf(rawPriority.trim().toUpperCase());
+      } catch (IllegalArgumentException ex) {
+         throw new IllegalArgumentException("Invalid priority: " + rawPriority);
+      }
+   }
+
+   private IssueStatus parseStatus(String rawStatus) {
+      if (rawStatus == null || rawStatus.trim().isEmpty()) {
+         return null;
+      }
+      try {
+         return IssueStatus.valueOf(rawStatus.trim().toUpperCase());
+      } catch (IllegalArgumentException ex) {
+         throw new IllegalArgumentException("Invalid status: " + rawStatus);
+      }
+   }
+
+   private IssueType parseType(String rawType) {
+      if (rawType == null || rawType.trim().isEmpty()) {
+         return null;
+      }
+      try {
+         return IssueType.valueOf(rawType.trim().toUpperCase());
+      } catch (IllegalArgumentException ex) {
+         throw new IllegalArgumentException("Invalid type: " + rawType);
       }
    }
 }

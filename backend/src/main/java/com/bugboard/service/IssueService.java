@@ -55,35 +55,31 @@ public class IssueService {
 
    @Transactional
    public Long createIssue(IssueDTO dto, Long reporterId) {
+      if (dto == null) {
+         throw new IllegalArgumentException("Issue payload is required.");
+      }
+
       User reporter = null;
       if (reporterId != null) {
          reporter = userRepository.findById(reporterId)
                .orElseThrow(() -> new IllegalArgumentException("Reporter not found with ID: " + reporterId));
       }
 
-      if (dto.getType() == null || dto.getType().isBlank()) {
-         throw new IllegalArgumentException("Issue type is required.");
-      }
-
-      IssueType type;
-      try {
-         type = IssueType.valueOf(dto.getType().trim().toUpperCase());
-      } catch (IllegalArgumentException ex) {
-         throw new IllegalArgumentException("Invalid issue type: " + dto.getType());
-      }
+      IssueType type = parseIssueType(dto.getType());
 
       // Service creates the entity from the DTO
       Issue issue = new Issue(dto.getTitle(), dto.getDescription(), reporter, type);
 
       if (dto.getPriority() != null) {
-         issue.setPriority(PriorityLevel.valueOf(dto.getPriority()));
+         issue.setPriority(parsePriority(dto.getPriority()));
       }
 
       // Handle optional assignee
       if (dto.getAssigneeUsername() != null && !dto.getAssigneeUsername().isBlank()) {
-         User assignee = userRepository.findByUsername(dto.getAssigneeUsername()).orElse(null);
+         String normalizedAssigneeUsername = dto.getAssigneeUsername().trim();
+         User assignee = userRepository.findByUsername(normalizedAssigneeUsername).orElse(null);
          if (assignee == null) {
-            throw new IllegalArgumentException("Assignee user not found: " + dto.getAssigneeUsername());
+            throw new IllegalArgumentException("Assignee user not found: " + normalizedAssigneeUsername);
          }
          issue.setAssignee(assignee);
       }
@@ -104,10 +100,14 @@ public class IssueService {
          issue.setTitle(dto.getTitle().trim());
       }
       if (dto.getDescription() != null) {
-         issue.setDescription(dto.getDescription().trim());
+         String normalizedDescription = dto.getDescription().trim();
+         if (normalizedDescription.isEmpty()) {
+            throw new IllegalArgumentException("Description cannot be empty.");
+         }
+         issue.setDescription(normalizedDescription);
       }
       if (dto.getPriority() != null) {
-         issue.setPriority(PriorityLevel.valueOf(dto.getPriority()));
+         issue.setPriority(parsePriority(dto.getPriority()));
       }
 
       repository.save(issue);
@@ -365,5 +365,29 @@ public class IssueService {
             .attachmentPath(issue.getAttachmentPath())
             .originalIssueId(issue.getOriginalIssueId())
             .build();
+   }
+
+   private PriorityLevel parsePriority(String rawPriority) {
+      if (rawPriority == null || rawPriority.trim().isEmpty()) {
+         throw new IllegalArgumentException("Priority is required.");
+      }
+
+      try {
+         return PriorityLevel.valueOf(rawPriority.trim().toUpperCase());
+      } catch (IllegalArgumentException ex) {
+         throw new IllegalArgumentException("Invalid priority: " + rawPriority);
+      }
+   }
+
+   private IssueType parseIssueType(String rawType) {
+      if (rawType == null || rawType.isBlank()) {
+         throw new IllegalArgumentException("Issue type is required.");
+      }
+
+      try {
+         return IssueType.valueOf(rawType.trim().toUpperCase());
+      } catch (IllegalArgumentException ex) {
+         throw new IllegalArgumentException("Invalid issue type: " + rawType);
+      }
    }
 }

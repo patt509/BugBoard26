@@ -16,6 +16,7 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -25,6 +26,7 @@ public class AuthService {
    private static final Logger logger = Logger.getLogger(AuthService.class.getName());
    private static final String TEMP_PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
    private static final int TEMP_PASSWORD_LENGTH = 12;
+   private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
 
    private final UserRepository userRepository;
    private final PasswordResetRequestRepository resetRequestRepository;
@@ -62,12 +64,16 @@ public class AuthService {
       if (email == null || email.trim().isEmpty()) {
          throw new IllegalArgumentException("Email is required.");
       }
+      String normalizedEmail = normalizeEmail(email);
+      if (!EMAIL_PATTERN.matcher(normalizedEmail).matches()) {
+         throw new IllegalArgumentException("Invalid email format.");
+      }
       if (role == null) {
          throw new IllegalArgumentException("User role is required.");
       }
 
       // Verify that the email is not already registered
-      if (userRepository.existsByEmail(email)) {
+      if (userRepository.existsByEmail(normalizedEmail)) {
          throw new IllegalArgumentException("Email already registered.");
       }
 
@@ -76,11 +82,11 @@ public class AuthService {
       String hashedPassword = PasswordHasher.hash(tempPassword);
 
       // Create and save the user
-      User newUser = new User(email, hashedPassword, role);
+      User newUser = new User(normalizedEmail, hashedPassword, role);
       userRepository.save(newUser);
 
       logger.log(Level.INFO, "Admin {0} created new user with email {1}",
-            new Object[] { admin.getEmail(), email });
+            new Object[] { admin.getEmail(), normalizedEmail });
 
       // Return the temporary password (admin will communicate it physically)
       return tempPassword;
@@ -183,7 +189,10 @@ public class AuthService {
    // (possibility to login with email or username in the same field)
    public Optional<UserDTO> login(String email, char[] rawPassword) {
       try {
-         Optional<User> userOpt = userRepository.findByEmail(email);
+         if (email == null || email.trim().isEmpty()) {
+            return Optional.empty();
+         }
+         Optional<User> userOpt = userRepository.findByEmail(normalizeEmail(email));
 
          if (userOpt.isEmpty()) {
             return Optional.empty();
@@ -254,7 +263,8 @@ public class AuthService {
       if (email == null || email.trim().isEmpty()) {
          throw new IllegalArgumentException("Email is required.");
       }
-      User user = userRepository.findByEmail(email)
+      String normalizedEmail = normalizeEmail(email);
+      User user = userRepository.findByEmail(normalizedEmail)
             .orElseThrow(() -> new IllegalArgumentException("Email not found."));
 
       // Verifica che non ci sia già una richiesta pendente
@@ -338,5 +348,9 @@ public class AuthService {
          sb.append(TEMP_PASSWORD_CHARS.charAt(index));
       }
       return sb.toString();
+   }
+
+   private String normalizeEmail(String email) {
+      return email.trim().toLowerCase();
    }
 }
