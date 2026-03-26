@@ -262,12 +262,18 @@ public class IssueService {
       if (duplicateIssueId == null || originalIssueId == null) {
          throw new IllegalArgumentException("Both duplicateId and originalId must be provided.");
       }
+      if (duplicateIssueId.equals(originalIssueId)) {
+         throw new IllegalArgumentException("Duplicate and original issue IDs must be different.");
+      }
 
       Issue duplicate = repository.findById(duplicateIssueId);
       Issue original = repository.findById(originalIssueId);
 
       if (duplicate == null || original == null) {
          throw new IllegalArgumentException("One or both issues not found.");
+      }
+      if (duplicate.getType() != IssueType.BUG || original.getType() != IssueType.BUG) {
+         throw new IllegalArgumentException("Duplicate workflow is allowed only for BUG issues.");
       }
 
       // Delegate to domain model for business logic

@@ -232,6 +232,38 @@ public class IssueServiceTest {
       issueService.processDuplicate(10L, 20L, 1L);
    }
 
+   /**
+    * TC13: Failure scenario - Duplicate issue is not a BUG.
+    * Expected Output: IllegalArgumentException
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testProcessDuplicate_TC13_DuplicateNotBug() {
+      Issue duplicate = new Issue("Title for Feature Issue", "Description", reporter, IssueType.FEATURE);
+      Issue original = new Issue("Title for Original Bug", "Description", reporter, IssueType.BUG);
+
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+      when(repository.findById(10L)).thenReturn(duplicate);
+      when(repository.findById(20L)).thenReturn(original);
+
+      issueService.processDuplicate(10L, 20L, 1L);
+   }
+
+   /**
+    * TC14: Failure scenario - Original issue is not a BUG.
+    * Expected Output: IllegalArgumentException
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testProcessDuplicate_TC14_OriginalNotBug() {
+      Issue duplicate = new Issue("Title for Duplicate Bug", "Description", reporter, IssueType.BUG);
+      Issue original = new Issue("Title for Feature Original", "Description", reporter, IssueType.FEATURE);
+
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+      when(repository.findById(10L)).thenReturn(duplicate);
+      when(repository.findById(20L)).thenReturn(original);
+
+      issueService.processDuplicate(10L, 20L, 1L);
+   }
+
    // ==================== searchIssues TESTS ====================
 
    /**
