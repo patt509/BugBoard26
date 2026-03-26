@@ -216,6 +216,14 @@ function AdminDashboard({ user, onLogout, onNavigate }) {
                   colorsMap={PRIORITY_COLORS}
                 />
               </section>
+
+              <section>
+                <DistributionList
+                  title="Open Issues by Assignee"
+                  data={stats?.issuesAssignedPerUser}
+                  colorsMap={{}}
+                />
+              </section>
             </>
           )}
         </div>
