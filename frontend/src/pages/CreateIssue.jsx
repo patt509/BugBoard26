@@ -3,6 +3,7 @@ import { X, Upload, AlertTriangle } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { issueService } from '../services/issue.service';
 import { attachmentService } from '../services/attachment.service';
+import { authService } from '../services/auth.service';
 
 const normalizeIssueType = (value) => {
    if (!value) return 'BUG';
@@ -58,9 +59,12 @@ function CreateIssue({ user, onLogout, onCancel, onSuccess, onNavigate, editingI
       title: editingIssue?.title || '',
       type: normalizeIssueType(editingIssue?.type),
       priority: editingIssue?.priority || 'HIGH',
-      assignee: editingIssue?.assignee || '',
+      assigneeId: editingIssue?.assigneeId != null ? String(editingIssue.assigneeId) : '',
       description: editingIssue?.description || '',
    });
+   const [assignableUsers, setAssignableUsers] = useState([]);
+   const [assignableUsersLoading, setAssignableUsersLoading] = useState(false);
+   const [assignableUsersError, setAssignableUsersError] = useState(null);
    const [attachments, setAttachments] = useState([]);
    const [loading, setLoading] = useState(false);
    const [error, setError] = useState(null);
@@ -89,11 +93,67 @@ function CreateIssue({ user, onLogout, onCancel, onSuccess, onNavigate, editingI
             title: editingIssue.title || '',
             type: normalizeIssueType(editingIssue.type),
             priority: editingIssue.priority || 'HIGH',
-            assignee: editingIssue.assignee || '',
+            assigneeId: editingIssue.assigneeId != null ? String(editingIssue.assigneeId) : '',
             description: editingIssue.description || '',
          });
       }
    }, [editingIssue]);
+
+   useEffect(() => {
+      let mounted = true;
+      const currentUserId = resolveCurrentUserId(user);
+
+      if (currentUserId == null) {
+         setAssignableUsers([]);
+         setAssignableUsersError('Unable to load assignable users. Please login again.');
+         return () => { mounted = false; };
+      }
+
+      (async () => {
+         try {
+            setAssignableUsersLoading(true);
+            setAssignableUsersError(null);
+            const users = await authService.getAssignableUsers(currentUserId);
+            if (!mounted) {
+               return;
+            }
+            setAssignableUsers(Array.isArray(users) ? users : []);
+         } catch (e) {
+            console.warn('Could not fetch assignable users', e);
+            if (mounted) {
+               setAssignableUsers([]);
+               setAssignableUsersError(e.message || 'Failed to load assignable users.');
+            }
+         } finally {
+            if (mounted) {
+               setAssignableUsersLoading(false);
+            }
+         }
+      })();
+
+      return () => { mounted = false; };
+   }, [user]);
+
+   useEffect(() => {
+      if (!editingIssue || formData.assigneeId || assignableUsers.length === 0) {
+         return;
+      }
+
+      if (!editingIssue.assigneeUsername) {
+         return;
+      }
+
+      const matchingAssignee = assignableUsers.find(
+         (assignableUser) => assignableUser.username === editingIssue.assigneeUsername
+      );
+
+      if (matchingAssignee?.id != null) {
+         setFormData((prev) => ({
+            ...prev,
+            assigneeId: String(matchingAssignee.id)
+         }));
+      }
+   }, [editingIssue, formData.assigneeId, assignableUsers]);
 
    const handleInputChange = (e) => {
       const { name, value } = e.target;
@@ -201,13 +261,18 @@ const handleSubmit = async (e) => {
    setLoading(true);
 
    try {
+      const assigneeId = formData.assigneeId ? Number(formData.assigneeId) : null;
+      if (assigneeId != null && Number.isNaN(assigneeId)) {
+         throw new Error('Invalid assignee selected.');
+      }
+
       // Create/Update issue data
       const issueData = {
          title: formData.title.trim(),
          description: formData.description.trim(),
          type: normalizeIssueType(formData.type),
          priority: formData.priority,
-         assigneeUsername: formData.assignee || null
+         assigneeId
       };
 
       let issueId;
@@ -357,21 +422,29 @@ return (
 
                   {/* Assignee */}
                   <div>
-                     <label htmlFor="assignee" className="block text-sm font-medium text-gray-900 mb-2">
+                     <label htmlFor="assigneeId" className="block text-sm font-medium text-gray-900 mb-2">
                         Assignee
                      </label>
                      <select
-                        id="assignee"
-                        name="assignee"
-                        value={formData.assignee}
+                        id="assigneeId"
+                        name="assigneeId"
+                        value={formData.assigneeId}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white appearance-none"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white appearance-none disabled:bg-gray-100"
+                        disabled={assignableUsersLoading}
                      >
-                        <option value="">Select assignee...</option>
-                        <option value="m.rossi">m.rossi</option>
-                        <option value="g.bianchi">g.bianchi</option>
-                        <option value="a.verdi">a.verdi</option>
+                        <option value="">
+                           {assignableUsersLoading ? 'Loading users...' : 'Unassigned'}
+                        </option>
+                        {assignableUsers.map((assignableUser) => (
+                           <option key={assignableUser.id} value={assignableUser.id}>
+                              {assignableUser.username || assignableUser.email}
+                           </option>
+                        ))}
                      </select>
+                     {assignableUsersError && (
+                        <p className="mt-1 text-xs text-red-600">{assignableUsersError}</p>
+                     )}
                   </div>
                </div>
 
