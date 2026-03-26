@@ -4,13 +4,59 @@ import Sidebar from '../components/Sidebar';
 import { issueService } from '../services/issue.service';
 import { attachmentService } from '../services/attachment.service';
 
+const normalizeIssueType = (value) => {
+   if (!value) return 'BUG';
+   const normalized = String(value).trim().toUpperCase();
+
+   if (['BUG', 'FEATURE', 'DOCUMENTATION', 'QUESTION'].includes(normalized)) {
+      return normalized;
+   }
+
+   const aliases = {
+      TASK: 'QUESTION',
+      IMPROVEMENT: 'FEATURE'
+   };
+
+   return aliases[normalized] || 'BUG';
+};
+
+const ISSUE_TYPE_OPTIONS = [
+   { value: 'BUG', label: 'Bug' },
+   { value: 'FEATURE', label: 'Feature' },
+   { value: 'DOCUMENTATION', label: 'Documentation' },
+   { value: 'QUESTION', label: 'Question' }
+];
+
+const resolveCurrentUserId = (user) => {
+   if (user?.id != null) {
+      return user.id;
+   }
+
+   const storedUserId = localStorage.getItem('userId');
+   if (storedUserId && !Number.isNaN(Number(storedUserId))) {
+      return Number(storedUserId);
+   }
+
+   const storedUser = localStorage.getItem('user');
+   if (!storedUser) {
+      return null;
+   }
+
+   try {
+      const parsedUser = JSON.parse(storedUser);
+      return parsedUser?.id ?? null;
+   } catch (error) {
+      console.warn('Unable to parse localStorage user while resolving userId', error);
+      return null;
+   }
+};
 
 function CreateIssue({ user, onLogout, onCancel, onSuccess, onNavigate, editingIssue }) {
    const isEditMode = !!editingIssue;
    const currentPage = 'issues';
    const [formData, setFormData] = useState({
       title: editingIssue?.title || '',
-      type: editingIssue?.type || 'Bug',
+      type: normalizeIssueType(editingIssue?.type),
       priority: editingIssue?.priority || 'HIGH',
       assignee: editingIssue?.assignee || '',
       description: editingIssue?.description || '',
@@ -41,7 +87,7 @@ function CreateIssue({ user, onLogout, onCancel, onSuccess, onNavigate, editingI
       if (editingIssue) {
          setFormData({
             title: editingIssue.title || '',
-            type: editingIssue.type || 'Bug',
+            type: normalizeIssueType(editingIssue.type),
             priority: editingIssue.priority || 'HIGH',
             assignee: editingIssue.assignee || '',
             description: editingIssue.description || '',
@@ -114,6 +160,7 @@ const removeAttachment = (id) => {
 const handleSubmit = async (e) => {
    e.preventDefault();
    setError(null);
+   const reporterId = resolveCurrentUserId(user);
    
    // Client-side validation
    if (!formData.title || formData.title.trim().length < 10) {
@@ -124,7 +171,7 @@ const handleSubmit = async (e) => {
       setError('Description cannot be empty.');
       return;
    }
-   if (!user?.id) {
+   if (!reporterId) {
       setError('User not authenticated. Please login again.');
       return;
    }
@@ -158,8 +205,9 @@ const handleSubmit = async (e) => {
       const issueData = {
          title: formData.title.trim(),
          description: formData.description.trim(),
+         type: normalizeIssueType(formData.type),
          priority: formData.priority,
-         // Add other fields as needed by backend
+         assigneeUsername: formData.assignee || null
       };
 
       let issueId;
@@ -170,7 +218,7 @@ const handleSubmit = async (e) => {
          issueId = editingIssue.id;
       } else {
          // Create new issue
-         const response = await issueService.create(issueData, user?.id);
+         const response = await issueService.create(issueData, reporterId);
          
          // Backend returns {id, message} on success
          issueId = response?.id;
@@ -183,7 +231,7 @@ const handleSubmit = async (e) => {
       if (!isEditMode && attachments.length > 0) {
          const file = attachments[0].file;
          try {
-            await attachmentService.uploadIssueAttachment(issueId, file, user?.id);
+            await attachmentService.uploadIssueAttachment(issueId, file, reporterId);
          } catch (uploadErr) {
             // Use backend message when available
             const msg = uploadErr.message || 'Error uploading attachment';
@@ -201,7 +249,12 @@ const handleSubmit = async (e) => {
       }
    } catch (err) {
       console.error(isEditMode ? 'Error updating issue:' : 'Error creating issue:', err);
-      setError(err.message || (isEditMode ? 'Failed to update issue' : 'Failed to create issue'));
+      const message = err.message || (isEditMode ? 'Failed to update issue' : 'Failed to create issue');
+      if (message.includes('Reporter not found')) {
+         setError('Session expired or invalid. Please logout and login again.');
+      } else {
+         setError(message);
+      }
    } finally {
       setLoading(false);
    }
@@ -274,10 +327,11 @@ return (
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white appearance-none"
                         required
                      >
-                        <option value="Bug">Bug</option>
-                        <option value="Feature">Feature</option>
-                        <option value="Task">Task</option>
-                        <option value="Improvement">Improvement</option>
+                        {ISSUE_TYPE_OPTIONS.map((option) => (
+                           <option key={option.value} value={option.value}>
+                              {option.label}
+                           </option>
+                        ))}
                      </select>
                   </div>
 

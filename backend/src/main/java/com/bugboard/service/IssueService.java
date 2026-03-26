@@ -61,7 +61,15 @@ public class IssueService {
                .orElseThrow(() -> new IllegalArgumentException("Reporter not found with ID: " + reporterId));
       }
 
-      IssueType type = dto.getType() != null ? IssueType.valueOf(dto.getType()) : null;
+      // Backward compatibility: default to BUG if old clients don't send issue type.
+      IssueType type = IssueType.BUG;
+      if (dto.getType() != null && !dto.getType().isBlank()) {
+         try {
+            type = IssueType.valueOf(dto.getType().trim().toUpperCase());
+         } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid issue type: " + dto.getType());
+         }
+      }
 
       // Service creates the entity from the DTO
       Issue issue = new Issue(dto.getTitle(), dto.getDescription(), reporter, type);
@@ -347,7 +355,7 @@ public class IssueService {
             .description(issue.getDescription())
             .status(issue.getStatus().toString())
             .priority(issue.getPriority().toString())
-            .type(issue.getType().toString())
+            .type(issue.getType() != null ? issue.getType().toString() : IssueType.BUG.toString())
             .reporterName(reporterName)
             .assigneeUsername(assigneeUsername)
             .createdAt(issue.getCreatedAt())

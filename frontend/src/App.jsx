@@ -17,10 +17,15 @@ function App() {
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       try {
-        setUser(JSON.parse(savedUser));
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+        if (parsedUser?.id != null) {
+          localStorage.setItem('userId', String(parsedUser.id));
+        }
       } catch (error) {
         console.error('Error parsing saved user:', error);
         localStorage.removeItem('user');
+        localStorage.removeItem('userId');
       }
     }
 
@@ -35,6 +40,9 @@ function App() {
 
   const handleLoginSuccess = (userData) => {
     setUser(userData);
+    if (userData?.id != null) {
+      localStorage.setItem('userId', String(userData.id));
+    }
     setCurrentView('issues');
   };
 

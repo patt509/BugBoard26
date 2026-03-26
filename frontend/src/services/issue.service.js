@@ -50,9 +50,11 @@ export const issueService = {
    * @returns {Promise<Object>} Created issue response with id
    */
   create(issueData, userId) {
+    const resolvedUserId = userId ?? resolveStoredUserId();
+
     return httpClient.post(API_ENDPOINTS.ISSUES, issueData, {
       headers: {
-        'X-User-Id': userId
+        'X-User-Id': resolvedUserId
       }
     });
   },
