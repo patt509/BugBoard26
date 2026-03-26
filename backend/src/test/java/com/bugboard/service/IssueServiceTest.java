@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.bugboard.dto.DashboardStatsDTO;
@@ -287,6 +288,21 @@ public class IssueServiceTest {
 
       // Assert
       assertTrue("PostCond failed: result list should be empty", results.isEmpty());
+   }
+
+   /**
+    * TC14b: Search trims query and forwards normalized term to repository.
+    * Expected Output: repository is called with trimmed term.
+    */
+   @Test
+   public void testSearchIssues_TC14b_TrimsQuery() {
+      Issue bugIssue = spy(new Issue("Bug title long enough", "Bug description", reporter, IssueType.BUG));
+      when(repository.search("bug", null, null, null, null)).thenReturn(List.of(bugIssue));
+
+      List<IssueDTO> results = issueService.searchIssues("  bug  ", null, null, null, null);
+
+      assertEquals("PostCond failed: should return 1 issue", 1, results.size());
+      verify(repository).search(eq("bug"), eq(null), eq(null), eq(null), eq(null));
    }
 
    // ==================== getDashboardStats TESTS ====================

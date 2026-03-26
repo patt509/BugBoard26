@@ -209,7 +209,8 @@ public class IssueService {
     */
    public List<IssueDTO> searchIssues(String query, PriorityLevel priority, IssueStatus status,
          IssueType type, Long assigneeId) {
-      List<Issue> issues = repository.search(query, priority, status, type, assigneeId);
+      String normalizedQuery = normalizeQuery(query);
+      List<Issue> issues = repository.search(normalizedQuery, priority, status, type, assigneeId);
       return convertToDTO(issues);
    }
 
@@ -397,5 +398,13 @@ public class IssueService {
       } catch (IllegalArgumentException ex) {
          throw new IllegalArgumentException("Invalid issue type: " + rawType);
       }
+   }
+
+   private String normalizeQuery(String query) {
+      if (query == null) {
+         return null;
+      }
+      String normalized = query.trim();
+      return normalized.isEmpty() ? null : normalized;
    }
 }

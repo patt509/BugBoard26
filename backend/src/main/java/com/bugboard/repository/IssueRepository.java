@@ -46,7 +46,9 @@ public class IssueRepository {
    public List<Issue> search(String term, PriorityLevel priority, IssueStatus status, IssueType type, Long assigneeId) {
       StringBuilder jpql = new StringBuilder("SELECT i FROM Issue i LEFT JOIN i.reporter u WHERE 1=1");
 
-      if (term != null && !term.trim().isEmpty()) {
+      String normalizedTerm = term != null ? term.trim() : null;
+
+      if (normalizedTerm != null && !normalizedTerm.isEmpty()) {
          jpql.append(
                " AND (LOWER(i.title) LIKE LOWER(:term) OR LOWER(i.description) LIKE LOWER(:term) OR LOWER(u.username) LIKE LOWER(:term))");
       }
@@ -63,12 +65,12 @@ public class IssueRepository {
          jpql.append(" AND i.assignee.id = :assigneeId");
       }
 
-      jpql.append(" ORDER BY i.createdAt DESC");
+      jpql.append(" ORDER BY i.createdAt DESC, i.id DESC");
 
       var query = em.createQuery(jpql.toString(), Issue.class);
 
-      if (term != null && !term.trim().isEmpty()) {
-         query.setParameter("term", "%" + term + "%");
+      if (normalizedTerm != null && !normalizedTerm.isEmpty()) {
+         query.setParameter("term", "%" + normalizedTerm + "%");
       }
       if (priority != null) {
          query.setParameter("priority", priority);

@@ -90,6 +90,9 @@ public class IssueResource {
          PriorityLevel priority = parsePriority(rawPriority);
          IssueStatus status = parseStatus(rawStatus);
          IssueType type = parseType(rawType);
+         if (assigneeId != null && assigneeId <= 0) {
+            return ApiResponses.error(Response.Status.BAD_REQUEST, "assigneeId must be a positive number");
+         }
          List<IssueDTO> results = issueService.searchIssues(term, priority, status, type, assigneeId);
          return Response.ok(results).build();
       } catch (IllegalArgumentException e) {
