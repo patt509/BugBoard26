@@ -31,6 +31,7 @@ const resolveCurrentUserId = (user) => {
 
 function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate, successMessage, onDismissSuccess }) {
   const currentPage = 'issues';
+  const isAdmin = user?.role === 'ADMIN';
   const [issue, setIssue] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
@@ -227,11 +228,21 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
 
   // Handle Flag as Duplicate button click
   const handleFlagDuplicateClick = async () => {
+    if (!isAdmin) {
+      setError('Only administrators can mark issues as duplicate.');
+      return;
+    }
+
     try {
       // Fetch all issues to show in the modal
       const issues = await issueService.getAll();
-      // Filter out the current issue
-      const otherIssues = issues.filter(i => i.id !== issueId);
+      // Keep only eligible BUG candidates according to duplicate workflow rules
+      const otherIssues = issues.filter((candidateIssue) =>
+        candidateIssue.id !== issueId &&
+        candidateIssue.type === 'BUG' &&
+        candidateIssue.status !== 'CLOSED' &&
+        candidateIssue.status !== 'RESOLVED'
+      );
       setAllIssues(otherIssues);
       setSelectedOriginalIssue(null);
       setDuplicateSearchQuery('');
@@ -245,10 +256,18 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
   // Handle confirm flag as duplicate
   const handleConfirmDuplicate = async () => {
     if (!selectedOriginalIssue) return;
+    if (!isAdmin) {
+      setError('Only administrators can mark issues as duplicate.');
+      return;
+    }
+    if (currentUserId == null) {
+      setError('User not authenticated. Please login again.');
+      return;
+    }
     
     try {
       setFlaggingDuplicate(true);
-      await issueService.flagAsDuplicate(issueId, selectedOriginalIssue.id, user?.id);
+      await issueService.flagAsDuplicate(issueId, selectedOriginalIssue.id, currentUserId);
       
       // Close modal and show success
       setShowDuplicateModal(false);
@@ -304,14 +323,14 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
     return colors[priority] || 'bg-gray-500 text-white';
   };
 
-  const getTypeIcon = (type) => {
-    const icons = {
-      'Bug': '🐛',
-      'Feature': '✨',
-      'Task': '📋',
-      'Improvement': '🔧',
+  const getTypeLabel = (type) => {
+    const labels = {
+      BUG: 'Bug',
+      FEATURE: 'Feature',
+      DOCUMENTATION: 'Documentation',
+      QUESTION: 'Question'
     };
-    return icons[type] || '📋';
+    return labels[type] || type || 'Bug';
   };
 
   const formatTimeAgo = (dateString) => {
@@ -498,14 +517,20 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
             <div className="flex-1">
               {/* Action Buttons */}
               <div className="flex items-center gap-3 mb-6">
-                <button 
-                  onClick={handleFlagDuplicateClick}
-                  disabled={issue?.status === 'CLOSED' || issue?.status === 'RESOLVED'}
-                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Flag className="w-4 h-4" />
-                  Flag as Duplicate
-                </button>
+                {isAdmin && (
+                  <button 
+                    onClick={handleFlagDuplicateClick}
+                    disabled={
+                      issue?.status === 'CLOSED' ||
+                      issue?.status === 'RESOLVED' ||
+                      issue?.type !== 'BUG'
+                    }
+                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Flag className="w-4 h-4" />
+                    Flag as Duplicate
+                  </button>
+                )}
                 <button 
                   onClick={handleEditClick}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -725,8 +750,8 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
                   {/* Type */}
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">Type</span>
-                    <span className="text-sm font-medium text-gray-900 flex items-center gap-1">
-                      {getTypeIcon(issue?.type)} {issue?.type || 'Bug'}
+                    <span className="text-sm font-medium text-gray-900">
+                      {getTypeLabel(issue?.type)}
                     </span>
                   </div>
 
@@ -744,11 +769,11 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
                         <span className="text-xs text-gray-600">
-                          {(issue?.assignee || 'U').charAt(0).toUpperCase()}
+                          {(issue?.assigneeUsername || 'U').charAt(0).toUpperCase()}
                         </span>
                       </div>
                       <span className="text-sm font-medium text-gray-900">
-                        {issue?.assignee || 'Unassigned'}
+                        {issue?.assigneeUsername || 'Unassigned'}
                       </span>
                     </div>
                   </div>
