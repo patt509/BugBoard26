@@ -81,6 +81,21 @@ public class AuthResource {
       }
    }
 
+   @GET
+   @Path("/users/assignable")
+   public Response getAssignableUsers(@HeaderParam("X-User-Id") Long userId) {
+      try {
+         authService.validateAuthenticatedUser(userId);
+         List<UserDTO> users = authService.getAssignableUsers();
+         return Response.ok(users).build();
+      } catch (SecurityException e) {
+         return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
+      } catch (Exception e) {
+         logger.log(Level.SEVERE, "Error retrieving assignable users", e);
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Internal server error");
+      }
+   }
+
    /**
     * Sets username on first login.
     */

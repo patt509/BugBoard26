@@ -546,6 +546,30 @@ public class AuthServiceTest {
    }
 
    /**
+    * TC1: getAssignableUsers returns only users from repository query.
+    * Expected Output: list of UserDTO mapped from finalized users.
+    */
+   @Test
+   public void testGetAssignableUsers_TC1_WithUsers() {
+      User userA = spy(new User("a@test.com", "password", USER));
+      userA.setUsername("alice");
+      userA.setFirstLogin(false);
+
+      User userB = spy(new User("b@test.com", "password", USER));
+      userB.setUsername("bob");
+      userB.setFirstLogin(false);
+
+      when(userRepository.findAssignableUsers()).thenReturn(List.of(userA, userB));
+
+      List<UserDTO> users = authService.getAssignableUsers();
+
+      assertNotNull("PostCond failed: list should not be null", users);
+      assertEquals("PostCond failed: should contain 2 assignable users", 2, users.size());
+      assertEquals("PostCond failed: first username should be alice", "alice", users.get(0).getUsername());
+      assertEquals("PostCond failed: second username should be bob", "bob", users.get(1).getUsername());
+   }
+
+   /**
     * TC2: Success scenario - No pending requests.
     * Expected Output: Empty list.
     */

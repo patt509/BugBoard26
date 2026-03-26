@@ -75,7 +75,11 @@ public class IssueService {
       }
 
       // Handle optional assignee
-      if (dto.getAssigneeUsername() != null && !dto.getAssigneeUsername().isBlank()) {
+      if (dto.getAssigneeId() != null) {
+         User assignee = userRepository.findById(dto.getAssigneeId())
+               .orElseThrow(() -> new IllegalArgumentException("Assignee user not found with ID: " + dto.getAssigneeId()));
+         issue.setAssignee(assignee);
+      } else if (dto.getAssigneeUsername() != null && !dto.getAssigneeUsername().isBlank()) {
          String normalizedAssigneeUsername = dto.getAssigneeUsername().trim();
          User assignee = userRepository.findByUsername(normalizedAssigneeUsername).orElse(null);
          if (assignee == null) {
@@ -349,6 +353,9 @@ public class IssueService {
       String assigneeUsername = issue.getAssignee() != null
             ? issue.getAssignee().getUsername()
             : null;
+      Long assigneeId = issue.getAssignee() != null
+            ? issue.getAssignee().getId()
+            : null;
 
       return IssueDTO.builder()
             .id(issue.getId())
@@ -359,6 +366,7 @@ public class IssueService {
             .type(issue.getType() != null ? issue.getType().toString() : IssueType.BUG.toString())
             .reporterName(reporterName)
             .assigneeUsername(assigneeUsername)
+            .assigneeId(assigneeId)
             .createdAt(issue.getCreatedAt())
             .updatedAt(issue.getUpdatedAt())
             .closedAt(issue.getClosedAt())

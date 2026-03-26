@@ -56,4 +56,11 @@ public class UserRepository {
       return em.createQuery("SELECT u FROM User u ORDER BY u.createdAt DESC", User.class)
             .getResultList();
    }
+
+   public List<User> findAssignableUsers() {
+      return em.createQuery(
+            "SELECT u FROM User u WHERE u.username IS NOT NULL AND u.isFirstLogin = false ORDER BY u.username ASC",
+            User.class)
+            .getResultList();
+   }
 }

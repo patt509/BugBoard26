@@ -482,6 +482,26 @@ public class IssueServiceTest {
       verify(repository).save(org.mockito.ArgumentMatchers.any(Issue.class));
    }
 
+   /**
+    * TC23b: createIssue from DTO with assigneeId resolves assignee by ID.
+    */
+   @Test
+   public void testCreateIssueDTO_TC23b_AssigneeId() {
+      IssueDTO dto = IssueDTO.builder()
+            .title("Valid title from DTO assignee id")
+            .description("DTO description")
+            .type("BUG")
+            .assigneeId(2L)
+            .build();
+
+      when(userRepository.findById(1L)).thenReturn(Optional.of(reporter));
+      when(userRepository.findById(2L)).thenReturn(Optional.of(normalUser));
+
+      issueService.createIssue(dto, 1L);
+
+      verify(repository).save(org.mockito.ArgumentMatchers.any(Issue.class));
+   }
+
    // ==================== updateStatus TESTS ====================
 
    /**

@@ -179,6 +179,19 @@ public class AuthService {
             .toList();
    }
 
+   public List<UserDTO> getAssignableUsers() {
+      return userRepository.findAssignableUsers().stream()
+            .map(user -> UserDTO.builder()
+                  .id(user.getId())
+                  .email(user.getEmail())
+                  .username(user.getUsername())
+                  .role(user.getRole().toString())
+                  .firstLogin(user.isFirstLogin())
+                  .createdAt(user.getCreatedAt())
+                  .build())
+            .toList();
+   }
+
    // ==================== USER OPERATIONS ====================
 
    /**
@@ -329,6 +342,14 @@ public class AuthService {
       if (!admin.isAdmin()) {
          throw new SecurityException("Admin privileges required.");
       }
+   }
+
+   public void validateAuthenticatedUser(Long userId) {
+      if (userId == null) {
+         throw new SecurityException("Authentication required.");
+      }
+      userRepository.findById(userId)
+            .orElseThrow(() -> new SecurityException("User not found."));
    }
 
    /**

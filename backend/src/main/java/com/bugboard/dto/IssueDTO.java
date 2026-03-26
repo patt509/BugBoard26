@@ -16,6 +16,7 @@ public class IssueDTO {
    private Long originalIssueId; // If this issue is a duplicate, reference to original
    private String type;
    private String assigneeUsername;
+   private Long assigneeId;
 
    public IssueDTO() {
    }
@@ -34,6 +35,7 @@ public class IssueDTO {
       this.originalIssueId = builder.originalIssueId;
       this.type = builder.type;
       this.assigneeUsername = builder.assigneeUsername;
+      this.assigneeId = builder.assigneeId;
    }
 
    public static Builder builder() {
@@ -54,6 +56,7 @@ public class IssueDTO {
       private Long originalIssueId;
       private String type;
       private String assigneeUsername;
+      private Long assigneeId;
 
       public Builder id(Long id) {
          this.id = id;
@@ -120,6 +123,11 @@ public class IssueDTO {
          return this;
       }
 
+      public Builder assigneeId(Long assigneeId) {
+         this.assigneeId = assigneeId;
+         return this;
+      }
+
       public IssueDTO build() {
          return new IssueDTO(this);
       }
@@ -178,6 +186,10 @@ public class IssueDTO {
       return assigneeUsername;
    }
 
+   public Long getAssigneeId() {
+      return assigneeId;
+   }
+
    // Setters
    public void setId(Long id) {
       this.id = id;
@@ -229,5 +241,9 @@ public class IssueDTO {
 
    public void setAssigneeUsername(String assigneeUsername) {
       this.assigneeUsername = assigneeUsername;
+   }
+
+   public void setAssigneeId(Long assigneeId) {
+      this.assigneeId = assigneeId;
    }
 }
