@@ -75,6 +75,11 @@ public class CommentService {
 
       Comment comment = new Comment(text, issue, author);
       commentRepository.save(comment);
+      commentRepository.flush();
+
+      if (comment.getId() == null) {
+         throw new IllegalStateException("Failed to persist comment ID.");
+      }
       
       logger.log(Level.INFO, "Created comment {0} on issue {1} by user {2}", 
             new Object[]{comment.getId(), issueId, authorId});

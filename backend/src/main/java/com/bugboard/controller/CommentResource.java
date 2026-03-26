@@ -75,6 +75,11 @@ public class CommentResource {
          Long authorId = commentDTO.getAuthorId() != null ? commentDTO.getAuthorId() : userId;
          
          Long commentId = commentService.createComment(issueId, commentDTO.getText(), authorId);
+         if (commentId == null) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                  .entity(Map.of("error", "Error creating comment"))
+                  .build();
+         }
          
          return Response.status(Response.Status.CREATED)
                .entity(Map.of("id", commentId, "message", "Comment created successfully"))
@@ -82,6 +87,11 @@ public class CommentResource {
       } catch (IllegalArgumentException e) {
          return Response.status(Response.Status.BAD_REQUEST)
                .entity(Map.of("error", e.getMessage()))
+               .build();
+      } catch (IllegalStateException e) {
+         logger.log(Level.SEVERE, "Comment persistence failed for issue " + issueId, e);
+         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+               .entity(Map.of("error", "Error creating comment"))
                .build();
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error creating comment for issue " + issueId, e);

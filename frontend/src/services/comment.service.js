@@ -1,6 +1,26 @@
 import httpClient from '../utils/httpClient';
 import { API_ENDPOINTS } from '../constants/api';
 
+const resolveStoredUserId = () => {
+  const legacyUserId = localStorage.getItem('userId');
+  if (legacyUserId) {
+    return legacyUserId;
+  }
+
+  const storedUser = localStorage.getItem('user');
+  if (!storedUser) {
+    return null;
+  }
+
+  try {
+    const parsedUser = JSON.parse(storedUser);
+    return parsedUser?.id ?? null;
+  } catch (error) {
+    console.warn('Unable to parse localStorage user for comment request header', error);
+    return null;
+  }
+};
+
 /**
  * Comment Service
  * Handles all comment-related API calls
@@ -22,7 +42,7 @@ export const commentService = {
    * @returns {Promise<Object>} Created comment
    */
   create(issueId, commentData) {
-    const userId = commentData.authorId;
+    const userId = commentData.authorId ?? resolveStoredUserId();
     return httpClient.post(API_ENDPOINTS.ISSUE_COMMENTS(issueId), commentData, {
       headers: {
         'X-User-Id': userId

@@ -1,9 +1,33 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ArrowLeft, Download, Flag, Edit, ChevronDown, Send, AlertCircle, X, CheckCircle, Search, Upload, Paperclip } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { issueService } from '../services/issue.service';
 import { commentService } from '../services/comment.service';
 import { attachmentService } from '../services/attachment.service';
+
+const resolveCurrentUserId = (user) => {
+  if (user?.id != null) {
+    return user.id;
+  }
+
+  const storedUserId = localStorage.getItem('userId');
+  if (storedUserId && !Number.isNaN(Number(storedUserId))) {
+    return Number(storedUserId);
+  }
+
+  const storedUser = localStorage.getItem('user');
+  if (!storedUser) {
+    return null;
+  }
+
+  try {
+    const parsedUser = JSON.parse(storedUser);
+    return parsedUser?.id ?? null;
+  } catch (error) {
+    console.warn('Unable to parse localStorage user while resolving comment author ID', error);
+    return null;
+  }
+};
 
 function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate, successMessage, onDismissSuccess }) {
   const currentPage = 'issues';
@@ -27,6 +51,8 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
   const [duplicateSearchQuery, setDuplicateSearchQuery] = useState('');
   const [flaggingDuplicate, setFlaggingDuplicate] = useState(false);
   const [duplicateSuccess, setDuplicateSuccess] = useState(null);
+  const [historyExpanded, setHistoryExpanded] = useState(false);
+  const currentUserId = resolveCurrentUserId(user);
 
   // Fetch attachment constraints
   useEffect(() => {
@@ -129,6 +155,13 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
   const handleSubmitComment = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
+    setError(null);
+
+    const authorId = currentUserId;
+    if (!authorId) {
+      setError('User not authenticated. Please login again.');
+      return;
+    }
 
     // Validate attachment before submitting
     if (commentAttachment) {
@@ -154,7 +187,7 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
       setCommentLoading(true);
       const commentData = {
         text: newComment.trim(),
-        authorId: user?.id
+        authorId
       };
       
       const result = await commentService.create(issueId, commentData);
@@ -163,7 +196,7 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
       // If there's an attachment, upload it
       if (commentAttachment && commentId) {
         try {
-          await attachmentService.uploadCommentAttachment(commentId, commentAttachment, user?.id);
+          await attachmentService.uploadCommentAttachment(commentId, commentAttachment, authorId);
         } catch (uploadErr) {
           console.error('Error uploading comment attachment:', uploadErr);
           // Comment was created but attachment failed - still show comment
@@ -305,6 +338,66 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
       hour12: true
     });
   };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleString('en-US', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  const historyEvents = useMemo(() => {
+    if (!issue?.createdAt) {
+      return [];
+    }
+
+    const events = [
+      {
+        id: 'created',
+        timestamp: issue.createdAt,
+        title: 'Issue created',
+        description: `Reported by ${issue.reporterName || 'Unknown'}`
+      }
+    ];
+
+    const createdMs = new Date(issue.createdAt).getTime();
+    const updatedMs = issue.updatedAt ? new Date(issue.updatedAt).getTime() : null;
+    const hasMeaningfulUpdate = updatedMs != null && Math.abs(updatedMs - createdMs) > 1000;
+
+    if (hasMeaningfulUpdate) {
+      events.push({
+        id: 'updated',
+        timestamp: issue.updatedAt,
+        title: 'Issue updated',
+        description: 'Issue fields were modified.'
+      });
+    }
+
+    if (issue.originalIssueId) {
+      events.push({
+        id: 'duplicate',
+        timestamp: issue.closedAt || issue.updatedAt || issue.createdAt,
+        title: `Marked as duplicate of #${issue.originalIssueId}`,
+        description: 'Issue automatically moved to Closed state.'
+      });
+    } else if (issue.closedAt) {
+      events.push({
+        id: 'closed',
+        timestamp: issue.closedAt,
+        title: issue.status === 'RESOLVED' ? 'Issue resolved' : 'Issue closed',
+        description: `Final status: ${getStatusLabel(issue.status)}`
+      });
+    }
+
+    return events
+      .filter((event) => event.timestamp)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [issue]);
 
   const statusOptions = ['TODO', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
 
@@ -548,7 +641,7 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
                       <div
                         key={comment.id}
                         className={`flex gap-3 ${
-                          comment.authorId === user?.id ? 'flex-row-reverse' : ''
+                          comment.authorId === currentUserId ? 'flex-row-reverse' : ''
                         }`}
                       >
                         <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
@@ -558,7 +651,7 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
                         </div>
                         <div
                           className={`max-w-md px-4 py-3 rounded-lg ${
-                            comment.authorId === user?.id
+                            comment.authorId === currentUserId
                               ? 'bg-blue-100 text-blue-900'
                               : 'bg-gray-100 text-gray-900'
                           }`}
@@ -743,10 +836,32 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
 
                 {/* History Section */}
                 <div className="mt-6 pt-6 border-t border-gray-200">
-                  <button className="flex items-center justify-between w-full text-left">
+                  <button
+                    type="button"
+                    onClick={() => setHistoryExpanded((prev) => !prev)}
+                    className="flex items-center justify-between w-full text-left"
+                  >
                     <span className="text-lg font-semibold text-gray-900">History</span>
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                    <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${historyExpanded ? 'rotate-180' : ''}`} />
                   </button>
+
+                  {historyExpanded && (
+                    <div className="mt-4 space-y-4">
+                      {historyEvents.map((event, index) => (
+                        <div key={`${event.id}-${event.timestamp}`} className="relative pl-6">
+                          <span className="absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full bg-blue-500" />
+                          {index < historyEvents.length - 1 && (
+                            <span className="absolute left-[4px] top-4 h-[calc(100%+8px)] w-px bg-gray-200" />
+                          )}
+                          <p className="text-sm font-medium text-gray-900">{event.title}</p>
+                          <p className="text-xs text-gray-500">{formatDateTime(event.timestamp)}</p>
+                          {event.description && (
+                            <p className="mt-1 text-xs text-gray-600">{event.description}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

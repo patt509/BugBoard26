@@ -25,6 +25,11 @@ public class CommentRepository {
    }
 
    @Transactional
+   public void flush() {
+      em.flush();
+   }
+
+   @Transactional
    public void delete(Comment comment) {
       em.remove(em.contains(comment) ? comment : em.merge(comment));
    }
