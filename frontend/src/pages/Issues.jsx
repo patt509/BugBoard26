@@ -4,6 +4,42 @@ import Sidebar from '../components/Sidebar';
 import { issueService } from '../services/issue.service';
 import { authService } from '../services/auth.service';
 
+const API_TIMESTAMP_WITH_TIMEZONE_REGEX = /(Z|[+-]\d{2}:?\d{2})$/i;
+
+const parseApiDate = (input) => {
+  if (!input) {
+    return null;
+  }
+
+  const rawValue = String(input).trim();
+  if (!rawValue) {
+    return null;
+  }
+
+  const normalizedValue = rawValue.includes('T')
+    ? rawValue
+    : rawValue.replace(' ', 'T');
+  const valueWithTimezone = API_TIMESTAMP_WITH_TIMEZONE_REGEX.test(normalizedValue)
+    ? normalizedValue
+    : `${normalizedValue}Z`;
+  const parsedDate = new Date(valueWithTimezone);
+
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+};
+
+const formatIssuePublicationDate = (createdAt) => {
+  const parsedDate = parseApiDate(createdAt);
+  if (!parsedDate) {
+    return 'N/A';
+  }
+
+  return parsedDate.toLocaleDateString('en-US', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  });
+};
+
 function Issues({ user, onLogout, onCreateIssue, onIssueClick, onNavigate, successMessage, onDismissSuccess }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -357,7 +393,7 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, onNavigate, succe
                       Assignee
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Updated
+                      Published
                     </th>
                   </tr>
                 </thead>
@@ -405,7 +441,7 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, onNavigate, succe
                           {issue.assigneeUsername || 'Unassigned'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {issue.updatedAt ? new Date(issue.updatedAt).toLocaleString() : 'N/A'}
+                          {formatIssuePublicationDate(issue.createdAt)}
                         </td>
                       </tr>
                     );
