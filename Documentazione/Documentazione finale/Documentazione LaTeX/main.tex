@@ -127,6 +127,28 @@ Il sistema implementa un meccanismo di filtraggio esteso delle issue (Requisito 
 
 Per il Requisito 7 (Dashboard Admin), la statistica \texttt{issuesAssignedPerUser} aggrega il numero di issue aperte (stato TODO o IN\_PROGRESS) per ciascun assegnatario, permettendo all'amministratore di monitorare il carico di lavoro distribuito tra i membri del team.
 
+\subsection{Hardening API-First e Tracciabilita Preliminare}
+Nel ciclo corrente e' stata adottata una strategia \textbf{API-first}: prima consolidamento di contratti, validazioni e autorizzazioni lato backend, poi allineamento frontend. Le decisioni di hardening gia' applicate includono:
+\begin{itemize}
+    \item normalizzazione dei payload di errore REST su shape uniforme \texttt{\{"error": "..."\}};
+    \item rimozione di layer frontend legacy non piu' aderenti ai contratti backend;
+    \item validazioni esplicite su input auth/issue (body null, enum invalidi, campi obbligatori);
+    \item policy di autorizzazione piu' stretta sui commenti (modifica/cancellazione solo autore o admin).
+\end{itemize}
+
+\noindent La tabella seguente rappresenta la \textbf{tracciabilita preliminare} dei requisiti obbligatori, da rifinire nelle sezioni successive con evidenze di test e schermate aggiornate.
+
+\begin{tabularx}{\textwidth}{|l|X|X|}
+    \hline
+    \textbf{Req} & \textbf{Copertura tecnica attuale} & \textbf{Stato} \\ \hline
+    R1 & Endpoint admin per creazione utenti, validazioni e gestione errori coerente & In consolidamento \\ \hline
+    R2 & Creazione issue con tipo obbligatorio e gestione assegnazione a utente & Coperto backend, UI da allineare \\ \hline
+    R3 & Ricerca e filtri composabili lato repository/service & Coperto backend \\ \hline
+    R7 & Dashboard admin con metriche aggregate e carico per assegnatario & Coperto backend, UI parziale \\ \hline
+    R11 & Ricerca keyword su titolo/descrizione/reporter con filtri opzionali & Coperto backend, UI da completare \\ \hline
+    R16 & Workflow duplicate con chiusura immediata e controlli di autorizzazione & Coperto backend \\ \hline
+\end{tabularx}
+
 % ------------------------------------------------- % 
 \section{Formalizzazione R16}
 
