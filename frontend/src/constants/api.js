@@ -9,8 +9,6 @@ export const API_BASE_URL = '/api';
 export const API_ENDPOINTS = {
   // Auth
   AUTH_LOGIN: '/auth/login',
-  AUTH_LOGOUT: '/auth/logout',
-  AUTH_REGISTER: '/auth/register',
   
   // Issues
   ISSUES: '/issues',

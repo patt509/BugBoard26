@@ -16,23 +16,6 @@ export const authService = {
   login(credentials) {
     return httpClient.post(API_ENDPOINTS.AUTH_LOGIN, credentials);
   },
-
-  /**
-   * Logout user
-   * @returns {Promise<void>}
-   */
-  logout() {
-    return httpClient.post(API_ENDPOINTS.AUTH_LOGOUT);
-  },
-
-  /**
-   * Register new user
-   * @param {Object} userData - User registration data
-   * @returns {Promise<Object>} Created user data
-   */
-  register(userData) {
-    return httpClient.post(API_ENDPOINTS.AUTH_REGISTER, userData);
-  },
 };
 
 export default authService;
