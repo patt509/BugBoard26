@@ -1,32 +1,65 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, Plus, CheckCircle, X } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { issueService } from '../services/issue.service';
 
-function Issues({ user, onLogout, onCreateIssue, onIssueClick, successMessage, onDismissSuccess }) {
-  const [currentPage, setCurrentPage] = useState('issues');
+function Issues({ user, onLogout, onCreateIssue, onIssueClick, onNavigate, successMessage, onDismissSuccess }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const currentPage = 'issues';
 
   useEffect(() => {
-    fetchIssues();
-  }, []);
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery.trim());
+    }, 300);
 
-  const fetchIssues = async () => {
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const buildSearchParams = useCallback(() => {
+    const params = {};
+
+    if (debouncedSearchQuery) {
+      params.term = debouncedSearchQuery;
+    }
+
+    if (statusFilter !== 'all') {
+      params.status = statusFilter;
+    }
+
+    if (priorityFilter !== 'all') {
+      params.priority = priorityFilter;
+    }
+
+    return params;
+  }, [debouncedSearchQuery, statusFilter, priorityFilter]);
+
+  const fetchIssues = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await issueService.getAll();
+      const data = await issueService.search(buildSearchParams());
       setIssues(data);
     } catch (err) {
       console.error('Error fetching issues:', err);
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  }, [buildSearchParams]);
+
+  useEffect(() => {
+    fetchIssues();
+  }, [fetchIssues]);
+
+  const handleSidebarNavigate = (page) => {
+    if (onNavigate) {
+      onNavigate(page);
     }
   };
 
@@ -80,7 +113,7 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, successMessage, o
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} />
+      <Sidebar currentPage={currentPage} onNavigate={handleSidebarNavigate} userRole={user?.role} />
 
       <main className="flex-1 overflow-auto">
         {/* Header */}
@@ -128,9 +161,10 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, successMessage, o
               className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
             >
               <option value="all">Status</option>
-              <option value="open">Open</option>
-              <option value="in-progress">In Progress</option>
-              <option value="closed">Closed</option>
+              <option value="TODO">Open</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="RESOLVED">Resolved</option>
+              <option value="CLOSED">Closed</option>
             </select>
 
             <select
@@ -139,9 +173,10 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, successMessage, o
               className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
             >
               <option value="all">Priority</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
+              <option value="CRITICAL">Critical</option>
+              <option value="HIGH">High</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="LOW">Low</option>
             </select>
 
             <select className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">

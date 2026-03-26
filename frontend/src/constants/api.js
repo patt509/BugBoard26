@@ -16,6 +16,7 @@ export const API_ENDPOINTS = {
   ISSUES: '/issues',
   ISSUES_BY_ID: (id) => `/issues/${id}`,
   ISSUES_SEARCH: '/issues/search',
+  ISSUES_ADMIN_DASHBOARD: '/issues/admin/dashboard',
   ISSUE_STATUS: (id) => `/issues/${id}/status`,
   ISSUE_FLAG_DUPLICATE: (duplicateId, originalId) => `/issues/${duplicateId}/duplicate/${originalId}`,
   

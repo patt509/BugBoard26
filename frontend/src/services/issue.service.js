@@ -1,6 +1,26 @@
 import httpClient from '../utils/httpClient';
 import { API_ENDPOINTS } from '../constants/api';
 
+const resolveStoredUserId = () => {
+  const legacyUserId = localStorage.getItem('userId');
+  if (legacyUserId) {
+    return legacyUserId;
+  }
+
+  const storedUser = localStorage.getItem('user');
+  if (!storedUser) {
+    return null;
+  }
+
+  try {
+    const parsedUser = JSON.parse(storedUser);
+    return parsedUser?.id ?? null;
+  } catch (error) {
+    console.warn('Unable to parse localStorage user for dashboard request header', error);
+    return null;
+  }
+};
+
 /**
  * Issue Service
  * Handles all issue-related API calls
@@ -78,8 +98,29 @@ export const issueService = {
     const queryString = new URLSearchParams(
       Object.entries(params).filter(([_, v]) => v != null)
     ).toString();
-    
-    return httpClient.get(`${API_ENDPOINTS.ISSUES_SEARCH}?${queryString}`);
+
+    const endpoint = queryString
+      ? `${API_ENDPOINTS.ISSUES_SEARCH}?${queryString}`
+      : API_ENDPOINTS.ISSUES_SEARCH;
+
+    return httpClient.get(endpoint);
+  },
+
+  /**
+   * Get admin dashboard statistics
+   * @param {number|string} [userId] - Optional user id for X-User-Id header
+   * @returns {Promise<Object>} Dashboard stats
+   */
+  getDashboardStats(userId) {
+    const resolvedUserId = userId ?? resolveStoredUserId();
+
+    return httpClient.get(API_ENDPOINTS.ISSUES_ADMIN_DASHBOARD, {
+      headers: resolvedUserId
+        ? {
+            'X-User-Id': resolvedUserId
+          }
+        : {}
+    });
   },
 
   /**

@@ -5,8 +5,8 @@ import { issueService } from '../services/issue.service';
 import { commentService } from '../services/comment.service';
 import { attachmentService } from '../services/attachment.service';
 
-function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, successMessage, onDismissSuccess }) {
-  const [currentPage] = useState('issues');
+function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate, successMessage, onDismissSuccess }) {
+  const currentPage = 'issues';
   const [issue, setIssue] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
@@ -311,7 +311,7 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, successMess
   if (loading) {
     return (
       <div className="flex h-screen bg-gray-50">
-        <Sidebar currentPage={currentPage} onNavigate={() => {}} />
+        <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole={user?.role} />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -325,7 +325,7 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, successMess
   if (error && !issue) {
     return (
       <div className="flex h-screen bg-gray-50">
-        <Sidebar currentPage={currentPage} onNavigate={() => {}} />
+        <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole={user?.role} />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
@@ -345,7 +345,7 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, successMess
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar currentPage={currentPage} onNavigate={() => {}} />
+      <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole={user?.role} />
 
       <main className="flex-1 overflow-auto">
         {/* Header */}

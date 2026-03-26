@@ -1,82 +1,50 @@
-<<<<<<< HEAD
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
+import { useEffect, useState } from 'react';
 import Login from './pages/Login';
-import FinalizeProfile from './pages/FinalizeProfile';
-import Dashboard from './pages/Dashboard';
-import './App.css';
-
-function App() {
-  return (
-    <Router>
-      <AuthProvider>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={<Login />} />
-
-          {/* Protected Routes */}
-          <Route
-            path="/finalize-profile"
-            element={
-              <ProtectedRoute>
-                <FinalizeProfile />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AuthProvider>
-    </Router>
-  );
-=======
-import { useState, useEffect } from 'react'
-import Login from './pages/Login'
-import Issues from './pages/Issues'
-import CreateIssue from './pages/CreateIssue'
-import IssueDetail from './pages/IssueDetail'
+import Issues from './pages/Issues';
+import CreateIssue from './pages/CreateIssue';
+import IssueDetail from './pages/IssueDetail';
+import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [currentView, setCurrentView] = useState('issues'); // 'issues', 'create', 'edit', or 'detail'
+  const [currentView, setCurrentView] = useState('issues');
   const [selectedIssueId, setSelectedIssueId] = useState(null);
-  const [editingIssue, setEditingIssue] = useState(null); // Issue data for editing
+  const [editingIssue, setEditingIssue] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
   useEffect(() => {
-    // Check if user is already logged in
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       try {
         setUser(JSON.parse(savedUser));
-      } catch (e) {
-        console.error('Error parsing saved user:', e);
+      } catch (error) {
+        console.error('Error parsing saved user:', error);
         localStorage.removeItem('user');
       }
     }
+
     setLoading(false);
   }, []);
 
+  useEffect(() => {
+    if (currentView === 'dashboard' && user?.role !== 'ADMIN') {
+      setCurrentView('issues');
+    }
+  }, [currentView, user]);
+
   const handleLoginSuccess = (userData) => {
     setUser(userData);
+    setCurrentView('issues');
   };
 
   const handleLogout = () => {
     localStorage.removeItem('user');
+    localStorage.removeItem('userId');
     setUser(null);
+    setCurrentView('issues');
+    setSelectedIssueId(null);
+    setEditingIssue(null);
   };
 
   const handleCreateIssue = () => {
@@ -91,29 +59,25 @@ function App() {
 
   const handleCancelCreate = () => {
     setEditingIssue(null);
-    // If we were editing, go back to detail view
-    if (editingIssue && selectedIssueId) {
+    if (selectedIssueId) {
       setCurrentView('detail');
-    } else {
-      setCurrentView('issues');
+      return;
     }
+    setCurrentView('issues');
   };
 
   const handleCreateSuccess = (issueInfo) => {
     const wasEditing = editingIssue !== null;
     setEditingIssue(null);
-    
+
     if (wasEditing && selectedIssueId) {
-      // After editing, go back to detail view
       setCurrentView('detail');
       setSuccessMessage(`Issue #${issueInfo.id} '${issueInfo.title}' updated successfully!`);
     } else {
-      // After creating, go back to issues list
       setCurrentView('issues');
       setSuccessMessage(`Issue #${issueInfo.id} '${issueInfo.title}' created successfully!`);
     }
-    
-    // Auto-dismiss after 4 seconds
+
     setTimeout(() => {
       setSuccessMessage(null);
     }, 4000);
@@ -129,54 +93,85 @@ function App() {
     setCurrentView('issues');
   };
 
+  const handleSidebarNavigate = (page) => {
+    if (page === 'issues') {
+      setCurrentView('issues');
+      setSelectedIssueId(null);
+      setEditingIssue(null);
+      return;
+    }
+
+    if (page === 'dashboard' && user?.role === 'ADMIN') {
+      setCurrentView('dashboard');
+      setSelectedIssueId(null);
+      setEditingIssue(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
           <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     );
   }
 
+  if (!user) {
+    return <Login onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  if (currentView === 'create' || currentView === 'edit') {
+    return (
+      <CreateIssue
+        user={user}
+        onLogout={handleLogout}
+        onCancel={handleCancelCreate}
+        onSuccess={handleCreateSuccess}
+        onNavigate={handleSidebarNavigate}
+        editingIssue={editingIssue}
+      />
+    );
+  }
+
+  if (currentView === 'detail' && selectedIssueId) {
+    return (
+      <IssueDetail
+        user={user}
+        onLogout={handleLogout}
+        issueId={selectedIssueId}
+        onBack={handleBackFromDetail}
+        onEditIssue={handleEditIssue}
+        onNavigate={handleSidebarNavigate}
+        successMessage={successMessage}
+        onDismissSuccess={() => setSuccessMessage(null)}
+      />
+    );
+  }
+
+  if (currentView === 'dashboard' && user?.role === 'ADMIN') {
+    return (
+      <AdminDashboard
+        user={user}
+        onLogout={handleLogout}
+        onNavigate={handleSidebarNavigate}
+      />
+    );
+  }
+
   return (
-    <>
-      {user ? (
-        (currentView === 'create' || currentView === 'edit') ? (
-          <CreateIssue
-            user={user}
-            onLogout={handleLogout}
-            onCancel={handleCancelCreate}
-            onSuccess={handleCreateSuccess}
-            editingIssue={editingIssue}
-          />
-        ) : currentView === 'detail' && selectedIssueId ? (
-          <IssueDetail
-            user={user}
-            onLogout={handleLogout}
-            issueId={selectedIssueId}
-            onBack={handleBackFromDetail}
-            onEditIssue={handleEditIssue}
-            successMessage={successMessage}
-            onDismissSuccess={() => setSuccessMessage(null)}
-          />
-        ) : (
-          <Issues
-            user={user}
-            onLogout={handleLogout}
-            onCreateIssue={handleCreateIssue}
-            onIssueClick={handleIssueClick}
-            successMessage={successMessage}
-            onDismissSuccess={() => setSuccessMessage(null)}
-          />
-        )
-      ) : (
-        <Login onLoginSuccess={handleLoginSuccess} />
-      )}
-    </>
-  )
->>>>>>> frontend
+    <Issues
+      user={user}
+      onLogout={handleLogout}
+      onCreateIssue={handleCreateIssue}
+      onIssueClick={handleIssueClick}
+      onNavigate={handleSidebarNavigate}
+      successMessage={successMessage}
+      onDismissSuccess={() => setSuccessMessage(null)}
+    />
+  );
 }
 
 export default App;

@@ -5,9 +5,9 @@ import { issueService } from '../services/issue.service';
 import { attachmentService } from '../services/attachment.service';
 
 
-function CreateIssue({ user, onLogout, onCancel, onSuccess, editingIssue }) {
+function CreateIssue({ user, onLogout, onCancel, onSuccess, onNavigate, editingIssue }) {
    const isEditMode = !!editingIssue;
-   const [currentPage] = useState('issues');
+   const currentPage = 'issues';
    const [formData, setFormData] = useState({
       title: editingIssue?.title || '',
       type: editingIssue?.type || 'Bug',
@@ -209,7 +209,7 @@ const handleSubmit = async (e) => {
 
 return (
    <div className="flex h-screen bg-gray-50">
-      <Sidebar currentPage={currentPage} onNavigate={() => { }} />
+      <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole={user?.role} />
 
       <main className="flex-1 overflow-auto">
          {/* Header */}
