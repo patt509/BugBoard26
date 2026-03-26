@@ -54,14 +54,10 @@ public class CommentServiceTest {
    @Test
    public void updateComment_allowsAdmin() {
       Comment comment = org.mockito.Mockito.mock(Comment.class);
-      User author = org.mockito.Mockito.mock(User.class);
       User admin = org.mockito.Mockito.mock(User.class);
 
       when(commentRepository.findById(1L)).thenReturn(Optional.of(comment));
-      when(comment.getAuthor()).thenReturn(author);
-      when(author.getId()).thenReturn(10L);
       when(userRepository.findById(99L)).thenReturn(Optional.of(admin));
-      when(admin.getId()).thenReturn(99L);
       when(admin.isAdmin()).thenReturn(true);
 
       commentService.updateComment(1L, "Updated by admin", 99L);
@@ -107,14 +103,10 @@ public class CommentServiceTest {
    @Test
    public void deleteComment_allowsAdmin() {
       Comment comment = org.mockito.Mockito.mock(Comment.class);
-      User author = org.mockito.Mockito.mock(User.class);
       User admin = org.mockito.Mockito.mock(User.class);
 
       when(commentRepository.findById(1L)).thenReturn(Optional.of(comment));
-      when(comment.getAuthor()).thenReturn(author);
-      when(author.getId()).thenReturn(10L);
       when(userRepository.findById(99L)).thenReturn(Optional.of(admin));
-      when(admin.getId()).thenReturn(99L);
       when(admin.isAdmin()).thenReturn(true);
 
       commentService.deleteComment(1L, 99L);

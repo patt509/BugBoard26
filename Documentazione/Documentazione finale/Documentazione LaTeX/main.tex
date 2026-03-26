@@ -869,6 +869,16 @@ Totale: \textbf{147 test case}, tutti verdi (\texttt{Tests run: 147, Failures: 0
 
 I test sono configurati per essere eseguiti automaticamente durante la build Maven (fase \texttt{test}) e i report di copertura JaCoCo sono generati in \texttt{target/site/jacoco/index.html}, fornendo una visione dettagliata della completezza della suite di test.
 
+\subsubsection{Quality Gate Finale (Ciclo Hardening + MVP)}
+Per la regressione finale del ciclo hardening+MVP sono stati eseguiti i seguenti gate su ambiente containerizzato:
+\begin{itemize}
+    \item \textbf{Backend unit test}: \texttt{docker run ... maven:3.9.11-eclipse-temurin-21 mvn -q test} $\rightarrow$ \textbf{PASS} (\texttt{tests=161, failures=0, errors=0, skipped=0}).
+    \item \textbf{Frontend build produzione}: \texttt{docker run ... node:20 npm run build} $\rightarrow$ \textbf{PASS}.
+    \item \textbf{Frontend lint}: \texttt{docker run ... node:20 npm run lint} $\rightarrow$ \textbf{PASS}.
+\end{itemize}
+
+\noindent Nota di compatibilita' emersa in verifica: una prima esecuzione backend su immagine Java 24 ha evidenziato incompatibilita' strumentali (\texttt{ByteBuddy/JaCoCo} su class file major version 68). Il gate ufficiale del progetto e' stato quindi fissato su runtime \texttt{Temurin 21}, coerente con toolchain test attuale.
+
 \clearpage
 
 \end{document}

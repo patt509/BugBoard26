@@ -170,10 +170,8 @@ public class IssueServiceTest {
    @Test(expected = IllegalArgumentException.class)
    public void testProcessDuplicate_TC9_SelfDuplication() {
       Issue issue = new Issue("Title must be long enough", "Description", reporter, IssueType.BUG);
-      Issue spyIssue = spy(issue);
 
       when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
-      when(repository.findById(10L)).thenReturn(spyIssue);
 
       issueService.processDuplicate(10L, 10L, 1L);
    }
