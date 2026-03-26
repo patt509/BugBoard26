@@ -175,6 +175,34 @@ public class AuthServiceTest {
       verify(userRepository, never()).save(any(User.class));
    }
 
+   /**
+    * TC10: Failure scenario - Email has invalid format.
+    * Expected Output: IllegalArgumentException
+    * PostConditions: No changes to the database.
+    */
+   @Test(expected = IllegalArgumentException.class)
+   public void testCreateUser_TC10_InvalidEmailFormat() {
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+      authService.createUser("not-an-email", USER, 1L);
+   }
+
+   /**
+    * TC11: Success scenario - Email is normalized (trim + lowercase) before persistence checks.
+    * Expected Output: tempPassword (String)
+    * PostConditions: User is saved with normalized email.
+    */
+   @Test
+   public void testCreateUser_TC11_NormalizesEmail() {
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+      when(userRepository.existsByEmail("new.user@test.com")).thenReturn(false);
+
+      String tempPassword = authService.createUser("  New.User@Test.com  ", USER, 1L);
+
+      assertNotNull("PostCond failed: tempPassword should not be null", tempPassword);
+      verify(userRepository).existsByEmail("new.user@test.com");
+      verify(userRepository).save(any(User.class));
+   }
+
    /* _________________________________________________________________________ */
 
    /* Test on finalizeProfile method */
