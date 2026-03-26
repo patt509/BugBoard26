@@ -315,6 +315,11 @@ public class IssueService {
 
       // Count open issues per assignee (Requisito 7)
       Map<String, Long> issuesAssignedPerUser = new LinkedHashMap<>();
+      userRepository.findAssignableUsers().forEach(user -> {
+         if (user.getUsername() != null) {
+            issuesAssignedPerUser.put(user.getUsername(), 0L);
+         }
+      });
       List<Object[]> assigneeData = repository.countOpenIssuesPerAssignee();
       for (Object[] row : assigneeData) {
          String username = (String) row[0];

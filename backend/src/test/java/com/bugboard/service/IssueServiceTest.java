@@ -326,6 +326,9 @@ public class IssueServiceTest {
       when(repository.getAverageResolutionTimeHours()).thenReturn(0.0);
       when(repository.countCreatedToday()).thenReturn(0L);
       when(repository.countClosedToday()).thenReturn(0L);
+      when(userRepository.findAssignableUsers()).thenReturn(List.of(
+            finalizedUser("user1@test.com", "user1"),
+            finalizedUser("user2@test.com", "user2")));
 
       // Simulate 2 users with open assigned issues
       Object[] row1 = new Object[] { "user1", 3L };
@@ -851,6 +854,7 @@ public class IssueServiceTest {
       when(repository.countCreatedToday()).thenReturn(1L);
       when(repository.countClosedToday()).thenReturn(0L);
       when(repository.countOpenIssuesPerAssignee()).thenReturn(List.of());
+      when(userRepository.findAssignableUsers()).thenReturn(List.of());
 
       // Non-empty daily data to cover the for-loop body
       Object[] day1 = new Object[] { "2026-03-06", 2L };
@@ -866,5 +870,12 @@ public class IssueServiceTest {
       assertEquals("PostCond failed: should have 2 daily entries", 2, stats.getIssuesCreatedPerDay().size());
       assertEquals("PostCond failed: day1 should have 2 issues", Long.valueOf(2L), stats.getIssuesCreatedPerDay().get("2026-03-06"));
       assertEquals("PostCond failed: day2 should have 1 issue", Long.valueOf(1L), stats.getIssuesCreatedPerDay().get("2026-03-07"));
+   }
+
+   private User finalizedUser(String email, String username) {
+      User user = new User(email, "password", UserRole.USER);
+      user.setUsername(username);
+      user.setFirstLogin(false);
+      return user;
    }
 }
