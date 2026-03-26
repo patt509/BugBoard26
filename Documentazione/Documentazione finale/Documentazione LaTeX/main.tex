@@ -89,6 +89,8 @@ possiamo categorizzarli come segue.
 \subsection{Casi d'Uso: Formalizzazione e Mockup}
 % Formalizzazione Cockburn di 2 use case principali e visualizzazione mock up
 
+Nei mockup operativi della board issue, la \textbf{Search Bar testuale} e i \textbf{filtri a discesa} (stato e priorit\`a) sono stati collegati nativamente agli endpoint REST del backend tramite chiamata \texttt{GET /issues/search} con parametri opzionali \texttt{term}, \texttt{status} e \texttt{priority}. In coerenza con i requisiti R3 e R11, il frontend invia solamente i parametri valorizzati (escludendo i campi impostati a ``all'') e applica un \textbf{debouncing lato client di 300ms} sulla ricerca testuale per ridurre richieste ridondanti durante la digitazione.
+
 \section{Design del Sistema}
 
 \subsection{Scelte Tecnologiche - Frontend e Backend}
