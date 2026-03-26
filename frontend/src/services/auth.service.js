@@ -1,6 +1,25 @@
 import httpClient from '../utils/httpClient';
 import { API_ENDPOINTS } from '../constants/api';
 
+const ASSIGNABLE_USERS_TTL_MS = 30_000;
+
+const assignableUsersCacheByUserId = new Map();
+
+const resolveAssignableUsersCacheEntry = (userId) => {
+  const cached = assignableUsersCacheByUserId.get(userId);
+  if (cached) {
+    return cached;
+  }
+
+  const initialEntry = {
+    timestamp: 0,
+    data: null,
+    inFlight: null,
+  };
+  assignableUsersCacheByUserId.set(userId, initialEntry);
+  return initialEntry;
+};
+
 const resolveStoredUserId = () => {
   const legacyUserId = localStorage.getItem('userId');
   if (legacyUserId) {
@@ -37,17 +56,47 @@ export const authService = {
     return httpClient.post(API_ENDPOINTS.AUTH_LOGIN, credentials);
   },
 
-  getAssignableUsers(userId) {
+  getAssignableUsers(userId, options = {}) {
     const resolvedUserId = userId ?? resolveStoredUserId();
     if (resolvedUserId == null || resolvedUserId === '') {
       throw new Error('User authentication is required. Please login again.');
     }
 
-    return httpClient.get(API_ENDPOINTS.AUTH_USERS_ASSIGNABLE, {
+    const normalizedUserId = String(resolvedUserId);
+    const forceRefresh = options?.forceRefresh === true;
+    const now = Date.now();
+    const cacheEntry = resolveAssignableUsersCacheEntry(normalizedUserId);
+    const isCacheValid =
+      !forceRefresh &&
+      cacheEntry.data != null &&
+      now - cacheEntry.timestamp < ASSIGNABLE_USERS_TTL_MS;
+
+    if (isCacheValid) {
+      return Promise.resolve([...cacheEntry.data]);
+    }
+
+    if (!forceRefresh && cacheEntry.inFlight) {
+      return cacheEntry.inFlight;
+    }
+
+    const request = httpClient.get(API_ENDPOINTS.AUTH_USERS_ASSIGNABLE, {
       headers: {
-        'X-User-Id': String(resolvedUserId),
+        'X-User-Id': normalizedUserId,
       },
     });
+
+    cacheEntry.inFlight = request
+      .then((users) => {
+        const normalizedUsers = Array.isArray(users) ? users : [];
+        cacheEntry.data = normalizedUsers;
+        cacheEntry.timestamp = Date.now();
+        return [...normalizedUsers];
+      })
+      .finally(() => {
+        cacheEntry.inFlight = null;
+      });
+
+    return cacheEntry.inFlight;
   },
 };
 

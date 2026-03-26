@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Plus, CheckCircle, X } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { issueService } from '../services/issue.service';
@@ -23,16 +23,27 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, onNavigate, succe
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const lastSearchKeyRef = useRef(null);
   const currentPage = 'issues';
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedFilters({
+      const nextFilters = {
         term: searchQuery.trim(),
         status: statusFilter,
         priority: priorityFilter,
         type: typeFilter,
         assigneeId: assigneeFilter
+      };
+      setDebouncedFilters((prevFilters) => {
+        const isUnchanged =
+          prevFilters.term === nextFilters.term &&
+          prevFilters.status === nextFilters.status &&
+          prevFilters.priority === nextFilters.priority &&
+          prevFilters.type === nextFilters.type &&
+          prevFilters.assigneeId === nextFilters.assigneeId;
+
+        return isUnchanged ? prevFilters : nextFilters;
       });
     }, 300);
 
@@ -95,13 +106,21 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, onNavigate, succe
     return params;
   }, [debouncedFilters]);
 
-  const fetchIssues = useCallback(async () => {
+  const fetchIssues = useCallback(async (forceRefresh = false) => {
+    const searchParams = buildSearchParams();
+    const searchKey = JSON.stringify(searchParams);
+    if (!forceRefresh && lastSearchKeyRef.current === searchKey) {
+      return;
+    }
+
     try {
+      lastSearchKeyRef.current = searchKey;
       setLoading(true);
       setError(null);
-      const data = await issueService.search(buildSearchParams());
+      const data = await issueService.search(searchParams);
       setIssues(data);
     } catch (err) {
+      lastSearchKeyRef.current = null;
       console.error('Error fetching issues:', err);
       setError(err.message || 'Failed to load issues.');
     } finally {
@@ -110,7 +129,7 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, onNavigate, succe
   }, [buildSearchParams]);
 
   useEffect(() => {
-    fetchIssues();
+    fetchIssues(false);
   }, [fetchIssues]);
 
   const handleSidebarNavigate = (page) => {
@@ -301,7 +320,7 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, onNavigate, succe
                   <p className="text-red-600 mb-2">Error loading issues</p>
                   <p className="text-gray-500 text-sm">{error}</p>
                   <button 
-                    onClick={fetchIssues}
+                    onClick={() => fetchIssues(true)}
                     className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                   >
                     Retry

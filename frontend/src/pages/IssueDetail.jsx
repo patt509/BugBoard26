@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ArrowLeft, Download, Flag, Edit, ChevronDown, Send, AlertCircle, X, CheckCircle, Search, Upload, Paperclip } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { issueService } from '../services/issue.service';
@@ -53,6 +53,7 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
   const [flaggingDuplicate, setFlaggingDuplicate] = useState(false);
   const [duplicateSuccess, setDuplicateSuccess] = useState(null);
   const [historyExpanded, setHistoryExpanded] = useState(false);
+  const duplicateCandidatesCacheRef = useRef(null);
   const currentUserId = resolveCurrentUserId(user);
 
   // Fetch attachment constraints
@@ -92,6 +93,10 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
   useEffect(() => {
     fetchIssueData();
   }, [fetchIssueData]);
+
+  useEffect(() => {
+    duplicateCandidatesCacheRef.current = null;
+  }, [issueId]);
 
   // Auto-dismiss duplicate success message
   useEffect(() => {
@@ -234,15 +239,19 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
     }
 
     try {
-      // Fetch all issues to show in the modal
-      const issues = await issueService.getAll();
-      // Keep only eligible BUG candidates according to duplicate workflow rules
-      const otherIssues = issues.filter((candidateIssue) =>
-        candidateIssue.id !== issueId &&
-        candidateIssue.type === 'BUG' &&
-        candidateIssue.status !== 'CLOSED' &&
-        candidateIssue.status !== 'RESOLVED'
-      );
+      let otherIssues = duplicateCandidatesCacheRef.current;
+      if (!otherIssues) {
+        // Fetch all issues once and keep a local cache for repeated modal openings
+        const issues = await issueService.getAll();
+        otherIssues = issues.filter((candidateIssue) =>
+          candidateIssue.id !== issueId &&
+          candidateIssue.type === 'BUG' &&
+          candidateIssue.status !== 'CLOSED' &&
+          candidateIssue.status !== 'RESOLVED'
+        );
+        duplicateCandidatesCacheRef.current = otherIssues;
+      }
+
       setAllIssues(otherIssues);
       setSelectedOriginalIssue(null);
       setDuplicateSearchQuery('');
@@ -276,6 +285,7 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
         issueTitle: issue?.title,
         originalId: selectedOriginalIssue.id
       });
+      duplicateCandidatesCacheRef.current = null;
       
       // Refresh issue data to show updated status
       await fetchIssueData();
@@ -288,10 +298,13 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
   };
 
   // Filter issues based on search query
-  const filteredIssues = allIssues.filter(i => 
-    i.title?.toLowerCase().includes(duplicateSearchQuery.toLowerCase()) ||
-    `#${i.id}`.includes(duplicateSearchQuery)
-  );
+  const filteredIssues = useMemo(() => {
+    const normalizedQuery = duplicateSearchQuery.toLowerCase();
+    return allIssues.filter((candidateIssue) =>
+      candidateIssue.title?.toLowerCase().includes(normalizedQuery) ||
+      `#${candidateIssue.id}`.includes(duplicateSearchQuery)
+    );
+  }, [allIssues, duplicateSearchQuery]);
 
   const getStatusColor = (status) => {
     const colors = {
