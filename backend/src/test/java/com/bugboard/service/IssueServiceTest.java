@@ -210,7 +210,27 @@ public class IssueServiceTest {
       issueService.processDuplicate(10L, 20L, 1L);
    }
 
-<<<<<<< HEAD
+   /**
+    * TC12: Failure scenario - Attempting to mark an already resolved issue as
+    * duplicate. A resolved issue is also considered closed.
+    * Expected Output: IllegalStateException
+    */
+   @Test(expected = IllegalStateException.class)
+   public void testProcessDuplicate_TC12_AlreadyResolved() {
+      Issue alreadyResolvedIssue = new Issue("Title for Resolved Issue", "Description", reporter, IssueType.BUG);
+      alreadyResolvedIssue.setStatus(IssueStatus.RESOLVED);
+      Issue original = new Issue("Title for Original Issue", "Description", reporter, IssueType.BUG);
+
+      Issue spyResolved = spy(alreadyResolvedIssue);
+      Issue spyOriginal = spy(original);
+
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+      when(repository.findById(10L)).thenReturn(spyResolved);
+      when(repository.findById(20L)).thenReturn(spyOriginal);
+
+      issueService.processDuplicate(10L, 20L, 1L);
+   }
+
    // ==================== searchIssues TESTS ====================
 
    /**
@@ -809,26 +829,6 @@ public class IssueServiceTest {
       assertNotNull("PostCond failed: issuesCreatedPerDay should not be null", stats.getIssuesCreatedPerDay());
       assertEquals("PostCond failed: should have 2 daily entries", 2, stats.getIssuesCreatedPerDay().size());
       assertEquals("PostCond failed: day1 should have 2 issues", Long.valueOf(2L), stats.getIssuesCreatedPerDay().get("2026-03-06"));
-=======
-   /**
-    * TC12: Failure scenario - Attempting to mark an already resolved issue as
-    * duplicate. A resolved issue is also considered closed.
-    * Expected Output: IllegalStateException
-    */
-   @Test(expected = IllegalStateException.class)
-   public void testProcessDuplicate_TC12_AlreadyResolved() {
-      Issue alreadyResolvedIssue = new Issue("Title for Resolved Issue", "Description", reporter);
-      alreadyResolvedIssue.setStatus(IssueStatus.RESOLVED);
-      Issue original = new Issue("Title for Original Issue", "Description", reporter);
-
-      Issue spyResolved = spy(alreadyResolvedIssue);
-      Issue spyOriginal = spy(original);
-
-      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
-      when(repository.findById(10L)).thenReturn(spyResolved);
-      when(repository.findById(20L)).thenReturn(spyOriginal);
-
-      issueService.processDuplicate(10L, 20L, 1L);
->>>>>>> frontend
+      assertEquals("PostCond failed: day2 should have 1 issue", Long.valueOf(1L), stats.getIssuesCreatedPerDay().get("2026-03-07"));
    }
 }
