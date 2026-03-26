@@ -89,7 +89,7 @@ possiamo categorizzarli come segue.
 \subsection{Casi d'Uso: Formalizzazione e Mockup}
 % Formalizzazione Cockburn di 2 use case principali e visualizzazione mock up
 
-Nei mockup operativi della board issue, la \textbf{Search Bar testuale} e i \textbf{filtri a discesa} (stato e priorit\`a) sono stati collegati nativamente agli endpoint REST del backend tramite chiamata \texttt{GET /issues/search} con parametri opzionali \texttt{term}, \texttt{status} e \texttt{priority}. In coerenza con i requisiti R3 e R11, il frontend invia solamente i parametri valorizzati (escludendo i campi impostati a ``all'') e applica un \textbf{debouncing lato client di 300ms} sulla ricerca testuale per ridurre richieste ridondanti durante la digitazione.
+Nei mockup operativi della board issue, la \textbf{Search Bar testuale} e i \textbf{filtri a discesa} sono stati collegati nativamente agli endpoint REST del backend tramite chiamata \texttt{GET /issues/search} con parametri opzionali \texttt{term}, \texttt{status}, \texttt{priority}, \texttt{type} e \texttt{assigneeId}. In coerenza con i requisiti R3 e R11, il frontend invia solamente i parametri valorizzati (escludendo i campi impostati a ``all'') e applica un \textbf{debouncing lato client di 300ms} sull'insieme dei filtri per ridurre richieste ridondanti durante digitazione e selezioni multiple. Le opzioni di assegnazione usate nei form e nei filtri non sono hardcoded ma caricate dall'API \texttt{GET /auth/users/assignable}.
 
 \section{Design del Sistema}
 
@@ -112,15 +112,14 @@ Il frontend utilizza:
 \begin{itemize}
     \item \textbf{React 18+} con Vite come bundler, garantendo hot module replacement e build ottimizzate.
     \item \textbf{Functional Components e Hooks React} esclusivamente (nessun component basato su classi).
-    \item \textbf{React Router v6+} per il routing SPA, gestendo navigazione tra pagine pubbliche (/login) e protette (/finalize-profile, /).
-    \item \textbf{Context API} per la gestione dello stato globale (AuthContext), evitando la complessità di Redux. Lo stato di autenticazione include user, loading, e metodi login/logout/updateUser.
+    \item \textbf{Client HTTP unico} (\texttt{src/utils/httpClient.js}) con gestione centralizzata di error parsing, body JSON/non-JSON e status 204.
+    \item \textbf{Service layer modulare} (\texttt{auth.service.js}, \texttt{issue.service.js}, \texttt{comment.service.js}, \texttt{attachment.service.js}) allineato ai contratti REST backend.
     \item \textbf{localStorage} per la persistenza dei dati di sessione (user object e userId) tra ricariche della pagina.
-    \item \textbf{Fetch API} centralizzata in un servizio (src/services/api.js) per la comunicazione REST con il backend, con gestione automatica degli errori e injection dell'header di autenticazione \texttt{X-User-Id}.
-    \item \textbf{ProtectedRoute} wrapper component che verifica l'autenticazione prima di rendere rotte protette, reindirizzando a /login se non autenticato.
+    \item \textbf{UI API-first}: i dati di assegnazione utenti per form e filtri provengono da \texttt{GET /auth/users/assignable}, evitando hardcoding lato client.
 \end{itemize}
 
 \paragraph{Flusso di Autenticazione:}
-L'utente accede tramite /login, fornendo email e password. Il frontend chiama l'endpoint POST /auth/login sul backend, che valida le credenziali e ritorna l'oggetto user (con flag firstLogin se è primo accesso). Se firstLogin=true, l'utente è reindirizzato a /finalize-profile per scegliere uno username permanente; altrimenti alla Dashboard. Tutte le richieste successive includono automaticamente l'header \texttt{X-User-Id} per identificare l'utente richiedente.
+L'utente accede tramite login email/password. Il frontend chiama \texttt{POST /auth/login}, persiste i dati utente in \texttt{localStorage} e usa l'identificativo utente per valorizzare l'header \texttt{X-User-Id} nelle chiamate che richiedono autorizzazione (creazione issue, dashboard admin, duplicate workflow, endpoint utenti assegnabili).
 
 \subsection{Filtraggio esteso e Dashboard (Requisiti 3 e 7)}
 Il sistema implementa un meccanismo di filtraggio esteso delle issue (Requisito 3) che consente agli utenti di cercare e filtrare per: \textbf{testo libero} (titolo, descrizione, reporter), \textbf{priorità} (\texttt{PriorityLevel}), \textbf{stato} (\texttt{IssueStatus}), \textbf{tipo} (\texttt{IssueType}: QUESTION, BUG, DOCUMENTATION, FEATURE) e \textbf{assegnatario} (\texttt{assigneeId}). I filtri sono tutti opzionali e componibili: la query JPQL viene costruita dinamicamente aggiungendo le clausole \texttt{WHERE} solo per i parametri non null.
@@ -141,12 +140,12 @@ Nel ciclo corrente e' stata adottata una strategia \textbf{API-first}: prima con
 \begin{tabularx}{\textwidth}{|l|X|X|}
     \hline
     \textbf{Req} & \textbf{Copertura tecnica attuale} & \textbf{Stato} \\ \hline
-    R1 & Endpoint admin per creazione utenti, validazioni e gestione errori coerente & In consolidamento \\ \hline
-    R2 & Creazione issue con tipo obbligatorio e gestione assegnazione a utente & Coperto backend, UI da allineare \\ \hline
-    R3 & Ricerca e filtri composabili lato repository/service & Coperto backend \\ \hline
-    R7 & Dashboard admin con metriche aggregate e carico per assegnatario & Coperto backend, UI parziale \\ \hline
-    R11 & Ricerca keyword su titolo/descrizione/reporter con filtri opzionali & Coperto backend, UI da completare \\ \hline
-    R16 & Workflow duplicate con chiusura immediata e controlli di autorizzazione & Coperto backend \\ \hline
+    R1 & Endpoint admin per creazione utenti, validazioni e gestione errori coerente & Coperto end-to-end \\ \hline
+    R2 & Creazione issue con tipo obbligatorio e gestione assegnazione a utente (assignee dinamico da API) & Coperto end-to-end \\ \hline
+    R3 & Ricerca e filtri composabili lato repository/service + UI con debounce 300ms & Coperto end-to-end \\ \hline
+    R7 & Dashboard admin con metriche aggregate e carico per assegnatario (\texttt{issuesAssignedPerUser}) & Coperto end-to-end \\ \hline
+    R11 & Ricerca keyword su titolo/descrizione/reporter con filtri opzionali completi & Coperto end-to-end \\ \hline
+    R16 & Workflow duplicate con chiusura immediata e controlli di autorizzazione (admin-only in UI/API) & Coperto end-to-end \\ \hline
 \end{tabularx}
 
 \subsection{Evidenze API-First per R1-R2-R3-R7-R11-R16}
@@ -164,6 +163,17 @@ La seguente matrice collega i requisiti obbligatori agli endpoint e alle regole 
 \end{tabularx}
 
 L'approccio API-first riduce regressioni frontend durante i refactor: la UI viene allineata a contratti backend gia' consolidati, mentre le funzionalita' extra (commenti, allegati, reset password) restano operative con controlli di regressione dedicati.
+
+\subsection{Evidenze UI e Tracciabilita End-to-End}
+Nel ciclo corrente e' stato completato anche l'allineamento frontend ai contratti API per i requisiti obbligatori:
+\begin{itemize}
+    \item \textbf{R2}: la UI Create/Edit Issue usa utenti assegnabili caricati da \texttt{GET /auth/users/assignable} e invia \texttt{assigneeId} nel payload di creazione.
+    \item \textbf{R3/R11}: la pagina Issues applica debounce di 300ms e invia filtri completi \texttt{term,status,priority,type,assigneeId} verso \texttt{GET /issues/search}.
+    \item \textbf{R7}: la Dashboard Admin visualizza la metrica \texttt{issuesAssignedPerUser} oltre alle distribuzioni per stato/priorita'.
+    \item \textbf{R16}: il pulsante ``Flag as Duplicate'' e' esposto solo ad admin lato UI, con allineamento ai vincoli backend (solo BUG non chiuse/risolte).
+\end{itemize}
+
+\noindent Sono stati inoltre allineati i campi DTO visualizzati in dettaglio issue (\texttt{assigneeUsername} al posto di alias legacy), riducendo mismatch tra risposta REST e rendering frontend.
 
 % ------------------------------------------------- % 
 \section{Formalizzazione R16}
