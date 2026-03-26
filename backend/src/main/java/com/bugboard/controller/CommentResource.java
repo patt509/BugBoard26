@@ -65,8 +65,7 @@ public class CommentResource {
             return ApiResponses.error(Response.Status.BAD_REQUEST, "Comment text is required");
          }
 
-         // Use authorId from DTO if provided, otherwise use userId from header
-         Long authorId = commentDTO.getAuthorId() != null ? commentDTO.getAuthorId() : userId;
+         Long authorId = userId;
          
          Long commentId = commentService.createComment(issueId, commentDTO.getText(), authorId);
          if (commentId == null) {
@@ -133,9 +132,11 @@ public class CommentResource {
             return ApiResponses.error(Response.Status.BAD_REQUEST, "X-User-Id header is required");
          }
 
-         commentService.deleteComment(commentId);
+         commentService.deleteComment(commentId, userId);
          
          return Response.ok(Map.of("message", "Comment deleted successfully")).build();
+      } catch (SecurityException e) {
+         return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
       } catch (IllegalArgumentException e) {
          return ApiResponses.error(Response.Status.NOT_FOUND, e.getMessage());
       } catch (Exception e) {

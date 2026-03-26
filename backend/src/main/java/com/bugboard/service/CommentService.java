@@ -12,6 +12,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -98,10 +99,11 @@ public class CommentService {
    public void updateComment(Long commentId, String text, Long userId) {
       Comment comment = commentRepository.findById(commentId)
             .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
-      
-      // Check if user is the author
-      if (!comment.getAuthor().getId().equals(userId)) {
-         throw new SecurityException("Only the author can update this comment");
+      User actor = userRepository.findById(userId)
+            .orElseThrow(() -> new SecurityException("Authenticated user not found"));
+
+      if (!canManageComment(actor, comment)) {
+         throw new SecurityException("Only the author or an admin can update this comment");
       }
       
       comment.setText(text);  // This also sets updatedAt
@@ -115,11 +117,18 @@ public class CommentService {
     * @param commentId the comment ID
     */
    @Transactional
-   public void deleteComment(Long commentId) {
+   public void deleteComment(Long commentId, Long userId) {
       Comment comment = commentRepository.findById(commentId)
             .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
+      User actor = userRepository.findById(userId)
+            .orElseThrow(() -> new SecurityException("Authenticated user not found"));
+
+      if (!canManageComment(actor, comment)) {
+         throw new SecurityException("Only the author or an admin can delete this comment");
+      }
+
       commentRepository.delete(comment);
-      logger.log(Level.INFO, "Deleted comment {0}", commentId);
+      logger.log(Level.INFO, "Deleted comment {0} by user {1}", new Object[] { commentId, userId });
    }
 
    // ==================== VALIDATION OPERATIONS ====================
@@ -209,5 +218,9 @@ public class CommentService {
             .updatedAt(comment.getUpdatedAt())
             .attachmentPath(comment.getAttachmentPath())
             .build();
+   }
+
+   private boolean canManageComment(User actor, Comment comment) {
+      return actor.isAdmin() || Objects.equals(comment.getAuthor().getId(), actor.getId());
    }
 }
