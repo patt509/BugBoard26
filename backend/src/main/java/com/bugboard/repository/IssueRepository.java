@@ -11,6 +11,7 @@ import com.bugboard.model.Issue;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 
@@ -33,24 +34,44 @@ public class IssueRepository {
 
    // Show all issues in the main board (Requisito 3)
    public List<Issue> findAll() {
-      return em.createQuery("SELECT i FROM Issue i ORDER BY i.createdAt DESC", Issue.class)
+      return em.createQuery(
+            "SELECT DISTINCT i FROM Issue i " +
+                  "LEFT JOIN FETCH i.reporter " +
+                  "LEFT JOIN FETCH i.assignee " +
+                  "ORDER BY i.createdAt DESC, i.id DESC",
+            Issue.class)
             .getResultList();
    }
 
    // Find an issue by its ID (mainly needed by the service layer)
    public Issue findById(Long id) {
-      return em.find(Issue.class, id);
+      try {
+         return em.createQuery(
+               "SELECT i FROM Issue i " +
+                     "LEFT JOIN FETCH i.reporter " +
+                     "LEFT JOIN FETCH i.assignee " +
+                     "WHERE i.id = :id",
+               Issue.class)
+               .setParameter("id", id)
+               .getSingleResult();
+      } catch (NoResultException ex) {
+         return null;
+      }
    }
 
    // Dynamic filtering and search of issues (Requisito 3)
    public List<Issue> search(String term, PriorityLevel priority, IssueStatus status, IssueType type, Long assigneeId) {
-      StringBuilder jpql = new StringBuilder("SELECT i FROM Issue i LEFT JOIN i.reporter u WHERE 1=1");
+      StringBuilder jpql = new StringBuilder(
+            "SELECT DISTINCT i FROM Issue i " +
+                  "LEFT JOIN FETCH i.reporter reporter " +
+                  "LEFT JOIN FETCH i.assignee assignee " +
+                  "WHERE 1=1");
 
       String normalizedTerm = term != null ? term.trim() : null;
 
       if (normalizedTerm != null && !normalizedTerm.isEmpty()) {
          jpql.append(
-               " AND (LOWER(i.title) LIKE LOWER(:term) OR LOWER(i.description) LIKE LOWER(:term) OR LOWER(u.username) LIKE LOWER(:term))");
+               " AND (LOWER(i.title) LIKE LOWER(:term) OR LOWER(i.description) LIKE LOWER(:term) OR LOWER(reporter.username) LIKE LOWER(:term))");
       }
       if (priority != null) {
          jpql.append(" AND i.priority = :priority");
@@ -112,6 +133,20 @@ public class IssueRepository {
             Object[].class)
             .setParameter("todo", IssueStatus.TODO)
             .setParameter("inProgress", IssueStatus.IN_PROGRESS)
+            .getResultList();
+   }
+
+   public List<Object[]> countByStatusGrouped() {
+      return em.createQuery(
+            "SELECT i.status, COUNT(i) FROM Issue i GROUP BY i.status",
+            Object[].class)
+            .getResultList();
+   }
+
+   public List<Object[]> countByPriorityGrouped() {
+      return em.createQuery(
+            "SELECT i.priority, COUNT(i) FROM Issue i GROUP BY i.priority",
+            Object[].class)
             .getResultList();
    }
 

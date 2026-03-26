@@ -346,12 +346,16 @@ public class IssueServiceTest {
    @Test
    public void testGetDashboardStats_TC15_IssuesAssignedPerUser() {
       // Arrange
-      for (IssueStatus s : IssueStatus.values()) {
-         when(repository.countByStatus(s)).thenReturn(0L);
-      }
-      for (PriorityLevel p : PriorityLevel.values()) {
-         when(repository.countByPriority(p)).thenReturn(0L);
-      }
+      when(repository.countByStatusGrouped()).thenReturn(List.of(
+            new Object[] { IssueStatus.TODO, 0L },
+            new Object[] { IssueStatus.IN_PROGRESS, 0L },
+            new Object[] { IssueStatus.RESOLVED, 0L },
+            new Object[] { IssueStatus.CLOSED, 0L }));
+      when(repository.countByPriorityGrouped()).thenReturn(List.of(
+            new Object[] { PriorityLevel.LOW, 0L },
+            new Object[] { PriorityLevel.MEDIUM, 0L },
+            new Object[] { PriorityLevel.HIGH, 0L },
+            new Object[] { PriorityLevel.CRITICAL, 0L }));
       when(repository.countAll()).thenReturn(5L);
       when(repository.countDuplicates()).thenReturn(0L);
       when(repository.getIssuesCreatedPerDaySince(org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
@@ -874,12 +878,16 @@ public class IssueServiceTest {
    @Test
    public void testGetDashboardStats_TC43_WithDailyData() {
       // Arrange
-      for (IssueStatus s : IssueStatus.values()) {
-         when(repository.countByStatus(s)).thenReturn(0L);
-      }
-      for (PriorityLevel p : PriorityLevel.values()) {
-         when(repository.countByPriority(p)).thenReturn(0L);
-      }
+      when(repository.countByStatusGrouped()).thenReturn(List.of(
+            new Object[] { IssueStatus.TODO, 0L },
+            new Object[] { IssueStatus.IN_PROGRESS, 0L },
+            new Object[] { IssueStatus.RESOLVED, 0L },
+            new Object[] { IssueStatus.CLOSED, 0L }));
+      when(repository.countByPriorityGrouped()).thenReturn(List.of(
+            new Object[] { PriorityLevel.LOW, 0L },
+            new Object[] { PriorityLevel.MEDIUM, 0L },
+            new Object[] { PriorityLevel.HIGH, 0L },
+            new Object[] { PriorityLevel.CRITICAL, 0L }));
       when(repository.countAll()).thenReturn(3L);
       when(repository.countDuplicates()).thenReturn(0L);
       when(repository.getAverageResolutionTimeHours()).thenReturn(2.5);

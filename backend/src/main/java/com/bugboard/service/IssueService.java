@@ -1,7 +1,6 @@
 package com.bugboard.service;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -294,19 +293,34 @@ public class IssueService {
       // Count by status
       Map<String, Long> issuesByStatus = new LinkedHashMap<>();
       for (IssueStatus status : IssueStatus.values()) {
-         issuesByStatus.put(status.name(), repository.countByStatus(status));
+         issuesByStatus.put(status.name(), 0L);
+      }
+      List<Object[]> statusRows = repository.countByStatusGrouped();
+      if (statusRows != null) {
+         for (Object[] row : statusRows) {
+            IssueStatus status = (IssueStatus) row[0];
+            Long count = (Long) row[1];
+            issuesByStatus.put(status.name(), count);
+         }
       }
 
       // Count by priority
       Map<String, Long> issuesByPriority = new LinkedHashMap<>();
       for (PriorityLevel priority : PriorityLevel.values()) {
-         issuesByPriority.put(priority.name(), repository.countByPriority(priority));
+         issuesByPriority.put(priority.name(), 0L);
+      }
+      List<Object[]> priorityRows = repository.countByPriorityGrouped();
+      if (priorityRows != null) {
+         for (Object[] row : priorityRows) {
+            PriorityLevel priority = (PriorityLevel) row[0];
+            Long count = (Long) row[1];
+            issuesByPriority.put(priority.name(), count);
+         }
       }
 
       // Issues created per day (last 7 days)
       LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
       Map<String, Long> issuesCreatedPerDay = new LinkedHashMap<>();
-      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
       List<Object[]> dailyData = repository.getIssuesCreatedPerDaySince(sevenDaysAgo);
       for (Object[] row : dailyData) {
@@ -316,8 +330,10 @@ public class IssueService {
       }
 
       // Calculate open issues (TODO + IN_PROGRESS)
-      long openIssues = repository.countByStatus(IssueStatus.TODO) +
-            repository.countByStatus(IssueStatus.IN_PROGRESS);
+      long openIssues = countFromMap(issuesByStatus, IssueStatus.TODO.name()) +
+            countFromMap(issuesByStatus, IssueStatus.IN_PROGRESS.name());
+      long resolvedIssues = countFromMap(issuesByStatus, IssueStatus.RESOLVED.name());
+      long closedIssues = countFromMap(issuesByStatus, IssueStatus.CLOSED.name());
 
       // Count open issues per assignee (Requisito 7)
       Map<String, Long> issuesAssignedPerUser = new LinkedHashMap<>();
@@ -336,8 +352,8 @@ public class IssueService {
       return DashboardStatsDTO.builder()
             .totalIssues(repository.countAll())
             .openIssues(openIssues)
-            .resolvedIssues(repository.countByStatus(IssueStatus.RESOLVED))
-            .closedIssues(repository.countByStatus(IssueStatus.CLOSED))
+            .resolvedIssues(resolvedIssues)
+            .closedIssues(closedIssues)
             .duplicateIssues(repository.countDuplicates())
             .issuesByStatus(issuesByStatus)
             .issuesByPriority(issuesByPriority)
@@ -417,5 +433,10 @@ public class IssueService {
       }
       String normalized = query.trim();
       return normalized.isEmpty() ? null : normalized;
+   }
+
+   private long countFromMap(Map<String, Long> source, String key) {
+      Long value = source.get(key);
+      return value != null ? value : 0L;
    }
 }
