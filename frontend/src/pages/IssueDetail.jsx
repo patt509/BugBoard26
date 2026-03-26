@@ -493,52 +493,6 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
 
         {/* Content */}
         <div className="p-8">
-          {/* Success Banner for Duplicate */}
-          {duplicateSuccess && (
-            <div className="mb-6 flex items-center gap-3 px-4 py-3 bg-green-100 border border-green-300 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <span className="text-green-800 font-medium">
-                Issue #{duplicateSuccess.issueId} '{duplicateSuccess.issueTitle}' flagged as duplicate of #{duplicateSuccess.originalId} and closed successfully!
-              </span>
-              <button
-                onClick={() => setDuplicateSuccess(null)}
-                className="ml-auto text-green-600 hover:text-green-800"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          )}
-
-          {/* Success Banner from parent */}
-          {successMessage && (
-            <div className="mb-6 flex items-center gap-3 px-4 py-3 bg-green-100 border border-green-300 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <span className="text-green-800 font-medium">{successMessage}</span>
-              <button
-                onClick={onDismissSuccess}
-                className="ml-auto text-green-600 hover:text-green-800"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          )}
-
-          {/* Error Banner */}
-          {error && (
-            <div className="mb-6 flex items-center gap-3 px-4 py-3 bg-red-100 border border-red-300 rounded-lg">
-              <div className="flex-shrink-0 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
-                <X className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-red-800 font-medium">{error}</span>
-              <button
-                onClick={() => setError(null)}
-                className="ml-auto text-red-600 hover:text-red-800"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          )}
-
           <div className="flex gap-8">
             {/* Main Content */}
             <div className="flex-1">
@@ -867,6 +821,60 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
             </div>
           </div>
         </div>
+
+        {/* Overlay Notifications */}
+        {(duplicateSuccess || successMessage || (error && issue)) && (
+          <div className="pointer-events-none fixed inset-x-0 top-6 z-50 flex flex-col items-center gap-3 px-4">
+            {duplicateSuccess && (
+              <div className="pointer-events-auto w-full max-w-3xl animate-toast-down rounded-lg border border-green-300 bg-green-100 px-4 py-3 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <span className="flex-1 text-green-800 font-medium">
+                    Issue #{duplicateSuccess.issueId} '{duplicateSuccess.issueTitle}' flagged as duplicate of #{duplicateSuccess.originalId} and closed successfully!
+                  </span>
+                  <button
+                    onClick={() => setDuplicateSuccess(null)}
+                    className="text-green-600 hover:text-green-800"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="pointer-events-auto w-full max-w-3xl animate-toast-down rounded-lg border border-green-300 bg-green-100 px-4 py-3 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <span className="flex-1 text-green-800 font-medium">{successMessage}</span>
+                  <button
+                    onClick={onDismissSuccess}
+                    className="text-green-600 hover:text-green-800"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {error && issue && (
+              <div className="pointer-events-auto w-full max-w-3xl animate-toast-down rounded-lg border border-red-300 bg-red-100 px-4 py-3 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-red-500">
+                    <X className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="flex-1 text-red-800 font-medium">{error}</span>
+                  <button
+                    onClick={() => setError(null)}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Flag as Duplicate Modal */}
         {showDuplicateModal && (

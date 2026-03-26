@@ -30,3 +30,17 @@ body {
   animation: slide-up 0.3s ease-out forwards;
 }
 
+@keyframes toast-down {
+  from {
+    transform: translateY(-16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-toast-down {
+  animation: toast-down 0.25s ease-out forwards;
+}
