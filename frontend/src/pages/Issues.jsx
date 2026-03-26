@@ -256,7 +256,7 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, onNavigate, succe
                       ? 'bg-slate-300 hover:bg-slate-400'
                       : isResolvedIssue
                         ? 'bg-indigo-100 hover:bg-indigo-200'
-                        : 'hover:bg-gray-50';
+                        : 'bg-white hover:bg-slate-100';
 
                     return (
                       <tr 
