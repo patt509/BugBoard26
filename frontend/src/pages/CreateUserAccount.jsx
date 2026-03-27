@@ -234,7 +234,7 @@ function CreateUserAccount({ user, onLogout, onNavigate, isDarkMode, onToggleThe
         </div>
 
         {createdUserModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/45 px-4 backdrop-blur-sm">
             <div className="w-full max-w-lg rounded-xl border border-gray-200 bg-white shadow-xl">
               <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
                 <h2 className="text-lg font-semibold text-gray-900">User Created</h2>
