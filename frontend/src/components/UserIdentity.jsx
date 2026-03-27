@@ -18,13 +18,15 @@ function UserIdentity({ user, className = '' }) {
 
   return (
     <div className={`inline-flex items-center gap-2 ${className}`}>
-      <img
-        src={avatarUrl}
-        alt={`${displayName} profile avatar`}
-        className="h-8 w-8 rounded-full border border-gray-300 bg-gray-100 object-cover"
-        loading="lazy"
-        referrerPolicy="no-referrer"
-      />
+      <div className="user-avatar-glass">
+        <img
+          src={avatarUrl}
+          alt={`${displayName} profile avatar`}
+          className="h-full w-full rounded-full object-cover"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+        />
+      </div>
       <span className="hidden text-sm text-gray-600 md:inline">{displayName}</span>
     </div>
   );

@@ -14,6 +14,27 @@ body {
   min-height: 100vh;
 }
 
+.user-avatar-glass {
+  height: 2rem;
+  width: 2rem;
+  padding: 2px;
+  border-radius: 9999px;
+  backdrop-filter: blur(10px);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.35));
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    0 10px 24px rgba(15, 23, 42, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+html.dark .user-avatar-glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.08));
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
 .issue-row-default {
   background-color: #ffffff;
 }
