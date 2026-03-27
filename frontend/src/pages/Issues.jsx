@@ -73,6 +73,14 @@ const getUserAvatarUrl = (targetUser) => {
   return `${DICEBEAR_BASE_URL}?seed=${seed}&radius=50&size=64`;
 };
 
+const areStringArraysEqual = (first = [], second = []) => {
+  if (first.length !== second.length) {
+    return false;
+  }
+
+  return first.every((value, index) => value === second[index]);
+};
+
 const STATUS_FILTER_OPTIONS = [
   { value: 'all', label: 'Status' },
   { value: 'TODO', label: 'Open', badgeClass: STATUS_BADGE_CLASSES.TODO },
@@ -120,12 +128,12 @@ function FilterDropdown({ value, options, onChange, disabled = false, loading = 
   }, [open]);
 
   return (
-    <div ref={rootRef} className="relative min-w-[150px]">
+    <div ref={rootRef} className="relative min-w-0 w-full">
       <button
         type="button"
         onClick={() => !disabled && setOpen((prev) => !prev)}
         disabled={disabled}
-        className="inline-flex w-full items-center justify-between gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {selectedOption?.badgeClass ? (
           <span className={`${BADGE_BASE_CLASS} max-w-[120px] truncate ${selectedOption.badgeClass}`}>
@@ -182,19 +190,20 @@ function Issues({
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
-  const [assigneeFilter, setAssigneeFilter] = useState('all');
+  const [assigneeFilters, setAssigneeFilters] = useState([]);
   const [debouncedFilters, setDebouncedFilters] = useState({
     term: '',
     status: 'all',
     priority: 'all',
     type: 'all',
-    assigneeId: 'all'
+    assigneeIds: []
   });
   const [assignableUsers, setAssignableUsers] = useState([]);
   const [assignableUsersLoading, setAssignableUsersLoading] = useState(false);
   const [assignableUsersError, setAssignableUsersError] = useState(null);
   const [showAssigneeModal, setShowAssigneeModal] = useState(false);
   const [assigneeSearchQuery, setAssigneeSearchQuery] = useState('');
+  const [pendingAssigneeFilters, setPendingAssigneeFilters] = useState([]);
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -208,7 +217,7 @@ function Issues({
         status: statusFilter,
         priority: priorityFilter,
         type: typeFilter,
-        assigneeId: assigneeFilter
+        assigneeIds: [...assigneeFilters]
       };
       setDebouncedFilters((prevFilters) => {
         const isUnchanged =
@@ -216,14 +225,14 @@ function Issues({
           prevFilters.status === nextFilters.status &&
           prevFilters.priority === nextFilters.priority &&
           prevFilters.type === nextFilters.type &&
-          prevFilters.assigneeId === nextFilters.assigneeId;
+          areStringArraysEqual(prevFilters.assigneeIds, nextFilters.assigneeIds);
 
         return isUnchanged ? prevFilters : nextFilters;
       });
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, statusFilter, priorityFilter, typeFilter, assigneeFilter]);
+  }, [searchQuery, statusFilter, priorityFilter, typeFilter, assigneeFilters]);
 
   useEffect(() => {
     let mounted = true;
@@ -274,8 +283,8 @@ function Issues({
       params.type = debouncedFilters.type;
     }
 
-    if (debouncedFilters.assigneeId !== 'all') {
-      params.assigneeId = debouncedFilters.assigneeId;
+    if (debouncedFilters.assigneeIds.length === 1) {
+      params.assigneeId = debouncedFilters.assigneeIds[0];
     }
 
     return params;
@@ -283,7 +292,10 @@ function Issues({
 
   const fetchIssues = useCallback(async (forceRefresh = false) => {
     const searchParams = buildSearchParams();
-    const searchKey = JSON.stringify(searchParams);
+    const searchKey = JSON.stringify({
+      server: searchParams,
+      selectedAssigneeIds: debouncedFilters.assigneeIds
+    });
     if (!forceRefresh && lastSearchKeyRef.current === searchKey) {
       return;
     }
@@ -293,7 +305,28 @@ function Issues({
       setLoading(true);
       setError(null);
       const data = await issueService.search(searchParams);
-      setIssues(data);
+      let filteredIssues = Array.isArray(data) ? data : [];
+
+      if (debouncedFilters.assigneeIds.length > 1) {
+        const selectedIds = new Set(debouncedFilters.assigneeIds.map((id) => String(id)));
+        const selectedUsernames = new Set(
+          assignableUsers
+            .filter((assignableUser) => selectedIds.has(String(assignableUser.id)))
+            .map((assignableUser) => assignableUser.username)
+            .filter(Boolean)
+        );
+
+        filteredIssues = filteredIssues.filter((issue) => {
+          const issueAssigneeId = issue?.assigneeId != null ? String(issue.assigneeId) : null;
+          if (issueAssigneeId && selectedIds.has(issueAssigneeId)) {
+            return true;
+          }
+
+          return issue?.assigneeUsername ? selectedUsernames.has(issue.assigneeUsername) : false;
+        });
+      }
+
+      setIssues(filteredIssues);
     } catch (err) {
       lastSearchKeyRef.current = null;
       console.error('Error fetching issues:', err);
@@ -301,7 +334,7 @@ function Issues({
     } finally {
       setLoading(false);
     }
-  }, [buildSearchParams]);
+  }, [assignableUsers, buildSearchParams, debouncedFilters.assigneeIds]);
 
   useEffect(() => {
     fetchIssues(false);
@@ -323,6 +356,13 @@ function Issues({
       document.removeEventListener('keydown', handleEscapeKey);
     };
   }, [showAssigneeModal]);
+
+  useEffect(() => {
+    if (showAssigneeModal) {
+      setPendingAssigneeFilters([...assigneeFilters]);
+      setAssigneeSearchQuery('');
+    }
+  }, [showAssigneeModal, assigneeFilters]);
 
   const handleSidebarNavigate = (page) => {
     if (onNavigate) {
@@ -370,17 +410,15 @@ function Issues({
     return labels[type] || type || 'Bug';
   };
 
-  const assigneeFilterOptions = [
-    { value: 'all', label: 'Assignee' },
-    ...assignableUsers.map((assignableUser) => ({
-      value: String(assignableUser.id),
-      label: assignableUser.username || assignableUser.email,
-    })),
-  ];
-  const selectedAssigneeOption =
-    assigneeFilterOptions.find((option) => option.value === assigneeFilter) || assigneeFilterOptions[0];
-  const selectedAssigneeUser =
-    assignableUsers.find((assignableUser) => String(assignableUser.id) === assigneeFilter) || null;
+  const selectedAssigneeUsers = assignableUsers.filter((assignableUser) =>
+    assigneeFilters.includes(String(assignableUser.id))
+  );
+  const selectedAssigneeSummaryLabel =
+    selectedAssigneeUsers.length === 0
+      ? 'Assignee'
+      : selectedAssigneeUsers.length === 1
+        ? getUserDisplayName(selectedAssigneeUsers[0])
+        : `${selectedAssigneeUsers.length} assignees selected`;
   const filteredAssigneeUsers = useMemo(() => {
     const normalizedQuery = assigneeSearchQuery.trim().toLowerCase();
     if (!normalizedQuery) {
@@ -393,6 +431,9 @@ function Issues({
       return username.includes(normalizedQuery) || email.includes(normalizedQuery);
     });
   }, [assignableUsers, assigneeSearchQuery]);
+  const assigneeRowHoverClass = isDarkMode ? 'hover:bg-[#151515]' : 'hover:bg-gray-50';
+  const assigneeRowSelectedClass = isDarkMode ? 'bg-[#1f1f1f]' : 'bg-blue-50';
+  const assigneeSecondaryTextClass = isDarkMode ? 'text-gray-300' : 'text-gray-500';
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -421,9 +462,9 @@ function Issues({
         {/* Content */}
         <div className="p-8">
           {/* Filters and Search */}
-          <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex flex-1 flex-wrap items-center gap-3">
-              <div className="min-w-[280px] flex-1">
+          <div className="mb-4">
+            <div className="grid grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)_auto] items-center gap-3">
+              <div className="min-w-0">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                   <input
@@ -431,7 +472,7 @@ function Issues({
                     placeholder="Search issues..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-10 pr-4 text-sm shadow-sm transition-colors focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="h-11 w-full rounded-xl border border-gray-300 bg-white pl-10 pr-4 text-sm shadow-sm transition-colors focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -451,46 +492,46 @@ function Issues({
                 options={TYPE_FILTER_OPTIONS}
                 onChange={setTypeFilter}
               />
+
               <button
                 type="button"
                 onClick={() => setShowAssigneeModal(true)}
                 disabled={assignableUsersLoading}
-                className="inline-flex min-w-[180px] items-center justify-between gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-11 min-w-0 w-full items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <div className="flex min-w-0 items-center gap-2">
-                  {selectedAssigneeUser ? (
+                  {selectedAssigneeUsers.length === 1 ? (
                     <div className="h-6 w-6 overflow-hidden rounded-full border border-gray-200 bg-gray-100">
                       <img
-                        src={getUserAvatarUrl(selectedAssigneeUser)}
-                        alt={`${getUserDisplayName(selectedAssigneeUser)} avatar`}
+                        src={getUserAvatarUrl(selectedAssigneeUsers[0])}
+                        alt={`${getUserDisplayName(selectedAssigneeUsers[0])} avatar`}
                         className="h-full w-full object-cover"
                         loading="lazy"
                         referrerPolicy="no-referrer"
                       />
+                    </div>
+                  ) : selectedAssigneeUsers.length > 1 ? (
+                    <div className="flex h-6 min-w-6 items-center justify-center rounded-full bg-blue-100 px-1.5 text-[11px] font-semibold text-blue-800">
+                      {selectedAssigneeUsers.length}
                     </div>
                   ) : (
                     <div className="flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-[11px] font-semibold text-gray-500">
                       All
                     </div>
                   )}
-                  <span className="truncate">{selectedAssigneeOption?.label || 'Assignee'}</span>
+                  <span className="truncate">{selectedAssigneeSummaryLabel}</span>
                 </div>
-                {assignableUsersLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-gray-500" />
-                )}
+                {assignableUsersLoading && <Loader2 className="h-4 w-4 animate-spin text-gray-500" />}
+              </button>
+
+              <button
+                onClick={onCreateIssue}
+                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-blue-600 px-4 font-medium text-white transition-colors hover:bg-blue-700 xl:px-6"
+              >
+                <Plus size={20} />
+                <span>New Issue</span>
               </button>
             </div>
-
-            {/* New Issue Button */}
-            <button
-              onClick={onCreateIssue}
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 font-medium text-white transition-colors hover:bg-blue-700"
-            >
-              <Plus size={20} />
-              New Issue
-            </button>
           </div>
 
           <div className="mb-2 min-h-[20px]">
@@ -516,7 +557,7 @@ function Issues({
                 onClick={(event) => event.stopPropagation()}
               >
                 <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
-                  <h2 className="text-lg font-semibold text-gray-900">Select assignee</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Select assignees</h2>
                   <button
                     type="button"
                     onClick={() => setShowAssigneeModal(false)}
@@ -538,15 +579,12 @@ function Issues({
                     />
                   </div>
 
-                  <div className="max-h-80 overflow-y-auto rounded-xl border border-gray-200">
+                  <div className="stable-scroll max-h-80 overflow-y-auto rounded-xl border border-gray-200">
                     <button
                       type="button"
-                      onClick={() => {
-                        setAssigneeFilter('all');
-                        setShowAssigneeModal(false);
-                      }}
-                      className={`flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-gray-50 ${
-                        assigneeFilter === 'all' ? 'bg-blue-50' : ''
+                      onClick={() => setPendingAssigneeFilters([])}
+                      className={`flex w-full items-center justify-between px-4 py-3 text-left transition-colors ${assigneeRowHoverClass} ${
+                        pendingAssigneeFilters.length === 0 ? assigneeRowSelectedClass : ''
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -555,10 +593,10 @@ function Issues({
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900">All assignees</p>
-                          <p className="text-xs text-gray-500">No assignee filter applied</p>
+                          <p className={`text-xs ${assigneeSecondaryTextClass}`}>No assignee filter applied</p>
                         </div>
                       </div>
-                      {assigneeFilter === 'all' && <Check className="h-4 w-4 text-blue-600" />}
+                      {pendingAssigneeFilters.length === 0 && <Check className="h-4 w-4 text-blue-600" />}
                     </button>
 
                     {filteredAssigneeUsers.length === 0 ? (
@@ -566,7 +604,7 @@ function Issues({
                     ) : (
                       filteredAssigneeUsers.map((assignableUser) => {
                         const optionValue = String(assignableUser.id);
-                        const isSelected = assigneeFilter === optionValue;
+                        const isSelected = pendingAssigneeFilters.includes(optionValue);
                         const displayName = getUserDisplayName(assignableUser);
 
                         return (
@@ -574,11 +612,14 @@ function Issues({
                             key={assignableUser.id}
                             type="button"
                             onClick={() => {
-                              setAssigneeFilter(optionValue);
-                              setShowAssigneeModal(false);
+                              setPendingAssigneeFilters((currentFilters) =>
+                                currentFilters.includes(optionValue)
+                                  ? currentFilters.filter((id) => id !== optionValue)
+                                  : [...currentFilters, optionValue]
+                              );
                             }}
-                            className={`flex w-full items-center justify-between border-t border-gray-100 px-4 py-3 text-left transition-colors hover:bg-gray-50 ${
-                              isSelected ? 'bg-blue-50' : ''
+                            className={`flex w-full items-center justify-between border-t border-gray-100 px-4 py-3 text-left transition-colors ${assigneeRowHoverClass} ${
+                              isSelected ? assigneeRowSelectedClass : ''
                             }`}
                           >
                             <div className="flex min-w-0 items-center gap-3">
@@ -594,7 +635,7 @@ function Issues({
                               <div className="min-w-0">
                                 <p className="truncate text-sm font-medium text-gray-900">{displayName}</p>
                                 {assignableUser.username && assignableUser.email && (
-                                  <p className="truncate text-xs text-gray-500">{assignableUser.email}</p>
+                                  <p className={`truncate text-xs ${assigneeSecondaryTextClass}`}>{assignableUser.email}</p>
                                 )}
                               </div>
                             </div>
@@ -606,14 +647,36 @@ function Issues({
                   </div>
                 </div>
 
-                <div className="flex justify-end border-t border-gray-200 px-5 py-3">
+                <div className="flex items-center justify-between gap-3 border-t border-gray-200 px-5 py-3">
                   <button
                     type="button"
-                    onClick={() => setShowAssigneeModal(false)}
+                    onClick={() => setPendingAssigneeFilters([])}
                     className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
                   >
-                    Close
+                    Clear
                   </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowAssigneeModal(false)}
+                      className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const normalizedSelection = assignableUsers
+                          .map((assignableUser) => String(assignableUser.id))
+                          .filter((id) => pendingAssigneeFilters.includes(id));
+                        setAssigneeFilters(normalizedSelection);
+                        setShowAssigneeModal(false);
+                      }}
+                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                    >
+                      Apply
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
