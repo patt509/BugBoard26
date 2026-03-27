@@ -16,6 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import static org.mockito.ArgumentMatchers.any;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.mock;
@@ -201,6 +202,70 @@ public class AuthServiceTest {
       assertNotNull("PostCond failed: tempPassword should not be null", tempPassword);
       verify(userRepository).existsByEmail("new.user@test.com");
       verify(userRepository).save(any(User.class));
+   }
+
+   /**
+    * TC12: Success scenario - Admin provides a custom password.
+    * Expected Output: the same provided password (not generated temporary one).
+    * PostConditions: User is saved with hashed password.
+    */
+   @Test
+   public void testCreateUser_TC12_CustomPasswordProvided() {
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+      when(userRepository.existsByEmail("custom@test.com")).thenReturn(false);
+
+      String effectivePassword = authService.createUser("custom@test.com", USER, 1L, "CustomPass123");
+
+      assertEquals("PostCond failed: should return provided custom password", "CustomPass123", effectivePassword);
+      ArgumentCaptor<User> savedUserCaptor = ArgumentCaptor.forClass(User.class);
+      verify(userRepository).save(savedUserCaptor.capture());
+      User savedUser = savedUserCaptor.getValue();
+      assertEquals("PostCond failed: persisted email should match", "custom@test.com", savedUser.getEmail());
+      assertNotEquals("PostCond failed: persisted password must be hashed", "CustomPass123", savedUser.getPassword());
+      assertTrue("PostCond failed: password hash should validate against raw password",
+            PasswordHasher.verify("CustomPass123", savedUser.getPassword()));
+   }
+
+   /**
+    * TC13: Failure scenario - Admin provides blank password.
+    * Expected Output: IllegalArgumentException.
+    * PostConditions: No changes to the database.
+    */
+   @Test
+   public void testCreateUser_TC13_BlankCustomPassword() {
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+      when(userRepository.existsByEmail("blank@test.com")).thenReturn(false);
+
+      try {
+         authService.createUser("blank@test.com", USER, 1L, "   ");
+         fail("Expected IllegalArgumentException");
+      } catch (IllegalArgumentException e) {
+         assertEquals("PostCond failed: message should explain invalid blank password", "Password is required.",
+               e.getMessage());
+      }
+
+      verify(userRepository, never()).save(any(User.class));
+   }
+
+   /**
+    * TC14: Failure scenario - Admin provides short custom password.
+    * Expected Output: IllegalArgumentException.
+    * PostConditions: No changes to the database.
+    */
+   @Test
+   public void testCreateUser_TC14_ShortCustomPassword() {
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+      when(userRepository.existsByEmail("short@test.com")).thenReturn(false);
+
+      try {
+         authService.createUser("short@test.com", USER, 1L, "short");
+         fail("Expected IllegalArgumentException");
+      } catch (IllegalArgumentException e) {
+         assertEquals("PostCond failed: message should enforce minimum length",
+               "Password must be at least 8 characters long.", e.getMessage());
+      }
+
+      verify(userRepository, never()).save(any(User.class));
    }
 
    /* _________________________________________________________________________ */
