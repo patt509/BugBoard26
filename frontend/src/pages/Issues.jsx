@@ -187,14 +187,14 @@ function Issues({
 
   const getStatusBadgeClass = (status) => {
     const classes = {
-      'TODO': 'bg-green-100 text-green-700',
-      'Open': 'bg-green-100 text-green-700',
-      'IN_PROGRESS': 'bg-blue-100 text-blue-700',
-      'In Progress': 'bg-blue-100 text-blue-700',
-      'RESOLVED': 'bg-purple-100 text-purple-700',
-      'Resolved': 'bg-purple-100 text-purple-700',
-      'CLOSED': 'bg-red-100 text-red-700',
-      'Closed': 'bg-red-100 text-red-700',
+      'TODO': 'bg-green-200 text-green-900',
+      'Open': 'bg-green-200 text-green-900',
+      'IN_PROGRESS': 'bg-blue-200 text-blue-900',
+      'In Progress': 'bg-blue-200 text-blue-900',
+      'RESOLVED': 'bg-purple-200 text-purple-900',
+      'Resolved': 'bg-purple-200 text-purple-900',
+      'CLOSED': 'bg-red-200 text-red-900',
+      'Closed': 'bg-red-200 text-red-900',
     };
     return classes[status] || 'bg-gray-100 text-gray-700';
   };
@@ -211,14 +211,14 @@ function Issues({
 
   const getPriorityBadgeClass = (priority) => {
     const classes = {
-      'CRITICAL': 'bg-red-500 text-white',
-      'Critical': 'bg-red-500 text-white',
-      'HIGH': 'bg-red-100 text-red-700',
-      'High': 'bg-red-100 text-red-700',
-      'MEDIUM': 'bg-yellow-100 text-yellow-700',
-      'Medium': 'bg-yellow-100 text-yellow-700',
-      'LOW': 'bg-green-100 text-green-700',
-      'Low': 'bg-green-100 text-green-700',
+      'CRITICAL': 'bg-red-700 text-white',
+      'Critical': 'bg-red-700 text-white',
+      'HIGH': 'bg-red-200 text-red-900',
+      'High': 'bg-red-200 text-red-900',
+      'MEDIUM': 'bg-yellow-200 text-yellow-900',
+      'Medium': 'bg-yellow-200 text-yellow-900',
+      'LOW': 'bg-green-200 text-green-900',
+      'Low': 'bg-green-200 text-green-900',
     };
     return classes[priority] || 'bg-gray-100 text-gray-700';
   };

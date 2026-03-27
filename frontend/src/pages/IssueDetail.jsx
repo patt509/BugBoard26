@@ -384,10 +384,10 @@ function IssueDetail({
 
   const getStatusColor = (status) => {
     const colors = {
-      'TODO': 'bg-green-100 text-green-800',
-      'IN_PROGRESS': 'bg-blue-100 text-blue-800',
-      'RESOLVED': 'bg-purple-100 text-purple-800',
-      'CLOSED': 'bg-red-100 text-red-800',
+      'TODO': 'bg-green-200 text-green-900',
+      'IN_PROGRESS': 'bg-blue-200 text-blue-900',
+      'RESOLVED': 'bg-purple-200 text-purple-900',
+      'CLOSED': 'bg-red-200 text-red-900',
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
@@ -404,10 +404,10 @@ function IssueDetail({
 
   const getPriorityColor = (priority) => {
     const colors = {
-      'CRITICAL': 'bg-red-600 text-white',
-      'HIGH': 'bg-red-500 text-white',
-      'MEDIUM': 'bg-yellow-500 text-white',
-      'LOW': 'bg-green-500 text-white',
+      'CRITICAL': 'bg-red-700 text-white',
+      'HIGH': 'bg-red-200 text-red-900',
+      'MEDIUM': 'bg-yellow-200 text-yellow-900',
+      'LOW': 'bg-green-200 text-green-900',
     };
     return colors[priority] || 'bg-gray-500 text-white';
   };
