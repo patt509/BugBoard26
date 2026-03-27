@@ -14,9 +14,57 @@ body {
   min-height: 100vh;
 }
 
+.issue-row-default {
+  background-color: #ffffff;
+}
+
+.issue-row-default:hover {
+  background-color: #f1f5f9;
+}
+
+.issue-row-resolved {
+  background-color: #e0e7ff;
+}
+
+.issue-row-resolved:hover {
+  background-color: #c7d2fe;
+}
+
+.issue-row-closed {
+  background-color: #cbd5e1;
+}
+
+.issue-row-closed:hover {
+  background-color: #94a3b8;
+}
+
 html.dark body {
   background-color: #000000;
   color: #f5f5f5;
+}
+
+html.dark .issue-row-default {
+  background-color: #0a0a0a !important;
+}
+
+html.dark .issue-row-default:hover {
+  background-color: #1a1a1a !important;
+}
+
+html.dark .issue-row-resolved {
+  background-color: #1f2240 !important;
+}
+
+html.dark .issue-row-resolved:hover {
+  background-color: #31376a !important;
+}
+
+html.dark .issue-row-closed {
+  background-color: #3b1024 !important;
+}
+
+html.dark .issue-row-closed:hover {
+  background-color: #5c1638 !important;
 }
 
 html.dark .bg-gray-50 {

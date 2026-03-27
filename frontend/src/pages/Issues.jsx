@@ -415,10 +415,10 @@ function Issues({
                     const isResolvedIssue = issue.status === 'RESOLVED';
                     const isCompletedIssue = isClosedIssue || isResolvedIssue;
                     const rowClassName = isClosedIssue
-                      ? 'bg-slate-300 hover:bg-slate-400'
+                      ? 'issue-row-closed'
                       : isResolvedIssue
-                        ? 'bg-indigo-100 hover:bg-indigo-200'
-                        : 'bg-white hover:bg-slate-100';
+                        ? 'issue-row-resolved'
+                        : 'issue-row-default';
 
                     return (
                       <tr 
