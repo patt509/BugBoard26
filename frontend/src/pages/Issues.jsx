@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Plus, CheckCircle, X } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import ThemeToggle from '../components/ThemeToggle';
+import UserIdentity from '../components/UserIdentity';
 import { issueService } from '../services/issue.service';
 import { authService } from '../services/auth.service';
 
@@ -256,9 +257,7 @@ function Issues({
             </div>
             <div className="flex items-center gap-3">
               <ThemeToggle isDarkMode={isDarkMode} onToggle={onToggleTheme} />
-              <span className="hidden text-sm text-gray-600 md:inline">
-                {user.username || user.email}
-              </span>
+              <UserIdentity user={user} />
               <button
                 onClick={onLogout}
                 className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"

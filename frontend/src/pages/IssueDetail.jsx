@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ArrowLeft, Download, Flag, Edit, ChevronDown, Send, AlertCircle, X, CheckCircle, Search, Upload, Paperclip } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import ThemeToggle from '../components/ThemeToggle';
+import UserIdentity from '../components/UserIdentity';
 import { issueService } from '../services/issue.service';
 import { commentService } from '../services/comment.service';
 import { attachmentService } from '../services/attachment.service';
@@ -589,9 +590,7 @@ function IssueDetail({
             </div>
             <div className="flex items-center gap-3">
               <ThemeToggle isDarkMode={isDarkMode} onToggle={onToggleTheme} />
-              <span className="hidden text-sm text-gray-600 md:inline">
-                {user?.username || user?.email}
-              </span>
+              <UserIdentity user={user} />
               <button
                 onClick={onLogout}
                 className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
