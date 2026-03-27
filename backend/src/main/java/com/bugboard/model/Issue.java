@@ -20,6 +20,8 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "issues")
 public class Issue {
+   private static final IssueStateMachine STATE_MACHINE = IssueStateMachine.defaultMachine();
+
    // 1. ATTRIBUTES
    @Id
    @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -132,18 +134,16 @@ public class Issue {
    }
 
    public void setStatus(IssueStatus status) {
-      // If the status is being set to CLOSED or RESOLVED, we should record the closing time
-      // RESOLVED is also considered closed because a resolved issue is essentially closed
-      if ((status == IssueStatus.CLOSED || status == IssueStatus.RESOLVED) 
-          && this.status != IssueStatus.CLOSED && this.status != IssueStatus.RESOLVED) {
-         this.closedAt = LocalDateTime.now();
-      }
-      // If the issue is being reopened (back to TODO or IN_PROGRESS), clear the closedAt timestamp
-      else if (status != IssueStatus.CLOSED && status != IssueStatus.RESOLVED) {
-         this.closedAt = null;
-      }
-      this.status = status;
+      STATE_MACHINE.transition(this, status);
       this.updatedAt = LocalDateTime.now();
+   }
+
+   void setStatusInternal(IssueStatus status) {
+      this.status = status;
+   }
+
+   void setClosedAtInternal(LocalDateTime closedAt) {
+      this.closedAt = closedAt;
    }
 
    public IssueType getType() {

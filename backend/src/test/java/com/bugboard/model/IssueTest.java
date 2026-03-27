@@ -230,6 +230,37 @@ public class IssueTest {
       assertNull("PostCond failed: closedAt should remain null", issue.getClosedAt());
    }
 
+   /**
+    * TC15b: Transition from TODO to RESOLVED sets closedAt.
+    */
+   @Test
+   public void testSetStatus_TC15b_TodoToResolvedSetsClosedAt() {
+      Issue issue = new Issue("Valid title for issue", "Desc", reporter, IssueType.BUG);
+
+      issue.setStatus(IssueStatus.RESOLVED);
+
+      assertEquals("PostCond failed: status should be RESOLVED", IssueStatus.RESOLVED, issue.getStatus());
+      assertNotNull("PostCond failed: closedAt should be set", issue.getClosedAt());
+   }
+
+   /**
+    * TC15c: Transition from RESOLVED to CLOSED preserves closedAt.
+    */
+   @Test
+   public void testSetStatus_TC15c_ResolvedToClosedKeepsClosedAt() {
+      Issue issue = new Issue("Valid title for issue", "Desc", reporter, IssueType.BUG);
+      issue.setStatus(IssueStatus.RESOLVED);
+      var resolvedAt = issue.getClosedAt();
+      assertNotNull("PostCond failed: closedAt should be set", resolvedAt);
+
+      issue.setStatus(IssueStatus.CLOSED);
+
+      assertEquals("PostCond failed: status should be CLOSED", IssueStatus.CLOSED, issue.getStatus());
+      assertNotNull("PostCond failed: closedAt should remain set", issue.getClosedAt());
+      assertEquals("PostCond failed: closedAt should stay unchanged for closed-like transitions",
+            resolvedAt, issue.getClosedAt());
+   }
+
    // ==================== setType TESTS ====================
 
    /**
