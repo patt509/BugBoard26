@@ -133,7 +133,7 @@ Questa sezione e' allineata al documento \textbf{Design patterns.pdf} (categorie
     Strutturale & Adapter & Non applicato esplicitamente & Le conversioni request/response sono gestite nei service/DTO senza una classe adapter dedicata. \\ \hline
     Strutturale & Decorator & Non applicato esplicitamente & Non sono presenti gerarchie di decorator runtime per estendere responsabilita' di oggetti dominio. \\ \hline
     Comportamentale & Observer & Non applicato esplicitamente & Non e' presente una gerarchia Subject/Observer dedicata nel dominio backend. \\ \hline
-    Comportamentale & State & Parziale (non GoF completo) & Stato issue modellato con \texttt{IssueStatus} + regole dominio, senza classi stato polimorfiche. \\ \hline
+    Comportamentale & State & Applicato & Macchina a stati del dominio issue con \texttt{IssueStateMachine}, interfaccia \texttt{IssueState} e stati concreti (\texttt{Todo/InProgress/Resolved/ClosedIssueState}). \\ \hline
     Moderno & Dependency Injection (IoC) & Applicato & Uso di \texttt{@Inject}/\texttt{@ApplicationScoped} (controller, service, repository) e test con mock injection. \\ \hline
 \end{tabularx}
 
