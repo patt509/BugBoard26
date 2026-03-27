@@ -99,7 +99,6 @@ function IssueDetail({
   onToggleTheme
 }) {
   const currentPage = 'issues';
-  const isAdmin = user?.role === 'ADMIN';
   const [issue, setIssue] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
@@ -310,11 +309,6 @@ function IssueDetail({
 
   // Handle Flag as Duplicate button click
   const handleFlagDuplicateClick = async () => {
-    if (!isAdmin) {
-      setError('Only administrators can mark issues as duplicate.');
-      return;
-    }
-
     try {
       let otherIssues = duplicateCandidatesCacheRef.current;
       if (!otherIssues) {
@@ -342,10 +336,6 @@ function IssueDetail({
   // Handle confirm flag as duplicate
   const handleConfirmDuplicate = async () => {
     if (!selectedOriginalIssue) return;
-    if (!isAdmin) {
-      setError('Only administrators can mark issues as duplicate.');
-      return;
-    }
     if (currentUserId == null) {
       setError('User not authenticated. Please login again.');
       return;
@@ -382,6 +372,8 @@ function IssueDetail({
       `#${candidateIssue.id}`.includes(duplicateSearchQuery)
     );
   }, [allIssues, duplicateSearchQuery]);
+  const duplicateRowHoverClass = isDarkMode ? 'hover:bg-[#151515]' : 'hover:bg-gray-50';
+  const duplicateRowSelectedClass = isDarkMode ? 'bg-[#1f1f1f]' : 'bg-blue-50';
 
   const getStatusColor = (status) => {
     const colors = {
@@ -608,26 +600,24 @@ function IssueDetail({
             <div className="flex-1">
               {/* Action Buttons */}
               <div className="flex items-center gap-3 mb-6">
-                {isAdmin && (
-                  <button 
-                    onClick={handleFlagDuplicateClick}
-                    disabled={
-                      issue?.status === 'CLOSED' ||
-                      issue?.status === 'RESOLVED' ||
-                      issue?.type !== 'BUG'
-                    }
-                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Flag className="w-4 h-4" />
-                    Flag as Duplicate
-                  </button>
-                )}
                 <button 
                   onClick={handleEditClick}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   <Edit className="w-4 h-4" />
                   Edit Issue
+                </button>
+                <button 
+                  onClick={handleFlagDuplicateClick}
+                  disabled={
+                    issue?.status === 'CLOSED' ||
+                    issue?.status === 'RESOLVED' ||
+                    issue?.type !== 'BUG'
+                  }
+                  className="flex items-center gap-2 rounded-lg border border-gray-300 bg-transparent px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Flag className="w-4 h-4" />
+                  Flag as Duplicate
                 </button>
                 
                 {/* Status Dropdown */}
@@ -1028,8 +1018,8 @@ function IssueDetail({
                       <button
                         key={otherIssue.id}
                         onClick={() => setSelectedOriginalIssue(otherIssue)}
-                        className={`w-full text-left px-4 py-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors ${
-                          selectedOriginalIssue?.id === otherIssue.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                        className={`w-full text-left px-4 py-3 border-b border-gray-100 last:border-b-0 transition-colors ${duplicateRowHoverClass} ${
+                          selectedOriginalIssue?.id === otherIssue.id ? duplicateRowSelectedClass : ''
                         }`}
                       >
                         <span className="font-medium text-gray-900">

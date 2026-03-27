@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { X, Upload, AlertTriangle } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { X, Upload, AlertTriangle, ChevronDown, Check, Loader2, Search } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import ThemeToggle from '../components/ThemeToggle';
 import UserIdentity from '../components/UserIdentity';
@@ -24,11 +24,21 @@ const normalizeIssueType = (value) => {
 };
 
 const ISSUE_TYPE_OPTIONS = [
-   { value: 'BUG', label: 'Bug' },
-   { value: 'FEATURE', label: 'Feature' },
-   { value: 'DOCUMENTATION', label: 'Documentation' },
-   { value: 'QUESTION', label: 'Question' }
+   { value: 'BUG', label: 'Bug', badgeClass: 'bg-rose-200 text-rose-900' },
+   { value: 'FEATURE', label: 'Feature', badgeClass: 'bg-emerald-200 text-emerald-900' },
+   { value: 'DOCUMENTATION', label: 'Documentation', badgeClass: 'bg-sky-200 text-sky-900' },
+   { value: 'QUESTION', label: 'Question', badgeClass: 'bg-amber-200 text-amber-900' }
 ];
+
+const PRIORITY_OPTIONS = [
+   { value: 'HIGH', label: 'High', badgeClass: 'bg-red-200 text-red-900' },
+   { value: 'MEDIUM', label: 'Medium', badgeClass: 'bg-yellow-200 text-yellow-900' },
+   { value: 'LOW', label: 'Low', badgeClass: 'bg-green-200 text-green-900' },
+   { value: 'CRITICAL', label: 'Critical', badgeClass: 'bg-red-700 text-white' },
+];
+
+const BADGE_BASE_CLASS = 'inline-flex rounded-full px-2.5 py-1 text-xs font-medium';
+const DICEBEAR_BASE_URL = 'https://api.dicebear.com/9.x/glass/svg';
 
 const resolveCurrentUserId = (user) => {
    if (user?.id != null) {
@@ -54,6 +64,88 @@ const resolveCurrentUserId = (user) => {
    }
 };
 
+const getUserDisplayName = (targetUser) => targetUser?.username || targetUser?.email || 'Unknown user';
+
+const getUserAvatarUrl = (targetUser) => {
+   const seed = encodeURIComponent(`${getUserDisplayName(targetUser)}-${targetUser?.id ?? 'unknown'}`);
+   return `${DICEBEAR_BASE_URL}?seed=${seed}&radius=50&size=64`;
+};
+
+function FormDropdown({
+   value,
+   options,
+   onChange,
+   disabled = false,
+   loading = false,
+   placeholder = 'Select',
+}) {
+   const [open, setOpen] = useState(false);
+   const rootRef = useRef(null);
+   const selectedOption = options.find((option) => option.value === value) || null;
+
+   useEffect(() => {
+      if (!open) {
+         return undefined;
+      }
+
+      const handleOutsideClick = (event) => {
+         if (rootRef.current && !rootRef.current.contains(event.target)) {
+            setOpen(false);
+         }
+      };
+
+      document.addEventListener('mousedown', handleOutsideClick);
+      return () => document.removeEventListener('mousedown', handleOutsideClick);
+   }, [open]);
+
+   return (
+      <div ref={rootRef} className="relative min-w-0">
+         <button
+            type="button"
+            onClick={() => !disabled && setOpen((prev) => !prev)}
+            disabled={disabled}
+            className="inline-flex h-12 w-full items-center justify-between gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+         >
+            {selectedOption?.badgeClass ? (
+               <span className={`${BADGE_BASE_CLASS} max-w-[160px] truncate ${selectedOption.badgeClass}`}>
+                  {selectedOption.label}
+               </span>
+            ) : (
+               <span className="truncate text-left">{selectedOption?.label || placeholder}</span>
+            )}
+            {loading ? (
+               <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+            ) : (
+               <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+            )}
+         </button>
+
+         {open && !disabled && (
+            <div className="absolute left-0 top-[calc(100%+8px)] z-20 w-full rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl">
+               {options.map((option) => (
+                  <button
+                     key={String(option.value)}
+                     type="button"
+                     onClick={() => {
+                        onChange(option.value);
+                        setOpen(false);
+                     }}
+                     className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                  >
+                     {option.badgeClass ? (
+                        <span className={`${BADGE_BASE_CLASS} ${option.badgeClass}`}>{option.label}</span>
+                     ) : (
+                        <span className="truncate">{option.label}</span>
+                     )}
+                     {value === option.value && <Check className="h-4 w-4 text-blue-600" />}
+                  </button>
+               ))}
+            </div>
+         )}
+      </div>
+   );
+}
+
 function CreateIssue({
    user,
    onLogout,
@@ -76,6 +168,9 @@ function CreateIssue({
    const [assignableUsers, setAssignableUsers] = useState([]);
    const [assignableUsersLoading, setAssignableUsersLoading] = useState(false);
    const [assignableUsersError, setAssignableUsersError] = useState(null);
+   const [showAssigneeModal, setShowAssigneeModal] = useState(false);
+   const [assigneeSearchQuery, setAssigneeSearchQuery] = useState('');
+   const [pendingAssigneeId, setPendingAssigneeId] = useState('');
    const [attachments, setAttachments] = useState([]);
    const [loading, setLoading] = useState(false);
    const [error, setError] = useState(null);
@@ -146,6 +241,28 @@ function CreateIssue({
    }, [user]);
 
    useEffect(() => {
+      if (showAssigneeModal) {
+         setPendingAssigneeId(formData.assigneeId || '');
+         setAssigneeSearchQuery('');
+      }
+   }, [formData.assigneeId, showAssigneeModal]);
+
+   useEffect(() => {
+      if (!showAssigneeModal) {
+         return undefined;
+      }
+
+      const handleEscapeKey = (event) => {
+         if (event.key === 'Escape') {
+            setShowAssigneeModal(false);
+         }
+      };
+
+      document.addEventListener('keydown', handleEscapeKey);
+      return () => document.removeEventListener('keydown', handleEscapeKey);
+   }, [showAssigneeModal]);
+
+   useEffect(() => {
       if (!editingIssue || formData.assigneeId || assignableUsers.length === 0) {
          return;
       }
@@ -179,6 +296,32 @@ function CreateIssue({
          }
       }
    };
+
+   const handleSelectFieldChange = (fieldName, fieldValue) => {
+      setFormData((prev) => ({ ...prev, [fieldName]: fieldValue }));
+   };
+
+   const selectedAssigneeUser = assignableUsers.find(
+      (assignableUser) => String(assignableUser.id) === formData.assigneeId
+   ) || null;
+   const selectedAssigneeLabel = selectedAssigneeUser
+      ? getUserDisplayName(selectedAssigneeUser)
+      : 'Unassigned';
+   const filteredAssigneeUsers = useMemo(() => {
+      const normalizedQuery = assigneeSearchQuery.trim().toLowerCase();
+      if (!normalizedQuery) {
+         return assignableUsers;
+      }
+
+      return assignableUsers.filter((assignableUser) => {
+         const username = (assignableUser.username || '').toLowerCase();
+         const email = (assignableUser.email || '').toLowerCase();
+         return username.includes(normalizedQuery) || email.includes(normalizedQuery);
+      });
+   }, [assigneeSearchQuery, assignableUsers]);
+   const assigneeRowHoverClass = isDarkMode ? 'hover:bg-[#151515]' : 'hover:bg-gray-50';
+   const assigneeRowSelectedClass = isDarkMode ? 'bg-[#1f1f1f]' : 'bg-blue-50';
+   const assigneeSecondaryTextClass = isDarkMode ? 'text-gray-300' : 'text-gray-500';
 
 const handleFileUpload = (e) => {
    setError(null);
@@ -394,20 +537,12 @@ return (
                      <label htmlFor="type" className="block text-sm font-medium text-gray-900 mb-2">
                         Type<span className="text-red-500">*</span>
                      </label>
-                     <select
-                        id="type"
-                        name="type"
+                     <FormDropdown
                         value={formData.type}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white appearance-none"
-                        required
-                     >
-                        {ISSUE_TYPE_OPTIONS.map((option) => (
-                           <option key={option.value} value={option.value}>
-                              {option.label}
-                           </option>
-                        ))}
-                     </select>
+                        options={ISSUE_TYPE_OPTIONS}
+                        onChange={(value) => handleSelectFieldChange('type', value)}
+                        placeholder="Type"
+                     />
                   </div>
 
                   {/* Priority */}
@@ -415,43 +550,49 @@ return (
                      <label htmlFor="priority" className="block text-sm font-medium text-gray-900 mb-2">
                         Priority<span className="text-red-500">*</span>
                      </label>
-                     <select
-                        id="priority"
-                        name="priority"
+                     <FormDropdown
                         value={formData.priority}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white appearance-none"
-                        required
-                     >
-                        <option value="HIGH">High</option>
-                        <option value="MEDIUM">Medium</option>
-                        <option value="LOW">Low</option>
-                        <option value="CRITICAL">Critical</option>
-                     </select>
+                        options={PRIORITY_OPTIONS}
+                        onChange={(value) => handleSelectFieldChange('priority', value)}
+                        placeholder="Priority"
+                     />
                   </div>
 
                   {/* Assignee */}
                   <div>
-                     <label htmlFor="assigneeId" className="block text-sm font-medium text-gray-900 mb-2">
+                     <label className="block text-sm font-medium text-gray-900 mb-2">
                         Assignee
                      </label>
-                     <select
-                        id="assigneeId"
-                        name="assigneeId"
-                        value={formData.assigneeId}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white appearance-none disabled:bg-gray-100"
+                     <button
+                        type="button"
+                        onClick={() => setShowAssigneeModal(true)}
                         disabled={assignableUsersLoading}
+                        className="inline-flex h-12 w-full items-center justify-between gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                      >
-                        <option value="">
-                           {assignableUsersLoading ? 'Loading users...' : 'Unassigned'}
-                        </option>
-                        {assignableUsers.map((assignableUser) => (
-                           <option key={assignableUser.id} value={assignableUser.id}>
-                              {assignableUser.username || assignableUser.email}
-                           </option>
-                        ))}
-                     </select>
+                        <div className="flex min-w-0 items-center gap-2">
+                           {selectedAssigneeUser ? (
+                              <div className="h-7 w-7 overflow-hidden rounded-full border border-gray-200 bg-gray-100">
+                                 <img
+                                    src={getUserAvatarUrl(selectedAssigneeUser)}
+                                    alt={`${selectedAssigneeLabel} avatar`}
+                                    className="h-full w-full object-cover"
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer"
+                                 />
+                              </div>
+                           ) : (
+                              <div className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-[11px] font-semibold text-gray-500">
+                                 All
+                              </div>
+                           )}
+                           <span className="truncate text-left">{selectedAssigneeLabel}</span>
+                        </div>
+                        {assignableUsersLoading ? (
+                           <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                        ) : (
+                           <ChevronDown className="h-4 w-4 text-gray-500" />
+                        )}
+                     </button>
                      {assignableUsersError && (
                         <p className="mt-1 text-xs text-red-600">{assignableUsersError}</p>
                      )}
@@ -555,8 +696,8 @@ return (
                )}
 
                {/* Action Buttons */}
-               <div className="flex justify-end gap-4 pt-4">
-                  <button
+	               <div className="flex justify-end gap-4 pt-4">
+	                  <button
                      type="button"
                      onClick={onCancel}
                      className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
@@ -569,15 +710,132 @@ return (
                      disabled={loading || titleError || fileError}
                      className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                     {loading 
-                        ? (isEditMode ? 'Updating...' : 'Creating...') 
-                        : (isEditMode ? 'Update Issue' : 'Create Issue')}
-                  </button>
-               </div>
-            </form>
-         </div>
-      </main>
-   </div>
+	                     {loading 
+	                        ? (isEditMode ? 'Updating...' : 'Creating...') 
+	                        : (isEditMode ? 'Update Issue' : 'Create Issue')}
+	                  </button>
+	               </div>
+	            </form>
+
+	            {showAssigneeModal && (
+	               <div
+	                  className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4"
+	                  onClick={() => setShowAssigneeModal(false)}
+	               >
+	                  <div
+	                     className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white shadow-xl"
+	                     onClick={(event) => event.stopPropagation()}
+	                  >
+	                     <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+	                        <h2 className="text-lg font-semibold text-gray-900">Select assignee</h2>
+	                        <button
+	                           type="button"
+	                           onClick={() => setShowAssigneeModal(false)}
+	                           className="rounded-lg p-1 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+	                        >
+	                           <X className="h-5 w-5" />
+	                        </button>
+	                     </div>
+
+	                     <div className="px-5 py-4">
+	                        <div className="relative mb-3">
+	                           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+	                           <input
+	                              type="text"
+	                              value={assigneeSearchQuery}
+	                              onChange={(event) => setAssigneeSearchQuery(event.target.value)}
+	                              placeholder="Search users..."
+	                              className="w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-9 pr-3 text-sm text-gray-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+	                           />
+	                        </div>
+
+	                        <div className="stable-scroll max-h-80 overflow-y-auto rounded-xl border border-gray-200">
+	                           <button
+	                              type="button"
+	                              onClick={() => setPendingAssigneeId('')}
+	                              className={`flex w-full items-center justify-between px-4 py-3 text-left transition-colors ${assigneeRowHoverClass} ${
+	                                 pendingAssigneeId === '' ? assigneeRowSelectedClass : ''
+	                              }`}
+	                           >
+	                              <div className="flex items-center gap-3">
+	                                 <div className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-xs font-semibold text-gray-600">
+	                                    All
+	                                 </div>
+	                                 <div>
+	                                    <p className="text-sm font-medium text-gray-900">Unassigned</p>
+	                                    <p className={`text-xs ${assigneeSecondaryTextClass}`}>No assignee selected</p>
+	                                 </div>
+	                              </div>
+	                              {pendingAssigneeId === '' && <Check className="h-4 w-4 text-blue-600" />}
+	                           </button>
+
+	                           {filteredAssigneeUsers.length === 0 ? (
+	                              <div className="px-4 py-6 text-center text-sm text-gray-500">No users found.</div>
+	                           ) : (
+	                              filteredAssigneeUsers.map((assignableUser) => {
+	                                 const optionValue = String(assignableUser.id);
+	                                 const isSelected = pendingAssigneeId === optionValue;
+	                                 const displayName = getUserDisplayName(assignableUser);
+
+	                                 return (
+	                                    <button
+	                                       key={assignableUser.id}
+	                                       type="button"
+	                                       onClick={() => setPendingAssigneeId(optionValue)}
+	                                       className={`flex w-full items-center justify-between border-t border-gray-100 px-4 py-3 text-left transition-colors ${assigneeRowHoverClass} ${
+	                                          isSelected ? assigneeRowSelectedClass : ''
+	                                       }`}
+	                                    >
+	                                       <div className="flex min-w-0 items-center gap-3">
+	                                          <div className="h-8 w-8 overflow-hidden rounded-full border border-gray-200 bg-gray-100">
+	                                             <img
+	                                                src={getUserAvatarUrl(assignableUser)}
+	                                                alt={`${displayName} avatar`}
+	                                                className="h-full w-full object-cover"
+	                                                loading="lazy"
+	                                                referrerPolicy="no-referrer"
+	                                             />
+	                                          </div>
+	                                          <div className="min-w-0">
+	                                             <p className="truncate text-sm font-medium text-gray-900">{displayName}</p>
+	                                             {assignableUser.username && assignableUser.email && (
+	                                                <p className={`truncate text-xs ${assigneeSecondaryTextClass}`}>{assignableUser.email}</p>
+	                                             )}
+	                                          </div>
+	                                       </div>
+	                                       {isSelected && <Check className="h-4 w-4 text-blue-600" />}
+	                                    </button>
+	                                 );
+	                              })
+	                           )}
+	                        </div>
+	                     </div>
+
+	                     <div className="flex items-center justify-end gap-3 border-t border-gray-200 px-5 py-3">
+	                        <button
+	                           type="button"
+	                           onClick={() => setShowAssigneeModal(false)}
+	                           className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+	                        >
+	                           Cancel
+	                        </button>
+	                        <button
+	                           type="button"
+	                           onClick={() => {
+	                              handleSelectFieldChange('assigneeId', pendingAssigneeId);
+	                              setShowAssigneeModal(false);
+	                           }}
+	                           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+	                        >
+	                           Apply
+	                        </button>
+	                     </div>
+	                  </div>
+	               </div>
+	            )}
+	         </div>
+	      </main>
+	   </div>
 );
 }
 
