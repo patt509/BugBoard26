@@ -111,6 +111,7 @@ function IssueDetail({
   const [commentAttachment, setCommentAttachment] = useState(null);
   const [commentAttachmentError, setCommentAttachmentError] = useState(null);
   const [attachInfo, setAttachInfo] = useState({ maxFileSizeMB: 5, allowedExtensions: ['.jpg', '.png'] });
+  const [previewAttachment, setPreviewAttachment] = useState(null);
   
   // Flag as Duplicate modal state
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -184,6 +185,21 @@ function IssueDetail({
     }
   }, [duplicateSuccess]);
 
+  useEffect(() => {
+    if (!previewAttachment) {
+      return undefined;
+    }
+
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape') {
+        setPreviewAttachment(null);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => document.removeEventListener('keydown', handleEscapeKey);
+  }, [previewAttachment]);
+
   const handleStatusChange = async (newStatus) => {
     try {
       await issueService.updateStatus(issueId, newStatus);
@@ -193,6 +209,13 @@ function IssueDetail({
       console.error('Error updating status:', err);
       setError(err.message || 'Failed to update status');
     }
+  };
+
+  const openAttachmentPreview = (source, name) => {
+    setPreviewAttachment({
+      source,
+      name: name || 'Attachment preview'
+    });
   };
 
   // Handle comment attachment selection
@@ -661,7 +684,11 @@ function IssueDetail({
                 <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">Attachments</h2>
                   <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => openAttachmentPreview(`/api/attachments/issues/${issue.id}`, issue.attachmentPath?.split('/').pop())}
+                      className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center overflow-hidden transition-transform hover:scale-[1.02]"
+                    >
                       <img
                         src={`/api/attachments/issues/${issue.id}`}
                         alt="Attachment preview"
@@ -671,18 +698,23 @@ function IssueDetail({
                           e.target.parentElement.innerHTML = '📎';
                         }}
                       />
-                    </div>
+                    </button>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">
+                      <button
+                        type="button"
+                        onClick={() => openAttachmentPreview(`/api/attachments/issues/${issue.id}`, issue.attachmentPath?.split('/').pop())}
+                        className="text-sm font-medium text-gray-900 hover:underline"
+                      >
                         {issue.attachmentPath.split('/').pop()}
-                      </p>
+                      </button>
                     </div>
                     <a
                       href={`/api/attachments/issues/${issue.id}`}
                       download
-                      className="p-2 hover:bg-gray-200 rounded transition-colors"
+                      className="group p-2 rounded transition-colors hover:bg-gray-200"
+                      title="Download attachment"
                     >
-                      <Download className="w-5 h-5 text-gray-600" />
+                      <Download className="w-5 h-5 text-gray-500 transition-colors group-hover:text-gray-900" />
                     </a>
                   </div>
                 </div>
@@ -725,7 +757,11 @@ function IssueDetail({
                           {/* Comment Attachment */}
                           {comment.attachmentPath && (
                             <div className="mt-2 flex items-center gap-2 p-2 bg-white/50 rounded border border-gray-200">
-                              <div className="w-10 h-10 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => openAttachmentPreview(`/api/attachments/comments/${comment.id}`, comment.attachmentPath?.split('/').pop())}
+                                className="w-10 h-10 bg-gray-100 rounded overflow-hidden flex-shrink-0 transition-transform hover:scale-[1.03]"
+                              >
                                 <img
                                   src={`/api/attachments/comments/${comment.id}`}
                                   alt="Attachment"
@@ -735,16 +771,21 @@ function IssueDetail({
                                     e.target.parentElement.innerHTML = '📎';
                                   }}
                                 />
-                              </div>
-                              <span className="text-xs text-gray-600 truncate flex-1">
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openAttachmentPreview(`/api/attachments/comments/${comment.id}`, comment.attachmentPath?.split('/').pop())}
+                                className="text-xs text-gray-600 truncate flex-1 text-left hover:underline"
+                              >
                                 {comment.attachmentPath.split('/').pop()}
-                              </span>
+                              </button>
                               <a
                                 href={`/api/attachments/comments/${comment.id}`}
                                 download
-                                className="p-1 hover:bg-gray-200 rounded transition-colors"
+                                className="group p-1 rounded transition-colors hover:bg-gray-200"
+                                title="Download attachment"
                               >
-                                <Download className="w-4 h-4 text-gray-500" />
+                                <Download className="w-4 h-4 text-gray-500 transition-colors group-hover:text-gray-900" />
                               </a>
                             </div>
                           )}
@@ -979,6 +1020,38 @@ function IssueDetail({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {previewAttachment && (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4"
+            onClick={() => setPreviewAttachment(null)}
+          >
+            <div
+              className="flex h-[min(80vh,620px)] w-[min(90vw,960px)] flex-col rounded-xl border border-gray-200 bg-white shadow-2xl"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+                <p className="truncate text-sm font-medium text-gray-900">{previewAttachment.name}</p>
+                <button
+                  type="button"
+                  onClick={() => setPreviewAttachment(null)}
+                  className="rounded-lg p-1 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="flex-1 bg-black p-3">
+                <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-md bg-black">
+                  <img
+                    src={previewAttachment.source}
+                    alt={previewAttachment.name}
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
