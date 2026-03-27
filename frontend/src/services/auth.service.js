@@ -131,11 +131,18 @@ export const authService = {
       throw new Error('User data is required.');
     }
 
+    const normalizedPassword = typeof userData.password === 'string'
+      ? userData.password.trim()
+      : '';
+
     const payload = {
       email: userData.email?.trim(),
-      password: userData.password,
       role: userData.role,
     };
+
+    if (normalizedPassword.length > 0) {
+      payload.password = normalizedPassword;
+    }
 
     return httpClient
       .post(API_ENDPOINTS.AUTH_ADMIN_USERS, payload, {

@@ -198,12 +198,16 @@ public class AuthResource {
          }
 
          String requestedPassword = request.getPassword();
-         boolean customPasswordProvided = requestedPassword != null && !requestedPassword.trim().isEmpty();
+         String normalizedPassword = requestedPassword != null ? requestedPassword.trim() : null;
+         if (normalizedPassword != null && normalizedPassword.isEmpty()) {
+            normalizedPassword = null;
+         }
+         boolean customPasswordProvided = normalizedPassword != null;
          String effectivePassword = authService.createUser(
                request.getEmail().trim(),
                role,
                adminId,
-               requestedPassword);
+               normalizedPassword);
 
          Map<String, Object> responsePayload = new HashMap<>();
          responsePayload.put("message", "User created successfully");

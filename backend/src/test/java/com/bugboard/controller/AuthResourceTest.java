@@ -83,20 +83,20 @@ public class AuthResourceTest {
    }
 
    /**
-    * TC3: blank custom password is rejected by service and mapped to 400.
+    * TC3: blank password is treated as omitted and temporaryPassword is returned.
     */
    @Test
    @SuppressWarnings("unchecked")
-   public void testCreateUser_TC3_BlankPassword_ReturnsBadRequest() {
+   public void testCreateUser_TC3_BlankPassword_TreatedAsOptional() {
       CreateUserRequest request = new CreateUserRequest("blank.user@test.com", "   ", "USER");
-      when(authService.createUser("blank.user@test.com", UserRole.USER, 1L, "   "))
-            .thenThrow(new IllegalArgumentException("Password is required."));
+      when(authService.createUser("blank.user@test.com", UserRole.USER, 1L, null))
+            .thenReturn("TmpPass9999");
 
       Response response = authResource.createUser(1L, request);
 
-      assertEquals("PostCond failed: status should be 400", 400, response.getStatus());
+      assertEquals("PostCond failed: status should be 201", 201, response.getStatus());
       Map<String, Object> payload = (Map<String, Object>) response.getEntity();
-      assertEquals("PostCond failed: error message should match", "Password is required.", payload.get("error"));
-      verify(authService).createUser(eq("blank.user@test.com"), eq(UserRole.USER), eq(1L), eq("   "));
+      assertEquals("PostCond failed: temporary password should be present", "TmpPass9999", payload.get("temporaryPassword"));
+      verify(authService).createUser(eq("blank.user@test.com"), eq(UserRole.USER), eq(1L), eq(null));
    }
 }
