@@ -155,7 +155,7 @@ function AdminDashboard({ user, onLogout, onNavigate, isDarkMode, onToggleTheme 
       <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole={user?.role} />
 
       <main className="flex-1 overflow-auto">
-        <header className="border-b border-gray-200 bg-white px-8 py-4">
+        <header className="fixed inset-x-0 top-0 z-40 border-b border-gray-200 bg-white/95 px-8 py-4 pl-20 backdrop-blur">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
@@ -174,7 +174,7 @@ function AdminDashboard({ user, onLogout, onNavigate, isDarkMode, onToggleTheme 
           </div>
         </header>
 
-        <div className="space-y-6 p-8">
+        <div className="space-y-6 p-8 pt-28">
           {loading ? (
             <div className="flex items-center justify-center py-24">
               <div className="text-center">

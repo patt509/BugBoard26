@@ -77,7 +77,7 @@ function CreateUserAccount({ user, onLogout, onNavigate, isDarkMode, onToggleThe
       <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole={user?.role} />
 
       <main className="flex-1 overflow-auto">
-        <header className="bg-white border-b border-gray-200 px-8 py-4">
+        <header className="fixed inset-x-0 top-0 z-40 border-b border-gray-200 bg-white/95 px-8 py-4 pl-20 backdrop-blur">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Create User</h1>
@@ -96,7 +96,7 @@ function CreateUserAccount({ user, onLogout, onNavigate, isDarkMode, onToggleThe
           </div>
         </header>
 
-        <div className="p-8">
+        <div className="p-8 pt-28">
           <div className="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>

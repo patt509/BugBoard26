@@ -568,7 +568,7 @@ function IssueDetail({
 
       <main className="flex-1 overflow-auto">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-8 py-4">
+        <header className="fixed inset-x-0 top-0 z-40 border-b border-gray-200 bg-white/95 px-8 py-4 pl-20 backdrop-blur">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
@@ -617,7 +617,7 @@ function IssueDetail({
         </header>
 
         {/* Content */}
-        <div className="p-8">
+        <div className="p-8 pt-28">
           <div className="flex gap-8">
             {/* Main Content */}
             <div className="flex-1">
@@ -1025,7 +1025,7 @@ function IssueDetail({
 
         {previewAttachment && (
           <div
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4"
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
             onClick={() => setPreviewAttachment(null)}
           >
             <div
@@ -1057,7 +1057,7 @@ function IssueDetail({
 
         {/* Flag as Duplicate Modal */}
         {showDuplicateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-sm">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
               {/* Modal Header */}
               <div className="px-6 py-4 border-b border-gray-200">

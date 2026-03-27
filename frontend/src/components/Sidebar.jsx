@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Bug, LayoutDashboard, ListTodo, Menu, UserPlus, X } from 'lucide-react';
 
 function Sidebar({ currentPage, onNavigate, userRole }) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
+  const normalizedRole = String(userRole ?? '').trim().toUpperCase();
+  const isAdmin = normalizedRole === 'ADMIN' || normalizedRole === 'ADMINISTRATOR';
 
   const menuItems = [
-    ...(userRole === 'ADMIN'
+    ...(isAdmin
       ? [
           { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
           { id: 'create-user', label: 'Create User', icon: UserPlus },
@@ -18,20 +20,22 @@ function Sidebar({ currentPage, onNavigate, userRole }) {
     if (onNavigate) {
       onNavigate(pageId);
     }
+    setIsOpen(false);
   };
 
   return (
     <>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed left-4 top-4 z-50 rounded-md bg-white p-2 shadow-md lg:hidden"
+        className="fixed left-4 top-4 z-[80] rounded-lg border border-gray-300 bg-white/95 p-2.5 text-gray-700 shadow-lg backdrop-blur transition-colors hover:bg-white"
+        aria-label={isOpen ? 'Close navigation menu' : 'Open navigation menu'}
       >
-        {isOpen ? <X size={24} /> : <Menu size={24} />}
+        {isOpen ? <X size={22} /> : <Menu size={22} />}
       </button>
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 transform border-r border-gray-200 bg-gray-50 transition-transform duration-200 ease-in-out lg:static ${
-          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        className={`fixed inset-y-0 left-0 z-[70] w-64 transform border-r border-gray-200 bg-gray-50 transition-transform duration-200 ease-in-out ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="flex h-full flex-col">
@@ -64,7 +68,7 @@ function Sidebar({ currentPage, onNavigate, userRole }) {
 
       {isOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black bg-opacity-50 lg:hidden"
+          className="fixed inset-0 z-[65] bg-black/40 backdrop-blur-sm"
           onClick={() => setIsOpen(false)}
         />
       )}

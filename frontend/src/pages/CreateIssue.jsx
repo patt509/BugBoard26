@@ -543,7 +543,7 @@ return (
 
       <main className="flex-1 overflow-auto">
          {/* Header */}
-         <header className="bg-white border-b border-gray-200 px-8 py-4">
+         <header className="fixed inset-x-0 top-0 z-40 border-b border-gray-200 bg-white/95 px-8 py-4 pl-20 backdrop-blur">
             <div className="flex items-center justify-between">
                <div>
                   <h1 className="text-2xl font-bold text-gray-900">
@@ -564,7 +564,7 @@ return (
          </header>
 
          {/* Form Content */}
-         <div className="p-8 max-w-6xl">
+         <div className="max-w-6xl p-8 pt-28">
             <form onSubmit={handleSubmit} className="space-y-6">
                {/* Title */}
                <div>
@@ -797,7 +797,7 @@ return (
 
 	            {showAssigneeModal && (
 	               <div
-	                  className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4"
+	                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 backdrop-blur-sm"
 	                  onClick={() => setShowAssigneeModal(false)}
 	               >
 	                  <div

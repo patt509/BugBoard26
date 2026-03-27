@@ -27,7 +27,7 @@ function MandatoryUsernameModal({ onSubmit }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 px-4">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-2xl border border-gray-300 bg-white p-6 shadow-2xl">
         <h2 className="text-xl font-bold text-gray-900">Complete Your Profile</h2>
         <p className="mt-2 text-sm text-gray-600">

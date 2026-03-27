@@ -441,7 +441,7 @@ function Issues({
 
       <main className="flex-1 overflow-auto">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-8 py-4">
+        <header className="fixed inset-x-0 top-0 z-40 border-b border-gray-200 bg-white/95 px-8 py-4 pl-20 backdrop-blur">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">All Issues</h1>
@@ -460,7 +460,7 @@ function Issues({
         </header>
 
         {/* Content */}
-        <div className="p-8">
+        <div className="p-8 pt-28">
           {/* Filters and Search */}
           <div className="mb-4">
             <div className="grid grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)_auto] items-center gap-3">
@@ -549,7 +549,7 @@ function Issues({
 
           {showAssigneeModal && (
             <div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4"
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 backdrop-blur-sm"
               onClick={() => setShowAssigneeModal(false)}
             >
               <div
