@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Plus, CheckCircle, X } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
+import ThemeToggle from '../components/ThemeToggle';
 import { issueService } from '../services/issue.service';
 import { authService } from '../services/auth.service';
 
@@ -40,7 +41,17 @@ const formatIssuePublicationDate = (createdAt) => {
   });
 };
 
-function Issues({ user, onLogout, onCreateIssue, onIssueClick, onNavigate, successMessage, onDismissSuccess }) {
+function Issues({
+  user,
+  onLogout,
+  onCreateIssue,
+  onIssueClick,
+  onNavigate,
+  successMessage,
+  onDismissSuccess,
+  isDarkMode,
+  onToggleTheme
+}) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
@@ -243,13 +254,14 @@ function Issues({ user, onLogout, onCreateIssue, onIssueClick, onNavigate, succe
             <div>
               <h1 className="text-2xl font-bold text-gray-900">All Issues</h1>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">
+            <div className="flex items-center gap-3">
+              <ThemeToggle isDarkMode={isDarkMode} onToggle={onToggleTheme} />
+              <span className="hidden text-sm text-gray-600 md:inline">
                 {user.username || user.email}
               </span>
               <button
                 onClick={onLogout}
-                className="text-sm text-gray-600 hover:text-gray-900"
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
               >
                 Logout
               </button>

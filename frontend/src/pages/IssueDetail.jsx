@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ArrowLeft, Download, Flag, Edit, ChevronDown, Send, AlertCircle, X, CheckCircle, Search, Upload, Paperclip } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
+import ThemeToggle from '../components/ThemeToggle';
 import { issueService } from '../services/issue.service';
 import { commentService } from '../services/comment.service';
 import { attachmentService } from '../services/attachment.service';
@@ -84,7 +85,18 @@ const resolveCurrentUserId = (user) => {
   }
 };
 
-function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate, successMessage, onDismissSuccess }) {
+function IssueDetail({
+  user,
+  onLogout,
+  issueId,
+  onBack,
+  onEditIssue,
+  onNavigate,
+  successMessage,
+  onDismissSuccess,
+  isDarkMode,
+  onToggleTheme
+}) {
   const currentPage = 'issues';
   const isAdmin = user?.role === 'ADMIN';
   const [issue, setIssue] = useState(null);
@@ -575,13 +587,14 @@ function IssueDetail({ user, onLogout, issueId, onBack, onEditIssue, onNavigate,
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">
+            <div className="flex items-center gap-3">
+              <ThemeToggle isDarkMode={isDarkMode} onToggle={onToggleTheme} />
+              <span className="hidden text-sm text-gray-600 md:inline">
                 {user?.username || user?.email}
               </span>
               <button
                 onClick={onLogout}
-                className="text-sm text-gray-600 hover:text-gray-900"
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
               >
                 Logout
               </button>

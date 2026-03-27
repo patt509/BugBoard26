@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { AlertCircle, Bug, Lock, Mail } from 'lucide-react';
 import { authService } from '../services/auth.service';
+import ThemeToggle from '../components/ThemeToggle';
 
-function Login({ onLoginSuccess }) {
+function Login({ onLoginSuccess, isDarkMode, onToggleTheme }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -30,6 +31,11 @@ function Login({ onLoginSuccess }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <ThemeToggle
+        isDarkMode={isDarkMode}
+        onToggle={onToggleTheme}
+        className="fixed right-4 top-4 z-[70]"
+      />
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mb-4 flex items-center justify-center gap-3">

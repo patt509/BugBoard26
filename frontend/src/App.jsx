@@ -4,7 +4,6 @@ import Issues from './pages/Issues';
 import CreateIssue from './pages/CreateIssue';
 import IssueDetail from './pages/IssueDetail';
 import AdminDashboard from './pages/AdminDashboard';
-import ThemeToggle from './components/ThemeToggle';
 
 const THEME_STORAGE_KEY = 'bugboard-theme';
 
@@ -155,7 +154,13 @@ function App() {
       </div>
     );
   } else if (!user) {
-    pageContent = <Login onLoginSuccess={handleLoginSuccess} />;
+    pageContent = (
+      <Login
+        onLoginSuccess={handleLoginSuccess}
+        isDarkMode={theme === 'dark'}
+        onToggleTheme={handleToggleTheme}
+      />
+    );
   } else if (currentView === 'create' || currentView === 'edit') {
     pageContent = (
       <CreateIssue
@@ -165,6 +170,8 @@ function App() {
         onSuccess={handleCreateSuccess}
         onNavigate={handleSidebarNavigate}
         editingIssue={editingIssue}
+        isDarkMode={theme === 'dark'}
+        onToggleTheme={handleToggleTheme}
       />
     );
   } else if (currentView === 'detail' && selectedIssueId) {
@@ -178,6 +185,8 @@ function App() {
         onNavigate={handleSidebarNavigate}
         successMessage={successMessage}
         onDismissSuccess={() => setSuccessMessage(null)}
+        isDarkMode={theme === 'dark'}
+        onToggleTheme={handleToggleTheme}
       />
     );
   } else if (currentView === 'dashboard' && user?.role === 'ADMIN') {
@@ -186,6 +195,8 @@ function App() {
         user={user}
         onLogout={handleLogout}
         onNavigate={handleSidebarNavigate}
+        isDarkMode={theme === 'dark'}
+        onToggleTheme={handleToggleTheme}
       />
     );
   } else {
@@ -198,16 +209,13 @@ function App() {
         onNavigate={handleSidebarNavigate}
         successMessage={successMessage}
         onDismissSuccess={() => setSuccessMessage(null)}
+        isDarkMode={theme === 'dark'}
+        onToggleTheme={handleToggleTheme}
       />
     );
   }
 
-  return (
-    <>
-      <ThemeToggle isDarkMode={theme === 'dark'} onToggle={handleToggleTheme} />
-      {pageContent}
-    </>
-  );
+  return pageContent;
 }
 
 export default App;

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Activity, CheckCircle2, CircleSlash, Clock3, FolderOpen } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
+import ThemeToggle from '../components/ThemeToggle';
 import { issueService } from '../services/issue.service';
 
 const STATUS_COLORS = {
@@ -90,7 +91,7 @@ function DistributionList({ title, data, colorsMap }) {
   );
 }
 
-function AdminDashboard({ user, onLogout, onNavigate }) {
+function AdminDashboard({ user, onLogout, onNavigate, isDarkMode, onToggleTheme }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -159,11 +160,12 @@ function AdminDashboard({ user, onLogout, onNavigate }) {
               <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
               <p className="text-sm text-gray-500">Live issue analytics overview</p>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">{user?.username || user?.email}</span>
+            <div className="flex items-center gap-3">
+              <ThemeToggle isDarkMode={isDarkMode} onToggle={onToggleTheme} />
+              <span className="hidden text-sm text-gray-600 md:inline">{user?.username || user?.email}</span>
               <button
                 onClick={onLogout}
-                className="text-sm text-gray-600 hover:text-gray-900"
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
               >
                 Logout
               </button>
