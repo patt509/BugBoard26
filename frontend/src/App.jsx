@@ -4,6 +4,22 @@ import Issues from './pages/Issues';
 import CreateIssue from './pages/CreateIssue';
 import IssueDetail from './pages/IssueDetail';
 import AdminDashboard from './pages/AdminDashboard';
+import ThemeToggle from './components/ThemeToggle';
+
+const THEME_STORAGE_KEY = 'bugboard-theme';
+
+const getInitialTheme = () => {
+  const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+  if (storedTheme === 'dark' || storedTheme === 'light') {
+    return storedTheme;
+  }
+
+  if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
+    return 'dark';
+  }
+
+  return 'light';
+};
 
 function App() {
   const [user, setUser] = useState(null);
@@ -12,6 +28,7 @@ function App() {
   const [selectedIssueId, setSelectedIssueId] = useState(null);
   const [editingIssue, setEditingIssue] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+  const [theme, setTheme] = useState(() => getInitialTheme());
 
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
@@ -37,6 +54,12 @@ function App() {
       setCurrentView('issues');
     }
   }, [currentView, user]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle('dark', theme === 'dark');
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }, [theme]);
 
   const handleLoginSuccess = (userData) => {
     setUser(userData);
@@ -116,8 +139,14 @@ function App() {
     }
   };
 
+  const handleToggleTheme = () => {
+    setTheme((prevTheme) => (prevTheme === 'dark' ? 'light' : 'dark'));
+  };
+
+  let pageContent;
+
   if (loading) {
-    return (
+    pageContent = (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
@@ -125,14 +154,10 @@ function App() {
         </div>
       </div>
     );
-  }
-
-  if (!user) {
-    return <Login onLoginSuccess={handleLoginSuccess} />;
-  }
-
-  if (currentView === 'create' || currentView === 'edit') {
-    return (
+  } else if (!user) {
+    pageContent = <Login onLoginSuccess={handleLoginSuccess} />;
+  } else if (currentView === 'create' || currentView === 'edit') {
+    pageContent = (
       <CreateIssue
         user={user}
         onLogout={handleLogout}
@@ -142,10 +167,8 @@ function App() {
         editingIssue={editingIssue}
       />
     );
-  }
-
-  if (currentView === 'detail' && selectedIssueId) {
-    return (
+  } else if (currentView === 'detail' && selectedIssueId) {
+    pageContent = (
       <IssueDetail
         user={user}
         onLogout={handleLogout}
@@ -157,28 +180,33 @@ function App() {
         onDismissSuccess={() => setSuccessMessage(null)}
       />
     );
-  }
-
-  if (currentView === 'dashboard' && user?.role === 'ADMIN') {
-    return (
+  } else if (currentView === 'dashboard' && user?.role === 'ADMIN') {
+    pageContent = (
       <AdminDashboard
         user={user}
         onLogout={handleLogout}
         onNavigate={handleSidebarNavigate}
       />
     );
+  } else {
+    pageContent = (
+      <Issues
+        user={user}
+        onLogout={handleLogout}
+        onCreateIssue={handleCreateIssue}
+        onIssueClick={handleIssueClick}
+        onNavigate={handleSidebarNavigate}
+        successMessage={successMessage}
+        onDismissSuccess={() => setSuccessMessage(null)}
+      />
+    );
   }
 
   return (
-    <Issues
-      user={user}
-      onLogout={handleLogout}
-      onCreateIssue={handleCreateIssue}
-      onIssueClick={handleIssueClick}
-      onNavigate={handleSidebarNavigate}
-      successMessage={successMessage}
-      onDismissSuccess={() => setSuccessMessage(null)}
-    />
+    <>
+      <ThemeToggle isDarkMode={theme === 'dark'} onToggle={handleToggleTheme} />
+      {pageContent}
+    </>
   );
 }
 
