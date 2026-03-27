@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertCircle, ArrowUpRight, Check, ChevronDown } from 'lucide-react';
+import { AlertCircle, Check, ChevronDown, X } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import ThemeToggle from '../components/ThemeToggle';
 import UserIdentity from '../components/UserIdentity';
@@ -244,7 +244,7 @@ function CreateUserAccount({ user, onLogout, onNavigate, isDarkMode, onToggleThe
                   className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
                   aria-label="Close created user popup"
                 >
-                  <ArrowUpRight className="h-5 w-5" />
+                  <X className="h-5 w-5" />
                 </button>
               </div>
 
