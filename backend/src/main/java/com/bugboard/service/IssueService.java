@@ -1,5 +1,6 @@
 package com.bugboard.service;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -439,6 +440,42 @@ public class IssueService {
          issuesAssignedPerUser.put(username, count);
       }
 
+      // Average resolution time (hours) grouped by assignee username (R7)
+      Map<String, Double> avgResolutionTimeHoursPerUser = new LinkedHashMap<>();
+      userRepository.findAssignableUsers().forEach(user -> {
+         if (user.getUsername() != null) {
+            avgResolutionTimeHoursPerUser.put(user.getUsername(), 0.0);
+         }
+      });
+
+      Map<String, Long> resolvedIssuesCountPerUser = new LinkedHashMap<>();
+      Map<String, Double> totalResolutionHoursPerUser = new LinkedHashMap<>();
+      List<Issue> closedResolvedAssignedIssues = repository.findClosedResolvedIssuesWithAssignee();
+      if (closedResolvedAssignedIssues != null) {
+         for (Issue resolvedIssue : closedResolvedAssignedIssues) {
+            if (resolvedIssue.getAssignee() == null || resolvedIssue.getAssignee().getUsername() == null) {
+               continue;
+            }
+            if (resolvedIssue.getCreatedAt() == null || resolvedIssue.getClosedAt() == null) {
+               continue;
+            }
+
+            String username = resolvedIssue.getAssignee().getUsername();
+            double resolutionHours = Duration.between(resolvedIssue.getCreatedAt(), resolvedIssue.getClosedAt()).toMinutes() / 60.0;
+
+            totalResolutionHoursPerUser.merge(username, resolutionHours, Double::sum);
+            resolvedIssuesCountPerUser.merge(username, 1L, Long::sum);
+         }
+      }
+
+      for (Map.Entry<String, Double> totalByUserEntry : totalResolutionHoursPerUser.entrySet()) {
+         String username = totalByUserEntry.getKey();
+         long resolvedCount = resolvedIssuesCountPerUser.getOrDefault(username, 0L);
+         if (resolvedCount > 0) {
+            avgResolutionTimeHoursPerUser.put(username, totalByUserEntry.getValue() / resolvedCount);
+         }
+      }
+
       return DashboardStatsDTO.builder()
             .totalIssues(repository.countAll())
             .openIssues(openIssues)
@@ -452,6 +489,7 @@ public class IssueService {
             .issuesCreatedToday(repository.countCreatedToday())
             .issuesClosedToday(repository.countClosedToday())
             .issuesAssignedPerUser(issuesAssignedPerUser)
+            .avgResolutionTimeHoursPerUser(avgResolutionTimeHoursPerUser)
             .build();
    }
 

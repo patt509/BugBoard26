@@ -227,4 +227,18 @@ public class IssueRepository {
 
       return totalHours / closedIssues.size();
    }
+
+   public List<Issue> findClosedResolvedIssuesWithAssignee() {
+      return em.createQuery(
+            "SELECT i FROM Issue i " +
+                  "LEFT JOIN FETCH i.assignee " +
+                  "WHERE i.assignee IS NOT NULL " +
+                  "AND i.createdAt IS NOT NULL " +
+                  "AND i.closedAt IS NOT NULL " +
+                  "AND (i.status = :closed OR i.status = :resolved)",
+            Issue.class)
+            .setParameter("closed", IssueStatus.CLOSED)
+            .setParameter("resolved", IssueStatus.RESOLVED)
+            .getResultList();
+   }
 }

@@ -374,6 +374,7 @@ public class IssueServiceTest {
       Object[] row1 = new Object[] { "user1", 3L };
       Object[] row2 = new Object[] { "user2", 1L };
       when(repository.countOpenIssuesPerAssignee()).thenReturn(Arrays.asList(row1, row2));
+      when(repository.findClosedResolvedIssuesWithAssignee()).thenReturn(List.of());
 
       // Act
       DashboardStatsDTO stats = issueService.getDashboardStats();
@@ -383,6 +384,10 @@ public class IssueServiceTest {
       assertEquals("PostCond failed: should have 2 entries", 2, stats.getIssuesAssignedPerUser().size());
       assertEquals("PostCond failed: user1 should have 3 issues", Long.valueOf(3L), stats.getIssuesAssignedPerUser().get("user1"));
       assertEquals("PostCond failed: user2 should have 1 issue", Long.valueOf(1L), stats.getIssuesAssignedPerUser().get("user2"));
+      assertNotNull("PostCond failed: avgResolutionTimeHoursPerUser should not be null",
+            stats.getAvgResolutionTimeHoursPerUser());
+      assertEquals("PostCond failed: should include user1 in resolution-time map", Double.valueOf(0.0),
+            stats.getAvgResolutionTimeHoursPerUser().get("user1"));
    }
 
    // ==================== createIssue(String, String, Long, IssueType) TESTS ====================
@@ -965,6 +970,7 @@ public class IssueServiceTest {
       when(repository.countCreatedToday()).thenReturn(1L);
       when(repository.countClosedToday()).thenReturn(0L);
       when(repository.countOpenIssuesPerAssignee()).thenReturn(List.of());
+      when(repository.findClosedResolvedIssuesWithAssignee()).thenReturn(List.of());
       when(userRepository.findAssignableUsers()).thenReturn(List.of());
 
       // Non-empty daily data to cover the for-loop body
