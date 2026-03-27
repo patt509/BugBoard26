@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { X, Upload, AlertTriangle, ChevronDown, Check, Loader2, Search } from 'lucide-react';
+import { X, Upload, AlertTriangle, ChevronDown, Check, Loader2, Search, ArrowLeft } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import ThemeToggle from '../components/ThemeToggle';
 import UserIdentity from '../components/UserIdentity';
@@ -545,7 +545,16 @@ return (
          {/* Header */}
          <header className="fixed inset-x-0 top-0 z-40 border-b border-gray-200 bg-white/95 px-8 py-4 pl-20 backdrop-blur">
             <div className="flex items-center justify-between">
-               <div>
+               <div className="flex items-center gap-3">
+                  <button
+                     type="button"
+                     onClick={onCancel}
+                     disabled={loading}
+                     className="inline-flex h-10 items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                     <ArrowLeft className="h-4 w-4" />
+                     <span>Back</span>
+                  </button>
                   <h1 className="text-2xl font-bold text-gray-900">
                      {isEditMode ? `Edit Issue #${editingIssue.id}` : 'Create New Issue'}
                   </h1>
@@ -564,7 +573,7 @@ return (
          </header>
 
          {/* Form Content */}
-         <div className="max-w-6xl p-8 pt-28">
+         <div className="mx-auto w-full max-w-6xl p-8 pt-28">
             <form onSubmit={handleSubmit} className="space-y-6">
                {/* Title */}
                <div>
@@ -775,14 +784,6 @@ return (
 
                {/* Action Buttons */}
 	               <div className="flex justify-end gap-4 pt-4">
-	                  <button
-                     type="button"
-                     onClick={onCancel}
-                     className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-                     disabled={loading}
-                  >
-                     Cancel
-                  </button>
                   <button
                      type="submit"
                      disabled={loading || titleError || fileError}
