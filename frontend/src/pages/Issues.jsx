@@ -8,6 +8,29 @@ import { authService } from '../services/auth.service';
 
 const API_TIMESTAMP_WITH_TIMEZONE_REGEX = /(Z|[+-]\d{2}:?\d{2})$/i;
 const DICEBEAR_BASE_URL = 'https://api.dicebear.com/9.x/glass/svg';
+const BADGE_BASE_CLASS = 'inline-flex rounded-full px-2.5 py-1 text-xs font-medium';
+
+const STATUS_BADGE_CLASSES = {
+  TODO: 'bg-green-200 text-green-900',
+  OPEN: 'bg-green-200 text-green-900',
+  IN_PROGRESS: 'bg-blue-200 text-blue-900',
+  RESOLVED: 'bg-purple-200 text-purple-900',
+  CLOSED: 'bg-red-200 text-red-900',
+};
+
+const PRIORITY_BADGE_CLASSES = {
+  CRITICAL: 'bg-red-700 text-white',
+  HIGH: 'bg-red-200 text-red-900',
+  MEDIUM: 'bg-yellow-200 text-yellow-900',
+  LOW: 'bg-green-200 text-green-900',
+};
+
+const TYPE_BADGE_CLASSES = {
+  BUG: 'bg-rose-200 text-rose-900',
+  FEATURE: 'bg-emerald-200 text-emerald-900',
+  DOCUMENTATION: 'bg-sky-200 text-sky-900',
+  QUESTION: 'bg-amber-200 text-amber-900',
+};
 
 const parseApiDate = (input) => {
   if (!input) {
@@ -52,26 +75,26 @@ const getUserAvatarUrl = (targetUser) => {
 
 const STATUS_FILTER_OPTIONS = [
   { value: 'all', label: 'Status' },
-  { value: 'TODO', label: 'Open' },
-  { value: 'IN_PROGRESS', label: 'In Progress' },
-  { value: 'RESOLVED', label: 'Resolved' },
-  { value: 'CLOSED', label: 'Closed' },
+  { value: 'TODO', label: 'Open', badgeClass: STATUS_BADGE_CLASSES.TODO },
+  { value: 'IN_PROGRESS', label: 'In Progress', badgeClass: STATUS_BADGE_CLASSES.IN_PROGRESS },
+  { value: 'RESOLVED', label: 'Resolved', badgeClass: STATUS_BADGE_CLASSES.RESOLVED },
+  { value: 'CLOSED', label: 'Closed', badgeClass: STATUS_BADGE_CLASSES.CLOSED },
 ];
 
 const PRIORITY_FILTER_OPTIONS = [
   { value: 'all', label: 'Priority' },
-  { value: 'CRITICAL', label: 'Critical' },
-  { value: 'HIGH', label: 'High' },
-  { value: 'MEDIUM', label: 'Medium' },
-  { value: 'LOW', label: 'Low' },
+  { value: 'CRITICAL', label: 'Critical', badgeClass: PRIORITY_BADGE_CLASSES.CRITICAL },
+  { value: 'HIGH', label: 'High', badgeClass: PRIORITY_BADGE_CLASSES.HIGH },
+  { value: 'MEDIUM', label: 'Medium', badgeClass: PRIORITY_BADGE_CLASSES.MEDIUM },
+  { value: 'LOW', label: 'Low', badgeClass: PRIORITY_BADGE_CLASSES.LOW },
 ];
 
 const TYPE_FILTER_OPTIONS = [
   { value: 'all', label: 'Type' },
-  { value: 'BUG', label: 'Bug' },
-  { value: 'FEATURE', label: 'Feature' },
-  { value: 'DOCUMENTATION', label: 'Documentation' },
-  { value: 'QUESTION', label: 'Question' },
+  { value: 'BUG', label: 'Bug', badgeClass: TYPE_BADGE_CLASSES.BUG },
+  { value: 'FEATURE', label: 'Feature', badgeClass: TYPE_BADGE_CLASSES.FEATURE },
+  { value: 'DOCUMENTATION', label: 'Documentation', badgeClass: TYPE_BADGE_CLASSES.DOCUMENTATION },
+  { value: 'QUESTION', label: 'Question', badgeClass: TYPE_BADGE_CLASSES.QUESTION },
 ];
 
 function FilterDropdown({ value, options, onChange, disabled = false, loading = false }) {
@@ -104,7 +127,13 @@ function FilterDropdown({ value, options, onChange, disabled = false, loading = 
         disabled={disabled}
         className="inline-flex w-full items-center justify-between gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <span className="truncate">{selectedOption?.label || 'Select'}</span>
+        {selectedOption?.badgeClass ? (
+          <span className={`${BADGE_BASE_CLASS} max-w-[120px] truncate ${selectedOption.badgeClass}`}>
+            {selectedOption.label}
+          </span>
+        ) : (
+          <span className="truncate">{selectedOption?.label || 'Select'}</span>
+        )}
         {loading ? (
           <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
         ) : (
@@ -122,9 +151,13 @@ function FilterDropdown({ value, options, onChange, disabled = false, loading = 
                 onChange(option.value);
                 setOpen(false);
               }}
-              className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100"
+              className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100"
             >
-              <span>{option.label}</span>
+              {option.badgeClass ? (
+                <span className={`${BADGE_BASE_CLASS} ${option.badgeClass}`}>{option.label}</span>
+              ) : (
+                <span>{option.label}</span>
+              )}
               {value === option.value && <Check className="h-4 w-4 text-blue-600" />}
             </button>
           ))}
@@ -298,17 +331,8 @@ function Issues({
   };
 
   const getStatusBadgeClass = (status) => {
-    const classes = {
-      'TODO': 'bg-green-200 text-green-900',
-      'Open': 'bg-green-200 text-green-900',
-      'IN_PROGRESS': 'bg-blue-200 text-blue-900',
-      'In Progress': 'bg-blue-200 text-blue-900',
-      'RESOLVED': 'bg-purple-200 text-purple-900',
-      'Resolved': 'bg-purple-200 text-purple-900',
-      'CLOSED': 'bg-red-200 text-red-900',
-      'Closed': 'bg-red-200 text-red-900',
-    };
-    return classes[status] || 'bg-gray-100 text-gray-700';
+    const normalizedStatus = String(status || '').trim().toUpperCase().replace(' ', '_');
+    return STATUS_BADGE_CLASSES[normalizedStatus] || 'bg-gray-100 text-gray-700';
   };
 
   const getStatusLabel = (status) => {
@@ -322,17 +346,8 @@ function Issues({
   };
 
   const getPriorityBadgeClass = (priority) => {
-    const classes = {
-      'CRITICAL': 'bg-red-700 text-white',
-      'Critical': 'bg-red-700 text-white',
-      'HIGH': 'bg-red-200 text-red-900',
-      'High': 'bg-red-200 text-red-900',
-      'MEDIUM': 'bg-yellow-200 text-yellow-900',
-      'Medium': 'bg-yellow-200 text-yellow-900',
-      'LOW': 'bg-green-200 text-green-900',
-      'Low': 'bg-green-200 text-green-900',
-    };
-    return classes[priority] || 'bg-gray-100 text-gray-700';
+    const normalizedPriority = String(priority || '').trim().toUpperCase();
+    return PRIORITY_BADGE_CLASSES[normalizedPriority] || 'bg-gray-100 text-gray-700';
   };
 
   const getPriorityLabel = (priority) => {
