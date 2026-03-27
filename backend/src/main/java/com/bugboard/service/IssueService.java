@@ -1,19 +1,24 @@
 package com.bugboard.service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.bugboard.dto.DashboardStatsDTO;
 import com.bugboard.dto.IssueDTO;
+import com.bugboard.dto.IssueHistoryDTO;
 import com.bugboard.enums.IssueStatus;
 import com.bugboard.enums.IssueType;
 import com.bugboard.enums.PriorityLevel;
 import com.bugboard.model.Issue;
+import com.bugboard.model.IssueHistoryEntry;
 import com.bugboard.model.User;
+import com.bugboard.repository.IssueHistoryRepository;
 import com.bugboard.repository.IssueRepository;
 import com.bugboard.repository.UserRepository;
 
@@ -27,17 +32,20 @@ public class IssueService {
    private static final Logger logger = Logger.getLogger(IssueService.class.getName());
 
    private final IssueRepository repository;
+   private final IssueHistoryRepository issueHistoryRepository;
    private final UserRepository userRepository;
 
    // CDI requires no-arg constructor for proxy
    protected IssueService() {
       this.repository = null;
+      this.issueHistoryRepository = null;
       this.userRepository = null;
    }
 
    @Inject
-   public IssueService(IssueRepository repository, UserRepository userRepository) {
+   public IssueService(IssueRepository repository, IssueHistoryRepository issueHistoryRepository, UserRepository userRepository) {
       this.repository = repository;
+      this.issueHistoryRepository = issueHistoryRepository;
       this.userRepository = userRepository;
    }
 
@@ -49,6 +57,7 @@ public class IssueService {
       User reporter = reporterId != null ? userRepository.findById(reporterId).orElse(null) : null;
       Issue issue = new Issue(title, description, reporter, type);
       repository.save(issue);
+      recordHistoryEntry(issue, "Issue created", "Reported by " + resolveUserLabel(reporter) + ".");
       return issue.getId();
    }
 
@@ -88,6 +97,7 @@ public class IssueService {
       }
 
       repository.save(issue);
+      recordHistoryEntry(issue, "Issue created", "Reported by " + resolveUserLabel(reporter) + ".");
       return issue.getId();
    }
 
@@ -98,22 +108,66 @@ public class IssueService {
          throw new IllegalArgumentException("Issue not found");
       }
 
+      List<String> changes = new ArrayList<>();
+
       // Update fields if provided
       if (dto.getTitle() != null && !dto.getTitle().trim().isEmpty()) {
-         issue.setTitle(dto.getTitle().trim());
+         String normalizedTitle = dto.getTitle().trim();
+         if (!normalizedTitle.equals(issue.getTitle())) {
+            changes.add("Title: \"" + issue.getTitle() + "\" -> \"" + normalizedTitle + "\"");
+            issue.setTitle(normalizedTitle);
+         }
       }
       if (dto.getDescription() != null) {
          String normalizedDescription = dto.getDescription().trim();
          if (normalizedDescription.isEmpty()) {
             throw new IllegalArgumentException("Description cannot be empty.");
          }
-         issue.setDescription(normalizedDescription);
+         if (!normalizedDescription.equals(issue.getDescription())) {
+            changes.add("Description updated.");
+            issue.setDescription(normalizedDescription);
+         }
       }
       if (dto.getPriority() != null) {
-         issue.setPriority(parsePriority(dto.getPriority()));
+         PriorityLevel nextPriority = parsePriority(dto.getPriority());
+         if (nextPriority != issue.getPriority()) {
+            changes.add("Priority: " + issue.getPriority() + " -> " + nextPriority);
+            issue.setPriority(nextPriority);
+         }
+      }
+
+      if (dto.getType() != null && !dto.getType().isBlank()) {
+         IssueType nextType = parseIssueType(dto.getType());
+         if (nextType != issue.getType()) {
+            changes.add("Type: " + issue.getType() + " -> " + nextType);
+            issue.setType(nextType);
+         }
+      }
+
+      User nextAssignee = null;
+      boolean assigneeProvided = false;
+      if (dto.getAssigneeId() != null) {
+         assigneeProvided = true;
+         nextAssignee = userRepository.findById(dto.getAssigneeId())
+               .orElseThrow(() -> new IllegalArgumentException("Assignee user not found with ID: " + dto.getAssigneeId()));
+      } else if (dto.getAssigneeUsername() != null && !dto.getAssigneeUsername().isBlank()) {
+         assigneeProvided = true;
+         String normalizedAssigneeUsername = dto.getAssigneeUsername().trim();
+         nextAssignee = userRepository.findByUsername(normalizedAssigneeUsername)
+               .orElseThrow(() -> new IllegalArgumentException("Assignee user not found: " + normalizedAssigneeUsername));
+      }
+
+      if (assigneeProvided && !isSameUser(issue.getAssignee(), nextAssignee)) {
+         changes.add("Assignee: " + resolveUserLabel(issue.getAssignee()) + " -> " + resolveUserLabel(nextAssignee));
+         issue.setAssignee(nextAssignee);
+      }
+
+      if (changes.isEmpty()) {
+         return;
       }
 
       repository.save(issue);
+      recordHistoryEntry(issue, "Issue updated", String.join(" | ", changes));
    }
 
    @Transactional
@@ -123,10 +177,16 @@ public class IssueService {
          throw new IllegalArgumentException("Issue not found");
       }
 
+      IssueStatus previousStatus = issue.getStatus();
+      if (previousStatus == newStatus) {
+         return;
+      }
+
       // Issue.java handles automatically setting closedAt when status changes to
       // CLOSED
       issue.setStatus(newStatus);
       repository.save(issue);
+      recordHistoryEntry(issue, "Status changed", "Status: " + previousStatus + " -> " + newStatus);
    }
 
    // ==================== ATTACHMENT OPERATIONS ====================
@@ -141,8 +201,15 @@ public class IssueService {
       if (issue == null) {
          throw new IllegalArgumentException("Issue not found");
       }
+      String oldPath = issue.getAttachmentPath();
       issue.setAttachmentPath(attachmentPath);
       repository.save(issue);
+      if (oldPath == null && attachmentPath != null) {
+         recordHistoryEntry(issue, "Attachment added", "Added attachment: " + extractFileName(attachmentPath));
+      } else if (oldPath != null && attachmentPath != null && !oldPath.equals(attachmentPath)) {
+         recordHistoryEntry(issue, "Attachment replaced",
+               "Replaced attachment: " + extractFileName(oldPath) + " -> " + extractFileName(attachmentPath));
+      }
    }
 
    /**
@@ -158,6 +225,9 @@ public class IssueService {
       String oldPath = issue.getAttachmentPath();
       issue.setAttachmentPath(null);
       repository.save(issue);
+      if (oldPath != null) {
+         recordHistoryEntry(issue, "Attachment removed", "Removed attachment: " + extractFileName(oldPath));
+      }
       return oldPath;
    }
 
@@ -234,6 +304,21 @@ public class IssueService {
       return convertSingleToDTO(issue);
    }
 
+   public List<IssueHistoryDTO> getIssueHistory(Long issueId) {
+      Issue issue = repository.findById(issueId);
+      if (issue == null) {
+         throw new IllegalArgumentException("Issue not found");
+      }
+
+      return issueHistoryRepository.findByIssueId(issueId).stream()
+            .map(entry -> new IssueHistoryDTO(
+                  entry.getId(),
+                  entry.getCreatedAt(),
+                  entry.getTitle(),
+                  entry.getDescription()))
+            .toList();
+   }
+
    // ==================== DUPLICATE MANAGEMENT (ADMIN ONLY) ====================
 
    /**
@@ -276,8 +361,13 @@ public class IssueService {
       }
 
       // Delegate to domain model for business logic
+      IssueStatus previousStatus = duplicate.getStatus();
       duplicate.markAsDuplicateOf(original);
       repository.save(duplicate);
+      recordHistoryEntry(
+            duplicate,
+            "Marked as duplicate",
+            "Duplicate of issue #" + originalIssueId + ". Status: " + previousStatus + " -> " + duplicate.getStatus());
 
       logger.log(Level.INFO, "Admin {0} marked Issue #{1} as duplicate of Issue #{2}",
             new Object[] { admin.getEmail(), duplicateIssueId, originalIssueId });
@@ -438,5 +528,44 @@ public class IssueService {
    private long countFromMap(Map<String, Long> source, String key) {
       Long value = source.get(key);
       return value != null ? value : 0L;
+   }
+
+   private void recordHistoryEntry(Issue issue, String title, String description) {
+      issueHistoryRepository.save(new IssueHistoryEntry(issue, title, description));
+   }
+
+   private boolean isSameUser(User first, User second) {
+      if (first == null && second == null) {
+         return true;
+      }
+      if (first == null || second == null) {
+         return false;
+      }
+
+      return Objects.equals(first.getId(), second.getId());
+   }
+
+   private String resolveUserLabel(User user) {
+      if (user == null) {
+         return "Unassigned";
+      }
+      if (user.getUsername() != null && !user.getUsername().isBlank()) {
+         return user.getUsername();
+      }
+      if (user.getEmail() != null && !user.getEmail().isBlank()) {
+         return user.getEmail();
+      }
+      return "Unknown user";
+   }
+
+   private String extractFileName(String path) {
+      if (path == null || path.isBlank()) {
+         return "attachment";
+      }
+      int slashIndex = path.lastIndexOf('/');
+      if (slashIndex >= 0 && slashIndex < path.length() - 1) {
+         return path.substring(slashIndex + 1);
+      }
+      return path;
    }
 }

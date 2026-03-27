@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 
 import com.bugboard.dto.DashboardStatsDTO;
 import com.bugboard.dto.IssueDTO;
+import com.bugboard.dto.IssueHistoryDTO;
 import com.bugboard.enums.IssueStatus;
 import com.bugboard.enums.IssueType;
 import com.bugboard.enums.PriorityLevel;
@@ -117,6 +118,23 @@ public class IssueResource {
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error retrieving issue", e);
          return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error retrieving issue");
+      }
+   }
+
+   /**
+    * Get issue history timeline by issue ID.
+    */
+   @GET
+   @Path("/{id}/history")
+   public Response getIssueHistory(@PathParam("id") Long id) {
+      try {
+         List<IssueHistoryDTO> historyEntries = issueService.getIssueHistory(id);
+         return Response.ok(historyEntries).build();
+      } catch (IllegalArgumentException e) {
+         return ApiResponses.error(Response.Status.NOT_FOUND, e.getMessage());
+      } catch (Exception e) {
+         logger.log(Level.SEVERE, "Error retrieving issue history", e);
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error retrieving issue history");
       }
    }
 

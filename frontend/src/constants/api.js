@@ -16,6 +16,7 @@ export const API_ENDPOINTS = {
   // Issues
   ISSUES: '/issues',
   ISSUES_BY_ID: (id) => `/issues/${id}`,
+  ISSUE_HISTORY: (id) => `/issues/${id}/history`,
   ISSUES_SEARCH: '/issues/search',
   ISSUES_ADMIN_DASHBOARD: '/issues/admin/dashboard',
   ISSUE_STATUS: (id) => `/issues/${id}/status`,

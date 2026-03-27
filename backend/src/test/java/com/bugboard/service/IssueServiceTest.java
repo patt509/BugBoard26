@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.spy;
@@ -27,7 +28,9 @@ import com.bugboard.enums.IssueType;
 import com.bugboard.enums.PriorityLevel;
 import com.bugboard.enums.UserRole;
 import com.bugboard.model.Issue;
+import com.bugboard.model.IssueHistoryEntry;
 import com.bugboard.model.User;
+import com.bugboard.repository.IssueHistoryRepository;
 import com.bugboard.repository.IssueRepository;
 import com.bugboard.repository.UserRepository;
 
@@ -39,6 +42,9 @@ public class IssueServiceTest {
 
    @Mock
    private UserRepository userRepository; // Mock for user validation
+
+   @Mock
+   private IssueHistoryRepository issueHistoryRepository;
 
    @InjectMocks
    private IssueService issueService; // Inject mocks into IssueService, the real service being tested
@@ -553,6 +559,73 @@ public class IssueServiceTest {
       issueService.createIssue(dto, 1L);
 
       verify(repository).save(org.mockito.ArgumentMatchers.any(Issue.class));
+   }
+
+   /**
+    * TC23c: updateIssue tracks detailed field changes in issue history.
+    */
+   @Test
+   public void testUpdateIssue_TC23c_RecordsDetailedHistory() {
+      User oldAssignee = spy(new User("old.assignee@test.com", "password", UserRole.USER));
+      User newAssignee = spy(new User("new.assignee@test.com", "password", UserRole.USER));
+      when(oldAssignee.getId()).thenReturn(11L);
+      when(newAssignee.getId()).thenReturn(12L);
+      when(oldAssignee.getUsername()).thenReturn("oldAssignee");
+      when(newAssignee.getUsername()).thenReturn("newAssignee");
+
+      Issue issue = spy(new Issue("Original title long enough", "Original description", reporter, IssueType.BUG));
+      issue.setPriority(PriorityLevel.LOW);
+      issue.setAssignee(oldAssignee);
+
+      IssueDTO dto = IssueDTO.builder()
+            .title("Updated title long enough")
+            .description("Updated description")
+            .priority("HIGH")
+            .type("FEATURE")
+            .assigneeId(12L)
+            .build();
+
+      when(repository.findById(5L)).thenReturn(issue);
+      when(userRepository.findById(12L)).thenReturn(Optional.of(newAssignee));
+
+      issueService.updateIssue(5L, dto);
+
+      verify(repository).save(issue);
+      ArgumentCaptor<IssueHistoryEntry> historyCaptor = ArgumentCaptor.forClass(IssueHistoryEntry.class);
+      verify(issueHistoryRepository).save(historyCaptor.capture());
+      IssueHistoryEntry capturedHistory = historyCaptor.getValue();
+      assertEquals("PostCond failed: history title should be 'Issue updated'", "Issue updated", capturedHistory.getTitle());
+      assertTrue("PostCond failed: history should mention title change", capturedHistory.getDescription().contains("Title:"));
+      assertTrue("PostCond failed: history should mention description change",
+            capturedHistory.getDescription().contains("Description updated."));
+      assertTrue("PostCond failed: history should mention priority change",
+            capturedHistory.getDescription().contains("Priority: LOW -> HIGH"));
+      assertTrue("PostCond failed: history should mention type change",
+            capturedHistory.getDescription().contains("Type: BUG -> FEATURE"));
+      assertTrue("PostCond failed: history should mention assignee change",
+            capturedHistory.getDescription().contains("Assignee: oldAssignee -> newAssignee"));
+   }
+
+   /**
+    * TC23d: updateIssue with unchanged values does not create history entries.
+    */
+   @Test
+   public void testUpdateIssue_TC23d_NoChanges_NoHistoryEntry() {
+      Issue issue = spy(new Issue("Stable title long enough", "Stable description", reporter, IssueType.BUG));
+      issue.setPriority(PriorityLevel.MEDIUM);
+
+      IssueDTO dto = IssueDTO.builder()
+            .title("Stable title long enough")
+            .description("Stable description")
+            .priority("MEDIUM")
+            .type("BUG")
+            .build();
+
+      when(repository.findById(6L)).thenReturn(issue);
+
+      issueService.updateIssue(6L, dto);
+
+      verify(issueHistoryRepository, org.mockito.Mockito.never()).save(org.mockito.ArgumentMatchers.any(IssueHistoryEntry.class));
    }
 
    // ==================== updateStatus TESTS ====================

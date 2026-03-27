@@ -9,6 +9,7 @@
         
         <class>com.bugboard.model.User</class>
         <class>com.bugboard.model.Issue</class>
+        <class>com.bugboard.model.IssueHistoryEntry</class>
         <class>com.bugboard.model.Comment</class>
         <class>com.bugboard.model.PasswordResetRequest</class>
         

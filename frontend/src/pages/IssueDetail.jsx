@@ -120,7 +120,8 @@ function IssueDetail({
   const [duplicateSearchQuery, setDuplicateSearchQuery] = useState('');
   const [flaggingDuplicate, setFlaggingDuplicate] = useState(false);
   const [duplicateSuccess, setDuplicateSuccess] = useState(null);
-  const [historyExpanded, setHistoryExpanded] = useState(false);
+  const [issueHistory, setIssueHistory] = useState([]);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const duplicateCandidatesCacheRef = useRef(null);
   const currentUserId = resolveCurrentUserId(user);
@@ -152,13 +153,15 @@ function IssueDetail({
       setLoading(true);
       setError(null);
       
-      const [issueData, commentsData] = await Promise.all([
+      const [issueData, commentsData, historyData] = await Promise.all([
         issueService.getById(issueId),
-        commentService.getByIssueId(issueId).catch(() => [])
+        commentService.getByIssueId(issueId).catch(() => []),
+        issueService.getHistory(issueId).catch(() => [])
       ]);
       
       setIssue(issueData);
       setComments(commentsData || []);
+      setIssueHistory(Array.isArray(historyData) ? historyData : []);
     } catch (err) {
       console.error('Error fetching issue:', err);
       setError(err.message || 'Failed to load issue');
@@ -199,6 +202,21 @@ function IssueDetail({
     document.addEventListener('keydown', handleEscapeKey);
     return () => document.removeEventListener('keydown', handleEscapeKey);
   }, [previewAttachment]);
+
+  useEffect(() => {
+    if (!showHistoryModal) {
+      return undefined;
+    }
+
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape') {
+        setShowHistoryModal(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => document.removeEventListener('keydown', handleEscapeKey);
+  }, [showHistoryModal]);
 
   const handleStatusChange = async (newStatus) => {
     try {
@@ -466,64 +484,39 @@ function IssueDetail({
   };
 
   const historyEvents = useMemo(() => {
-    if (!issue?.createdAt) {
-      return [];
-    }
+    const normalizedHistory = (issueHistory || [])
+      .map((historyEntry, index) => ({
+        id: historyEntry.id ?? `history-${index}`,
+        timestamp: historyEntry.timestamp || historyEntry.createdAt || null,
+        title: historyEntry.title || 'Issue event',
+        description: historyEntry.description || ''
+      }))
+      .filter((event) => event.timestamp);
 
-    const createdDate = parseApiDate(issue.createdAt);
-    if (!createdDate) {
-      return [];
-    }
-
-    const events = [
-      {
-        id: 'created',
-        timestamp: issue.createdAt,
-        title: 'Issue created',
-        description: `Reported by ${issue.reporterName || 'Unknown'}`
-      }
-    ];
-
-    const createdMs = createdDate.getTime();
-    const updatedDate = issue.updatedAt ? parseApiDate(issue.updatedAt) : null;
-    const updatedMs = updatedDate ? updatedDate.getTime() : null;
-    const hasMeaningfulUpdate = updatedMs != null && Math.abs(updatedMs - createdMs) > 1000;
-
-    if (hasMeaningfulUpdate) {
-      events.push({
-        id: 'updated',
-        timestamp: issue.updatedAt,
-        title: 'Issue updated',
-        description: 'Issue fields were modified.'
-      });
-    }
-
-    if (issue.originalIssueId) {
-      events.push({
-        id: 'duplicate',
-        timestamp: issue.closedAt || issue.updatedAt || issue.createdAt,
-        title: `Marked as duplicate of #${issue.originalIssueId}`,
-        description: 'Issue automatically moved to Closed state.'
-      });
-    } else if (issue.closedAt) {
-      events.push({
-        id: 'closed',
-        timestamp: issue.closedAt,
-        title: issue.status === 'RESOLVED' ? 'Issue resolved' : 'Issue closed',
-        description: `Final status: ${getStatusLabel(issue.status)}`
-      });
-    }
-
-    return events
-      .filter((event) => event.timestamp)
-      .sort((a, b) => {
+    if (normalizedHistory.length > 0) {
+      return normalizedHistory.sort((a, b) => {
         const dateA = parseApiDate(a.timestamp);
         const dateB = parseApiDate(b.timestamp);
         const aMs = dateA ? dateA.getTime() : 0;
         const bMs = dateB ? dateB.getTime() : 0;
         return bMs - aMs;
       });
-  }, [issue]);
+    }
+
+    // Fallback for legacy issues created before backend history support.
+    if (!issue?.createdAt) {
+      return [];
+    }
+
+    return [
+      {
+        id: 'legacy-created',
+        timestamp: issue.createdAt,
+        title: 'Issue created',
+        description: `Reported by ${issue.reporterName || 'Unknown'}`
+      }
+    ];
+  }, [issue, issueHistory]);
 
   const statusOptions = ['TODO', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
 
@@ -939,30 +932,14 @@ function IssueDetail({
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   <button
                     type="button"
-                    onClick={() => setHistoryExpanded((prev) => !prev)}
-                    className="flex items-center justify-between w-full text-left"
+                    onClick={() => setShowHistoryModal(true)}
+                    className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-left transition-colors hover:bg-gray-100"
                   >
                     <span className="text-lg font-semibold text-gray-900">History</span>
-                    <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${historyExpanded ? 'rotate-180' : ''}`} />
+                    <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-700">
+                      {historyEvents.length}
+                    </span>
                   </button>
-
-                  {historyExpanded && (
-                    <div className="mt-4 space-y-4">
-                      {historyEvents.map((event, index) => (
-                        <div key={`${event.id}-${event.timestamp}`} className="relative pl-6">
-                          <span className="absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full bg-blue-500" />
-                          {index < historyEvents.length - 1 && (
-                            <span className="absolute left-[4px] top-4 h-[calc(100%+8px)] w-px bg-gray-200" />
-                          )}
-                          <p className="text-sm font-medium text-gray-900">{event.title}</p>
-                          <p className="text-xs text-gray-500">{formatDateTime(event.timestamp)}</p>
-                          {event.description && (
-                            <p className="mt-1 text-xs text-gray-600">{event.description}</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -1020,6 +997,53 @@ function IssueDetail({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {showHistoryModal && (
+          <div
+            className="fixed inset-0 z-[58] flex items-center justify-center bg-black/55 px-4 backdrop-blur-sm"
+            onClick={() => setShowHistoryModal(false)}
+          >
+            <div
+              className="flex w-[min(92vw,760px)] max-h-[calc(100vh-2.5rem)] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Issue History</h3>
+                  <p className="text-xs text-gray-500">{historyEvents.length} event{historyEvents.length === 1 ? '' : 's'}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowHistoryModal(false)}
+                  className="rounded-lg p-1 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="stable-scroll max-h-[min(68vh,640px)] overflow-y-auto px-5 py-4">
+                {historyEvents.length === 0 ? (
+                  <p className="text-sm text-gray-500">No history events yet.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {historyEvents.map((event, index) => (
+                      <div key={`${event.id}-${event.timestamp}-${index}`} className="relative pl-6">
+                        <span className="absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full bg-blue-500" />
+                        {index < historyEvents.length - 1 && (
+                          <span className="absolute left-[4px] top-4 h-[calc(100%+8px)] w-px bg-gray-200" />
+                        )}
+                        <p className="text-sm font-medium text-gray-900">{event.title}</p>
+                        <p className="text-xs text-gray-500">{formatDateTime(event.timestamp)}</p>
+                        {event.description && (
+                          <p className="mt-1 text-xs leading-relaxed text-gray-600">{event.description}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 

@@ -68,6 +68,15 @@ export const issueService = {
   },
 
   /**
+   * Get issue history timeline by ID
+   * @param {number} id - Issue ID
+   * @returns {Promise<Array>} History events
+   */
+  getHistory(id) {
+    return httpClient.get(API_ENDPOINTS.ISSUE_HISTORY(id));
+  },
+
+  /**
    * Create new issue
    * @param {Object} issueData - Issue data
    * @param {number} userId - User ID for the X-User-Id header
