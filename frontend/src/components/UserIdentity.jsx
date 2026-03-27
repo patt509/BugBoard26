@@ -1,4 +1,4 @@
-const DICEBEAR_BASE_URL = 'https://api.dicebear.com/9.x/adventurer/svg';
+const DICEBEAR_BASE_URL = 'https://api.dicebear.com/9.x/glass/svg';
 
 const getUserDisplayName = (user) => user?.username || user?.email || 'User';
 
