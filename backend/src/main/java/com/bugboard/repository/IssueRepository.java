@@ -8,6 +8,9 @@ import com.bugboard.enums.IssueStatus;
 import com.bugboard.enums.IssueType;
 import com.bugboard.enums.PriorityLevel;
 import com.bugboard.model.Issue;
+import com.bugboard.repository.specification.IssueQueryContext;
+import com.bugboard.repository.specification.IssueSpecification;
+import com.bugboard.repository.specification.IssueSpecifications;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
@@ -64,47 +67,26 @@ public class IssueRepository {
       StringBuilder jpql = new StringBuilder(
             "SELECT DISTINCT i FROM Issue i " +
                   "LEFT JOIN FETCH i.reporter reporter " +
-                  "LEFT JOIN FETCH i.assignee assignee " +
-                  "WHERE 1=1");
+                  "LEFT JOIN FETCH i.assignee assignee");
 
-      String normalizedTerm = term != null ? term.trim() : null;
+      IssueQueryContext queryContext = new IssueQueryContext();
+      IssueSpecification filters = IssueSpecifications.allOf(
+            IssueSpecifications.byTerm(term),
+            IssueSpecifications.byPriority(priority),
+            IssueSpecifications.byStatus(status),
+            IssueSpecifications.byType(type),
+            IssueSpecifications.byAssigneeId(assigneeId));
+      filters.apply(queryContext);
 
-      if (normalizedTerm != null && !normalizedTerm.isEmpty()) {
-         jpql.append(
-               " AND (LOWER(i.title) LIKE LOWER(:term) OR LOWER(i.description) LIKE LOWER(:term) OR LOWER(reporter.username) LIKE LOWER(:term))");
-      }
-      if (priority != null) {
-         jpql.append(" AND i.priority = :priority");
-      }
-      if (status != null) {
-         jpql.append(" AND i.status = :status");
-      }
-      if (type != null) {
-         jpql.append(" AND i.type = :type");
-      }
-      if (assigneeId != null) {
-         jpql.append(" AND i.assignee.id = :assigneeId");
+      if (!queryContext.getPredicates().isEmpty()) {
+         jpql.append(" WHERE ")
+               .append(String.join(" AND ", queryContext.getPredicates()));
       }
 
       jpql.append(" ORDER BY i.createdAt DESC, i.id DESC");
 
       var query = em.createQuery(jpql.toString(), Issue.class);
-
-      if (normalizedTerm != null && !normalizedTerm.isEmpty()) {
-         query.setParameter("term", "%" + normalizedTerm + "%");
-      }
-      if (priority != null) {
-         query.setParameter("priority", priority);
-      }
-      if (status != null) {
-         query.setParameter("status", status);
-      }
-      if (type != null) {
-         query.setParameter("type", type);
-      }
-      if (assigneeId != null) {
-         query.setParameter("assigneeId", assigneeId);
-      }
+      queryContext.getParameters().forEach(query::setParameter);
 
       return query.getResultList();
    }
