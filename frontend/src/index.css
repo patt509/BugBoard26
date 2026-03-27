@@ -23,19 +23,19 @@ body {
 }
 
 .issue-row-resolved {
-  background-color: #e0e7ff;
+  background-color: #dbeafe;
 }
 
 .issue-row-resolved:hover {
-  background-color: #c7d2fe;
+  background-color: #bfdbfe;
 }
 
 .issue-row-closed {
-  background-color: #cbd5e1;
+  background-color: #fee2e2;
 }
 
 .issue-row-closed:hover {
-  background-color: #94a3b8;
+  background-color: #fecaca;
 }
 
 html.dark body {
