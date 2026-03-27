@@ -410,6 +410,11 @@ function Issues({
     return labels[type] || type || 'Bug';
   };
 
+  const getTypeBadgeClass = (type) => {
+    const normalizedType = String(type || '').trim().toUpperCase();
+    return TYPE_BADGE_CLASSES[normalizedType] || 'bg-gray-100 text-gray-700';
+  };
+
   const selectedAssigneeUsers = assignableUsers.filter((assignableUser) =>
     assigneeFilters.includes(String(assignableUser.id))
   );
@@ -775,8 +780,10 @@ function Issues({
                             {getPriorityLabel(issue.priority)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          {getTypeLabel(issue.type)}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`${BADGE_BASE_CLASS} ${getTypeBadgeClass(issue.type)}`}>
+                            {getTypeLabel(issue.type)}
+                          </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                           {issue.assigneeUsername || 'Unassigned'}
