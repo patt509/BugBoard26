@@ -458,7 +458,7 @@ La seguente tabella descrive i test case aggiuntivi (TC16--TC43) progettati per 
 
 \subsubsection{AuthService.createUser()}
 
-La seguente tabella descrive i test case progettati per verificare il comportamento del metodo \texttt{createUser}. Il metodo gestisce la creazione di nuovi utenti nel sistema, con validazione dei permessi amministrativi e controllo di unicità dell'email.\\
+La seguente tabella descrive i test case progettati per verificare il comportamento del metodo \texttt{createUser}. Il metodo gestisce la creazione di nuovi utenti nel sistema, con validazione dei permessi amministrativi, controllo di unicit\`a dell'email e supporto alla password custom opzionale (in alternativa alla password temporanea generata dal backend).\\
 
 \vspace{-8pt}
 \noindent{\footnotesize
@@ -484,13 +484,23 @@ La seguente tabella descrive i test case progettati per verificare il comportame
     \hline
     TC9 & Email exist@test.com already in DB. Admin user with ID=1 exists in DB. & \seqsplit{email=`exist@test.com'}, role=USER, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes to the database. \\
     \hline
+    TC10 & Admin user with ID=1 exists in DB. & \seqsplit{email=`not-an-email'}, role=USER, \seqsplit{adminId}=1 & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    \hline
+    TC11 & Admin user with ID=1 exists in DB. & \seqsplit{email=` New.User@Test.com '}, role=USER, \seqsplit{adminId}=1 & \seqsplit{tempPassword} (String) & Email is normalized (trim+lowercase) before checks and persistence. \\
+    \hline
+    TC12 & Admin user with ID=1 exists in DB. & \seqsplit{email=`custom@test.com'}, role=USER, \seqsplit{adminId}=1, \seqsplit{rawPassword=`CustomPass123'} & \seqsplit{`CustomPass123'} & User is saved with hashed password derived from provided custom password. \\
+    \hline
+    TC13 & Admin user with ID=1 exists in DB. & \seqsplit{email=`blank@test.com'}, role=USER, \seqsplit{adminId}=1, \seqsplit{rawPassword=`   '} & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    \hline
+    TC14 & Admin user with ID=1 exists in DB. & \seqsplit{email=`short@test.com'}, role=USER, \seqsplit{adminId}=1, \seqsplit{rawPassword=`short'} & \seqsplit{IllegalArgumentException} & No changes to the database. \\
+    \hline
 \end{tabularx}
 }
 
 \paragraph{Descrizione dei test case:}
 
 \begin{itemize}
-    \item \textbf{TC1-TC2 (Success)}: Verificano il flusso positivo della creazione di utenti (USER e ADMIN) da parte di un amministratore autenticato. Il metodo ritorna una password temporanea e l'utente viene salvato nel database.
+    \item \textbf{TC1-TC2 (Success with generated password)}: Verificano il flusso positivo della creazione di utenti (USER e ADMIN) da parte di un amministratore autenticato quando la password non viene fornita.
     
     \item \textbf{TC3-TC4 (Admin validation)}: Testano i controlli di autenticazione e autorizzazione dell'amministratore (ID null o non trovato), assicurando che solo utenti admin possano creare account.
     
@@ -498,8 +508,31 @@ La seguente tabella descrive i test case progettati per verificare il comportame
     
     \item \textbf{TC8 (Non-admin user)}: Testa che un utente non-admin non possa creare account, verificando il controllo dei permessi amministrativi.
     
-    \item \textbf{TC9 (Duplicate email)}: Verifica il vincolo di unicità dell'email, assicurando che non sia possibile registrare due account con lo stesso indirizzo email.
+    \item \textbf{TC9-TC11 (Email constraints)}: Coprono unicit\`a, formato email e normalizzazione preventiva (trim + lowercase) prima dei controlli e del salvataggio.
+
+    \item \textbf{TC12 (Custom password success)}: Verifica il nuovo comportamento R1 hardening in cui l'admin pu\`o creare account con password esplicita; il valore ritorna dal service e il salvataggio usa hash sicuro.
+
+    \item \textbf{TC13-TC14 (Custom password validation)}: Validano i casi limite della password fornita dall'admin (solo spazi o lunghezza < 8), con blocco dell'operazione e assenza di side effect sul repository.
 \end{itemize}
+
+\subsubsection{AuthResource.createUser()}
+
+La seguente tabella descrive i test case REST del controller \texttt{AuthResource} per il mapping della risposta di \texttt{POST /auth/admin/users}, con particolare attenzione alla presenza/assenza del campo \texttt{temporaryPassword}.\\
+
+\vspace{-8pt}
+\noindent{\footnotesize
+\begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+    \hline
+    \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
+    \hline
+    TC1 & Admin authenticated. Service returns generated password. & email valid, role=USER, password omitted & HTTP 201 with \texttt{message,email,role,temporaryPassword,note} & Response exposes temporary password for out-of-band communication. \\
+    \hline
+    TC2 & Admin authenticated. Service returns provided password. & email valid, role=ADMIN, password=\texttt{CustomPass123} & HTTP 201 with \texttt{message,email,role} only & \texttt{temporaryPassword} and \texttt{note} are intentionally omitted. \\
+    \hline
+    TC3 & Admin authenticated. Service rejects blank password. & email valid, role=USER, password=\texttt{``   ''} & HTTP 400 with \texttt{\{"error":"Password is required."\}} & No account creation side effect. \\
+    \hline
+\end{tabularx}
+}
 
 \clearpage
 
@@ -853,7 +886,7 @@ La suite di test raggiunge il \textbf{100\% di branch coverage} sulle classi \te
     \item \textbf{IssueService (metodi aggiuntivi)}: 27 test case (TC16--TC42) — createIssue (entrambi gli overload), updateStatus, attachment CRUD, validateIssueExists, getAllIssues, getIssueById, convertSingleToDTO (reporter null/presente, assignee null/presente). 97\% istruzioni, 100\% branch.
     \item \textbf{User (Entità di Dominio)}: 20 test case — 100\% istruzioni, 100\% branch. Coprono costruttore (email valida/null/senza @), setter \texttt{setPassword} (null/vuoto/spazi), \texttt{finalizeProfile} (successo, già finalizzato, username null/corto/vuoto), \texttt{isAdmin} (ADMIN/USER), getters/setters e costruttore JPA.
     \item \textbf{PasswordResetRequest (Entità di Dominio)}: 10 test case — 100\% istruzioni, 100\% branch. Coprono costruttore (valido/null), costruttore JPA, \texttt{markAsCompleted} (admin/non-admin), \texttt{markAsRejected} (admin/non-admin), \texttt{isPending} (PENDING/COMPLETED/REJECTED).
-    \item \textbf{AuthService.createUser}: 9 test case — autenticazione, validazione input, permessi e unicità email.
+    \item \textbf{AuthService.createUser}: 14 test case --- autenticazione, validazione input, permessi, unicit\`a email e gestione password custom opzionale (success/failure).
     \item \textbf{AuthService.finalizeProfile}: 6 test case — validazione parametri, unicità username, aggiornamento stato.
     \item \textbf{AuthService.resetUserPassword}: 5 test case — successo, userId null/non trovato, adminId null/non-admin.
     \item \textbf{AuthService.processPasswordResetRequest}: 6 test case — approvazione, rifiuto, requestId null/non trovato, richiesta già processata, adminId null.
@@ -862,10 +895,11 @@ La suite di test raggiunge il \textbf{100\% di branch coverage} sulle classi \te
     \item \textbf{AuthService.requestPasswordReset}: 5 test case — successo, email null/vuota/non trovata, richiesta già pendente.
     \item \textbf{AuthService.validateAdminPrivileges}: 4 test case — admin valido, adminId null/non trovato/non-admin.
     \item \textbf{AuthService (metodi legacy)}: 4 test case — registerUser (successo), authenticate (credenziali valide/errate, utente non trovato).
-    \item \textbf{AuthService}: Copertura complessiva — 100\% istruzioni, 100\% branch (44 test case totali).
+    \item \textbf{AuthService}: Copertura complessiva --- 100\% istruzioni, 100\% branch (47 test case totali).
+    \item \textbf{AuthResource.createUser}: 3 test case REST --- mapping risposta 201 con/senza \texttt{temporaryPassword} e validazione errore 400 su password blank.
 \end{itemize}
 
-Totale: \textbf{147 test case}, tutti verdi (\texttt{Tests run: 147, Failures: 0, Errors: 0}).
+Totale: \textbf{167 test case}, tutti verdi (\texttt{Tests run: 167, Failures: 0, Errors: 0, Skipped: 0}).
 
 I test sono configurati per essere eseguiti automaticamente durante la build Maven (fase \texttt{test}) e i report di copertura JaCoCo sono generati in \texttt{target/site/jacoco/index.html}, fornendo una visione dettagliata della completezza della suite di test.
 
@@ -882,3 +916,5 @@ Per la regressione finale del ciclo hardening+MVP sono stati eseguiti i seguenti
 \clearpage
 
 \end{document}
+
+
