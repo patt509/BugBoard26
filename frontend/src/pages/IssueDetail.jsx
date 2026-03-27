@@ -1029,7 +1029,7 @@ function IssueDetail({
             onClick={() => setPreviewAttachment(null)}
           >
             <div
-              className="flex h-[min(80vh,620px)] w-[min(90vw,960px)] flex-col rounded-xl border border-gray-200 bg-white shadow-2xl"
+              className="flex h-[min(80vh,560px)] w-[min(88vw,820px)] max-h-[calc(100vh-2.5rem)] flex-col rounded-xl border border-gray-200 bg-white shadow-2xl"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
@@ -1042,12 +1042,12 @@ function IssueDetail({
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <div className="flex-1 bg-black p-3">
+              <div className="flex min-h-0 flex-1 bg-black p-3">
                 <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-md bg-black">
                   <img
                     src={previewAttachment.source}
                     alt={previewAttachment.name}
-                    className="max-h-full max-w-full object-contain"
+                    className="h-full w-full object-contain"
                   />
                 </div>
               </div>

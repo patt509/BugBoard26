@@ -71,6 +71,16 @@ const getUserAvatarUrl = (targetUser) => {
    return `${DICEBEAR_BASE_URL}?seed=${seed}&radius=50&size=64`;
 };
 
+const revokeAttachmentPreview = (attachment) => {
+   if (!attachment?.previewUrl) {
+      return;
+   }
+
+   if (typeof attachment.previewUrl === 'string' && attachment.previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(attachment.previewUrl);
+   }
+};
+
 function FormDropdown({
    value,
    options,
@@ -177,6 +187,7 @@ function CreateIssue({
    const [titleError, setTitleError] = useState(null);
    const [fileError, setFileError] = useState(null);
    const [attachInfo, setAttachInfo] = useState({ maxFileSizeMB: 5, allowedExtensions: ['.jpg', '.png'] });
+   const [isDragOver, setIsDragOver] = useState(false);
 
    // Fetch attachment constraints from backend
    useEffect(() => {
@@ -204,6 +215,12 @@ function CreateIssue({
          });
       }
    }, [editingIssue]);
+
+   useEffect(() => {
+      return () => {
+         attachments.forEach(revokeAttachmentPreview);
+      };
+   }, [attachments]);
 
    useEffect(() => {
       let mounted = true;
@@ -323,14 +340,14 @@ function CreateIssue({
    const assigneeRowSelectedClass = isDarkMode ? 'bg-[#1f1f1f]' : 'bg-blue-50';
    const assigneeSecondaryTextClass = isDarkMode ? 'text-gray-300' : 'text-gray-500';
 
-const handleFileUpload = (e) => {
+const processAttachmentFile = (file) => {
    setError(null);
    setFileError(null);
-   const file = e.target.files && e.target.files[0];
-   if (!file) return;
 
-   // Enforce single file
-   // Validate size
+   if (!file) {
+      return;
+   }
+
    const maxBytes = attachInfo.maxFileSizeMB * 1024 * 1024;
    if (file.size > maxBytes) {
       setFileError(`File is too large (Max ${attachInfo.maxFileSizeMB}MB).`);
@@ -342,7 +359,6 @@ const handleFileUpload = (e) => {
       return;
    }
 
-   // Validate extension - use server-provided allowed extensions when available
    const fileName = file.name || '';
    const ext = fileName.includes('.') ? fileName.substring(fileName.lastIndexOf('.')).toLowerCase() : '';
    const allowed = (attachInfo.allowedExtensions || ['.jpg', '.png']).map(a => {
@@ -359,15 +375,57 @@ const handleFileUpload = (e) => {
       name: file.name,
       size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
       file,
+      previewUrl: URL.createObjectURL(file),
    };
 
-   // Only keep a single attachment (replace previous)
-   setAttachments([attachment]);
+   setAttachments((prevAttachments) => {
+      prevAttachments.forEach(revokeAttachmentPreview);
+      return [attachment];
+   });
+};
+
+const handleFileUpload = (e) => {
+   const file = e.target.files && e.target.files[0];
+   processAttachmentFile(file);
+   e.target.value = '';
+};
+
+const handleAttachmentDragOver = (event) => {
+   event.preventDefault();
+   event.stopPropagation();
+   if (!isDragOver) {
+      setIsDragOver(true);
+   }
+};
+
+const handleAttachmentDragLeave = (event) => {
+   event.preventDefault();
+   event.stopPropagation();
+   if (!event.currentTarget.contains(event.relatedTarget)) {
+      setIsDragOver(false);
+   }
+};
+
+const handleAttachmentDrop = (event) => {
+   event.preventDefault();
+   event.stopPropagation();
+   setIsDragOver(false);
+   const droppedFile = event.dataTransfer?.files?.[0];
+   processAttachmentFile(droppedFile);
 };
 
 const removeAttachment = (id) => {
-   setAttachments(prev => prev.filter(att => att.id !== id));
+   setAttachments(prev => {
+      const updatedAttachments = prev.filter(att => att.id !== id);
+      prev.forEach((attachment) => {
+         if (!updatedAttachments.some((nextAttachment) => nextAttachment.id === attachment.id)) {
+            revokeAttachmentPreview(attachment);
+         }
+      });
+      return updatedAttachments;
+   });
    setFileError(null);
+   setIsDragOver(false);
 };
 
 
@@ -622,28 +680,40 @@ return (
                   </label>
 
                   {/* Upload Area */}
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
-                     <input
-                        type="file"
-                        id="file-upload"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                        accept={(attachInfo.allowedExtensions || ['.jpg', '.png']).join(',')}
-                     />
-                     <label
-                        htmlFor="file-upload"
-                        className="cursor-pointer flex flex-col items-center gap-2"
+                  {attachments.length === 0 && (
+                     <div
+                        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                           isDragOver
+                              ? 'border-blue-500 bg-blue-50/60'
+                              : 'border-gray-300 hover:border-gray-400'
+                        }`}
+                        onDragEnter={handleAttachmentDragOver}
+                        onDragOver={handleAttachmentDragOver}
+                        onDragLeave={handleAttachmentDragLeave}
+                        onDrop={handleAttachmentDrop}
                      >
-                        <Upload className="w-8 h-8 text-gray-400" />
-                        <span className="text-sm text-gray-600">
-                           Click to upload or drag and drop
-                        </span>
-                        <span className="text-xs text-gray-500">
-                           PNG, JPG up to {attachInfo.maxFileSizeMB} MB
-                        </span>
-                        <span className="text-xs text-gray-400">Only one file allowed</span>
-                     </label>
-                  </div>
+                        <input
+                           type="file"
+                           id="file-upload"
+                           onChange={handleFileUpload}
+                           className="hidden"
+                           accept={(attachInfo.allowedExtensions || ['.jpg', '.png']).join(',')}
+                        />
+                        <label
+                           htmlFor="file-upload"
+                           className="cursor-pointer flex flex-col items-center gap-2"
+                        >
+                           <Upload className={`w-8 h-8 ${isDragOver ? 'text-blue-500' : 'text-gray-400'}`} />
+                           <span className="text-sm text-gray-600">
+                              Click to upload or drag and drop
+                           </span>
+                           <span className="text-xs text-gray-500">
+                              PNG, JPG up to {attachInfo.maxFileSizeMB} MB
+                           </span>
+                           <span className="text-xs text-gray-400">Only one file allowed</span>
+                        </label>
+                     </div>
+                  )}
 
                   {/* Attachment List */}
                   {attachments.length > 0 && (
@@ -654,8 +724,16 @@ return (
                               className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg"
                            >
                               <div className="flex items-center gap-3">
-                                 <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
-                                    <Upload className="w-6 h-6 text-gray-400" />
+                                 <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden flex items-center justify-center">
+                                    {attachment.previewUrl ? (
+                                       <img
+                                          src={attachment.previewUrl}
+                                          alt={attachment.name}
+                                          className="h-full w-full object-cover"
+                                       />
+                                    ) : (
+                                       <Upload className="w-6 h-6 text-gray-400" />
+                                    )}
                                  </div>
                                  <div>
                                     <p className="text-sm font-medium text-gray-900">
