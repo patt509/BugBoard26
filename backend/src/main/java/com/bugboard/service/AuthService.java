@@ -57,6 +57,22 @@ public class AuthService {
     */
    @Transactional
    public String createUser(String email, UserRole role, Long adminId) {
+      return createUser(email, role, adminId, null);
+   }
+
+   /**
+    * Creates a new user (only admin can call this method), allowing an optional
+    * custom password.
+    * If password is not provided, a temporary password is generated.
+    * 
+    * @param email       email of the new user
+    * @param role        user role
+    * @param adminId     the ID of the admin creating the user
+    * @param rawPassword optional custom password
+    * @return effective password used for account creation
+    */
+   @Transactional
+   public String createUser(String email, UserRole role, Long adminId, String rawPassword) {
       // Validate admin privileges
       User admin = getValidatedAdmin(adminId);
       
@@ -77,9 +93,8 @@ public class AuthService {
          throw new IllegalArgumentException("Email already registered.");
       }
 
-      // Generate temporary password
-      String tempPassword = generateTemporaryPassword();
-      String hashedPassword = PasswordHasher.hash(tempPassword);
+      String effectivePassword = resolveInitialPassword(rawPassword);
+      String hashedPassword = PasswordHasher.hash(effectivePassword);
 
       // Create and save the user
       User newUser = new User(normalizedEmail, hashedPassword, role);
@@ -88,8 +103,7 @@ public class AuthService {
       logger.log(Level.INFO, "Admin {0} created new user with email {1}",
             new Object[] { admin.getEmail(), normalizedEmail });
 
-      // Return the temporary password (admin will communicate it physically)
-      return tempPassword;
+      return effectivePassword;
    }
 
    /**
@@ -369,6 +383,22 @@ public class AuthService {
          sb.append(TEMP_PASSWORD_CHARS.charAt(index));
       }
       return sb.toString();
+   }
+
+   private String resolveInitialPassword(String rawPassword) {
+      if (rawPassword == null) {
+         return generateTemporaryPassword();
+      }
+
+      if (rawPassword.trim().isEmpty()) {
+         throw new IllegalArgumentException("Password is required.");
+      }
+
+      if (rawPassword.length() < 8) {
+         throw new IllegalArgumentException("Password must be at least 8 characters long.");
+      }
+
+      return rawPassword;
    }
 
    private String normalizeEmail(String email) {

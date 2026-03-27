@@ -8,6 +8,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -18,8 +19,8 @@ import java.util.logging.Logger;
  * REST Controller for authentication and user management.
  *
  * User flow:
- * 1. Admin creates user with POST /auth/admin/users -> receives temporary
- * password
+ * 1. Admin creates user with POST /auth/admin/users
+ * (with custom password or receiving temporary one)
  * 2. Admin communicates credentials physically to the employee
  * 3. Employee logs in with POST /auth/login
  * 4. If firstLogin=true, employee chooses username with PUT
@@ -168,8 +169,9 @@ public class AuthResource {
 
    /**
     * Admin creates a new user.
-    * 
-    * @return the temporary password to communicate physically to the employee
+    *
+    * If password is provided in request body, it is used.
+    * Otherwise, backend generates a temporary password.
     */
    @POST
    @Path("/admin/users")
@@ -195,14 +197,26 @@ public class AuthResource {
             }
          }
 
-         String tempPassword = authService.createUser(request.getEmail().trim(), role, adminId);
+         String requestedPassword = request.getPassword();
+         boolean customPasswordProvided = requestedPassword != null && !requestedPassword.trim().isEmpty();
+         String effectivePassword = authService.createUser(
+               request.getEmail().trim(),
+               role,
+               adminId,
+               requestedPassword);
+
+         Map<String, Object> responsePayload = new HashMap<>();
+         responsePayload.put("message", "User created successfully");
+         responsePayload.put("email", request.getEmail().trim());
+         responsePayload.put("role", role.name());
+
+         if (!customPasswordProvided) {
+            responsePayload.put("temporaryPassword", effectivePassword);
+            responsePayload.put("note", "Communicate this password to the employee in person");
+         }
 
          return Response.status(Response.Status.CREATED)
-               .entity(Map.of(
-                     "message", "User created successfully",
-                     "email", request.getEmail(),
-                     "temporaryPassword", tempPassword,
-                     "note", "Communicate this password to the employee in person"))
+               .entity(responsePayload)
                .build();
 
       } catch (SecurityException e) {
