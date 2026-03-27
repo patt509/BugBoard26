@@ -5,6 +5,8 @@ import CreateIssue from './pages/CreateIssue';
 import IssueDetail from './pages/IssueDetail';
 import AdminDashboard from './pages/AdminDashboard';
 import CreateUserAccount from './pages/CreateUserAccount';
+import MandatoryUsernameModal from './components/MandatoryUsernameModal';
+import { authService } from './services/auth.service';
 
 const THEME_STORAGE_KEY = 'bugboard-theme';
 
@@ -150,6 +152,19 @@ function App() {
     setTheme((prevTheme) => (prevTheme === 'dark' ? 'light' : 'dark'));
   };
 
+  const handleMandatoryUsernameSubmit = async (chosenUsername) => {
+    if (user?.id == null) {
+      throw new Error('User session not found. Please login again.');
+    }
+
+    const updatedUser = await authService.setUsername(user.id, chosenUsername);
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    localStorage.setItem('userId', String(updatedUser.id));
+  };
+
+  const requiresMandatoryUsername = Boolean(user) && user?.firstLogin === true;
+
   let pageContent;
 
   if (loading) {
@@ -233,7 +248,14 @@ function App() {
     );
   }
 
-  return pageContent;
+  return (
+    <>
+      {pageContent}
+      {requiresMandatoryUsername && (
+        <MandatoryUsernameModal onSubmit={handleMandatoryUsernameSubmit} />
+      )}
+    </>
+  );
 }
 
 export default App;

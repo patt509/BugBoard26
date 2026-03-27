@@ -56,6 +56,28 @@ export const authService = {
     return httpClient.post(API_ENDPOINTS.AUTH_LOGIN, credentials);
   },
 
+  setUsername(userId, username) {
+    const resolvedUserId = userId ?? resolveStoredUserId();
+    if (resolvedUserId == null || resolvedUserId === '') {
+      throw new Error('User authentication is required. Please login again.');
+    }
+
+    const normalizedUsername = String(username ?? '').trim();
+    if (!normalizedUsername) {
+      throw new Error('Username is required.');
+    }
+
+    return httpClient.put(
+      API_ENDPOINTS.AUTH_PROFILE_USERNAME,
+      { username: normalizedUsername },
+      {
+        headers: {
+          'X-User-Id': String(resolvedUserId),
+        },
+      }
+    );
+  },
+
   getAssignableUsers(userId, options = {}) {
     const resolvedUserId = userId ?? resolveStoredUserId();
     if (resolvedUserId == null || resolvedUserId === '') {
