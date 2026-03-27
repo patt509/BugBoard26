@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
   // Auth
   AUTH_LOGIN: '/auth/login',
   AUTH_USERS_ASSIGNABLE: '/auth/users/assignable',
+  AUTH_ADMIN_USERS: '/auth/admin/users',
   
   // Issues
   ISSUES: '/issues',

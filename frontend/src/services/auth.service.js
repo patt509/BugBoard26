@@ -98,6 +98,35 @@ export const authService = {
 
     return cacheEntry.inFlight;
   },
+
+  createUserByAdmin(userData, adminId) {
+    const resolvedAdminId = adminId ?? resolveStoredUserId();
+    if (resolvedAdminId == null || resolvedAdminId === '') {
+      throw new Error('Administrator authentication is required. Please login again.');
+    }
+
+    if (!userData || typeof userData !== 'object') {
+      throw new Error('User data is required.');
+    }
+
+    const payload = {
+      email: userData.email?.trim(),
+      password: userData.password,
+      role: userData.role,
+    };
+
+    return httpClient
+      .post(API_ENDPOINTS.AUTH_ADMIN_USERS, payload, {
+        headers: {
+          'X-User-Id': String(resolvedAdminId),
+        },
+      })
+      .then((response) => {
+        // New users can become assignees: invalidate cache for fresh lists.
+        assignableUsersCacheByUserId.clear();
+        return response;
+      });
+  },
 };
 
 export default authService;

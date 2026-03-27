@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import { Bug, LayoutDashboard, ListTodo, Menu, X } from 'lucide-react';
+import { Bug, LayoutDashboard, ListTodo, Menu, UserPlus, X } from 'lucide-react';
 
 function Sidebar({ currentPage, onNavigate, userRole }) {
   const [isOpen, setIsOpen] = useState(true);
 
   const menuItems = [
     ...(userRole === 'ADMIN'
-      ? [{ id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard }]
+      ? [
+          { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+          { id: 'create-user', label: 'Create User', icon: UserPlus },
+        ]
       : []),
     { id: 'issues', label: 'Issues', icon: ListTodo }
   ];

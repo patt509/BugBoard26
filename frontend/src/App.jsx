@@ -4,6 +4,7 @@ import Issues from './pages/Issues';
 import CreateIssue from './pages/CreateIssue';
 import IssueDetail from './pages/IssueDetail';
 import AdminDashboard from './pages/AdminDashboard';
+import CreateUserAccount from './pages/CreateUserAccount';
 
 const THEME_STORAGE_KEY = 'bugboard-theme';
 
@@ -49,7 +50,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (currentView === 'dashboard' && user?.role !== 'ADMIN') {
+    if ((currentView === 'dashboard' || currentView === 'create-user') && user?.role !== 'ADMIN') {
       setCurrentView('issues');
     }
   }, [currentView, user]);
@@ -135,6 +136,13 @@ function App() {
       setCurrentView('dashboard');
       setSelectedIssueId(null);
       setEditingIssue(null);
+      return;
+    }
+
+    if (page === 'create-user' && user?.role === 'ADMIN') {
+      setCurrentView('create-user');
+      setSelectedIssueId(null);
+      setEditingIssue(null);
     }
   };
 
@@ -192,6 +200,16 @@ function App() {
   } else if (currentView === 'dashboard' && user?.role === 'ADMIN') {
     pageContent = (
       <AdminDashboard
+        user={user}
+        onLogout={handleLogout}
+        onNavigate={handleSidebarNavigate}
+        isDarkMode={theme === 'dark'}
+        onToggleTheme={handleToggleTheme}
+      />
+    );
+  } else if (currentView === 'create-user' && user?.role === 'ADMIN') {
+    pageContent = (
+      <CreateUserAccount
         user={user}
         onLogout={handleLogout}
         onNavigate={handleSidebarNavigate}
