@@ -8,6 +8,7 @@ import { commentService } from '../services/comment.service';
 import { attachmentService } from '../services/attachment.service';
 
 const API_TIMESTAMP_WITH_TIMEZONE_REGEX = /(Z|[+-]\d{2}:?\d{2})$/i;
+const DICEBEAR_BASE_URL = 'https://api.dicebear.com/9.x/glass/svg';
 
 const parseApiDate = (input) => {
   if (!input) {
@@ -29,6 +30,61 @@ const parseApiDate = (input) => {
 
   return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
 };
+
+const resolveDisplayInitial = (value, fallback = 'U') => {
+  const normalized = String(value ?? '').trim();
+  if (!normalized) {
+    return fallback;
+  }
+  return normalized.charAt(0).toUpperCase();
+};
+
+const buildAvatarSeed = ({ username, id, fallback = 'User' }) => {
+  const normalizedName = String(username ?? '').trim() || fallback;
+  const normalizedId = id != null ? String(id) : 'unknown';
+  return `${normalizedName}-${normalizedId}`;
+};
+
+const getAvatarUrlBySeed = (seed, size = 64) => {
+  const normalizedSeed = encodeURIComponent(String(seed ?? 'unknown'));
+  return `${DICEBEAR_BASE_URL}?seed=${normalizedSeed}&radius=50&size=${size}`;
+};
+
+function AvatarCircle({
+  seed,
+  label,
+  fallback = 'U',
+  sizeClass = 'w-10 h-10',
+  textClass = 'text-sm'
+}) {
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
+
+  useEffect(() => {
+    setImageLoadFailed(false);
+  }, [seed]);
+
+  const avatarUrl = getAvatarUrlBySeed(seed);
+  const initial = resolveDisplayInitial(label, resolveDisplayInitial(fallback));
+
+  return (
+    <div className={`${sizeClass} overflow-hidden rounded-full border border-gray-200 bg-gray-100 flex-shrink-0`}>
+      {imageLoadFailed ? (
+        <div className="flex h-full w-full items-center justify-center">
+          <span className={`font-medium text-gray-600 ${textClass}`}>{initial}</span>
+        </div>
+      ) : (
+        <img
+          src={avatarUrl}
+          alt={`${label || 'User'} avatar`}
+          className="h-full w-full rounded-full object-cover"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setImageLoadFailed(true)}
+        />
+      )}
+    </div>
+  );
+}
 
 const formatRelativeTime = (dateString, nowMs) => {
   const parsedDate = parseApiDate(dateString);
@@ -778,11 +834,17 @@ function IssueDetail({
                         key={comment.id}
                         className={`flex gap-3 ${isOwnComment ? 'flex-row-reverse' : ''}`}
                       >
-                        <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-gray-600 text-sm font-medium">
-                            {(comment.authorUsername || 'U').charAt(0).toUpperCase()}
-                          </span>
-                        </div>
+                        <AvatarCircle
+                          seed={buildAvatarSeed({
+                            username: comment.authorUsername,
+                            id: comment.authorId,
+                            fallback: 'Unknown user'
+                          })}
+                          label={comment.authorUsername || 'Unknown'}
+                          fallback={comment.authorUsername || 'U'}
+                          sizeClass="w-10 h-10"
+                          textClass="text-sm"
+                        />
                         <div className={`max-w-md px-4 py-3 rounded-lg ${bubbleClass}`}>
                           <div className="flex items-center gap-2 mb-1">
                             <span className={`text-sm font-medium ${authorTextClass}`}>
@@ -926,11 +988,17 @@ function IssueDetail({
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">Assignee</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
-                        <span className="text-xs text-gray-600">
-                          {(issue?.assigneeUsername || 'U').charAt(0).toUpperCase()}
-                        </span>
-                      </div>
+                      <AvatarCircle
+                        seed={buildAvatarSeed({
+                          username: issue?.assigneeUsername,
+                          id: issue?.assigneeId,
+                          fallback: 'Unassigned'
+                        })}
+                        label={issue?.assigneeUsername || 'Unassigned'}
+                        fallback={issue?.assigneeUsername || 'U'}
+                        sizeClass="w-6 h-6"
+                        textClass="text-xs"
+                      />
                       <span className="text-sm font-medium text-gray-900">
                         {issue?.assigneeUsername || 'Unassigned'}
                       </span>
@@ -940,9 +1008,21 @@ function IssueDetail({
                   {/* Reporter */}
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">Reporter</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {issue?.reporterName || 'Unknown'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <AvatarCircle
+                        seed={buildAvatarSeed({
+                          username: issue?.reporterName,
+                          fallback: 'Unknown reporter'
+                        })}
+                        label={issue?.reporterName || 'Unknown'}
+                        fallback={issue?.reporterName || 'U'}
+                        sizeClass="w-6 h-6"
+                        textClass="text-xs"
+                      />
+                      <span className="text-sm font-medium text-gray-900">
+                        {issue?.reporterName || 'Unknown'}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Created */}
