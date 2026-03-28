@@ -153,10 +153,10 @@ function PieChartCard({ title, data, colorsMap }) {
                     />
                   );
                 })}
-              <text x="60" y="58" textAnchor="middle" className="fill-gray-500 text-[9px] font-medium">
+              <text x="60" y="58" textAnchor="middle" className="fill-white text-[9px] font-medium">
                 Total
               </text>
-              <text x="60" y="72" textAnchor="middle" className="fill-gray-900 text-[12px] font-semibold">
+              <text x="60" y="72" textAnchor="middle" className="fill-white text-[12px] font-semibold">
                 {total}
               </text>
             </svg>
