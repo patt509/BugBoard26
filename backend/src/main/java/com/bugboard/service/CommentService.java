@@ -24,6 +24,7 @@ import java.util.logging.Logger;
 public class CommentService {
 
    private static final Logger logger = Logger.getLogger(CommentService.class.getName());
+   private static final String COMMENT_NOT_FOUND_MESSAGE = "Comment not found";
 
    private final CommentRepository commentRepository;
    private final IssueRepository issueRepository;
@@ -98,7 +99,7 @@ public class CommentService {
    @Transactional
    public void updateComment(Long commentId, String text, Long userId) {
       Comment comment = commentRepository.findById(commentId)
-            .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
+            .orElseThrow(() -> new IllegalArgumentException(COMMENT_NOT_FOUND_MESSAGE));
       User actor = userRepository.findById(userId)
             .orElseThrow(() -> new SecurityException("Authenticated user not found"));
 
@@ -119,7 +120,7 @@ public class CommentService {
    @Transactional
    public void deleteComment(Long commentId, Long userId) {
       Comment comment = commentRepository.findById(commentId)
-            .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
+            .orElseThrow(() -> new IllegalArgumentException(COMMENT_NOT_FOUND_MESSAGE));
       User actor = userRepository.findById(userId)
             .orElseThrow(() -> new SecurityException("Authenticated user not found"));
 
@@ -153,7 +154,7 @@ public class CommentService {
     */
    public String getCommentAttachmentPath(Long commentId) {
       Comment comment = commentRepository.findById(commentId)
-            .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
+            .orElseThrow(() -> new IllegalArgumentException(COMMENT_NOT_FOUND_MESSAGE));
       return comment.getAttachmentPath();
    }
 
@@ -177,7 +178,7 @@ public class CommentService {
    @Transactional
    public void setCommentAttachmentPath(Long commentId, String attachmentPath) {
       Comment comment = commentRepository.findById(commentId)
-            .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
+            .orElseThrow(() -> new IllegalArgumentException(COMMENT_NOT_FOUND_MESSAGE));
       comment.setAttachmentPath(attachmentPath);
       commentRepository.save(comment);
    }
@@ -191,7 +192,7 @@ public class CommentService {
    @Transactional
    public String removeCommentAttachment(Long commentId) {
       Comment comment = commentRepository.findById(commentId)
-            .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
+            .orElseThrow(() -> new IllegalArgumentException(COMMENT_NOT_FOUND_MESSAGE));
       
       String oldPath = comment.getAttachmentPath();
       if (oldPath == null) {
