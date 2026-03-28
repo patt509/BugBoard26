@@ -220,7 +220,7 @@ function IssueDetail({
 
   const handleStatusChange = async (newStatus) => {
     try {
-      await issueService.updateStatus(issueId, newStatus);
+      await issueService.updateStatus(issueId, newStatus, currentUserId);
       setIssue(prev => ({ ...prev, status: newStatus }));
       setStatusDropdownOpen(false);
     } catch (err) {
@@ -463,23 +463,23 @@ function IssueDetail({
   const formatTime = (dateString) => {
     const parsedDate = parseApiDate(dateString);
     if (!parsedDate) return '';
-    return parsedDate.toLocaleTimeString('en-US', {
-      hour: 'numeric',
+    return parsedDate.toLocaleTimeString('it-IT', {
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: true
+      hour12: false
     });
   };
 
   const formatDateTime = (dateString) => {
     const parsedDate = parseApiDate(dateString);
     if (!parsedDate) return 'N/A';
-    return parsedDate.toLocaleString('en-US', {
+    return parsedDate.toLocaleString('it-IT', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      hour12: true
+      hour12: false
     });
   };
 
@@ -489,7 +489,8 @@ function IssueDetail({
         id: historyEntry.id ?? `history-${index}`,
         timestamp: historyEntry.timestamp || historyEntry.createdAt || null,
         title: historyEntry.title || 'Issue event',
-        description: historyEntry.description || ''
+        description: historyEntry.description || '',
+        changedBy: historyEntry.changedBy || 'System'
       }))
       .filter((event) => event.timestamp);
 
@@ -513,7 +514,8 @@ function IssueDetail({
         id: 'legacy-created',
         timestamp: issue.createdAt,
         title: 'Issue created',
-        description: `Reported by ${issue.reporterName || 'Unknown'}`
+        description: `Reported by ${issue.reporterName || 'Unknown'}`,
+        changedBy: issue.reporterName || 'Unknown'
       }
     ];
   }, [issue, issueHistory]);
@@ -737,7 +739,7 @@ function IssueDetail({
                         <div
                           className={`max-w-md px-4 py-3 rounded-lg ${
                             comment.authorId === currentUserId
-                              ? 'bg-blue-100 text-blue-900'
+                              ? 'bg-blue-100 text-gray-900'
                               : 'bg-gray-100 text-gray-900'
                           }`}
                         >
@@ -749,7 +751,7 @@ function IssueDetail({
                           <p className="text-sm">{comment.text}</p>
                           {/* Comment Attachment */}
                           {comment.attachmentPath && (
-                            <div className="mt-2 flex items-center gap-2 p-2 bg-white/50 rounded border border-gray-200">
+                            <div className="mt-2 flex items-center gap-2 rounded border border-gray-300 bg-white/80 p-2">
                               <button
                                 type="button"
                                 onClick={() => openAttachmentPreview(`/api/attachments/comments/${comment.id}`, comment.attachmentPath?.split('/').pop())}
@@ -768,7 +770,7 @@ function IssueDetail({
                               <button
                                 type="button"
                                 onClick={() => openAttachmentPreview(`/api/attachments/comments/${comment.id}`, comment.attachmentPath?.split('/').pop())}
-                                className="text-xs text-gray-600 truncate flex-1 text-left hover:underline"
+                                className="text-xs text-gray-900 truncate flex-1 text-left hover:underline"
                               >
                                 {comment.attachmentPath.split('/').pop()}
                               </button>
@@ -778,11 +780,11 @@ function IssueDetail({
                                 className="group p-1 rounded transition-colors hover:bg-gray-200"
                                 title="Download attachment"
                               >
-                                <Download className="w-4 h-4 text-gray-500 transition-colors group-hover:text-gray-900" />
+                                <Download className="w-4 h-4 text-gray-800 transition-colors group-hover:text-black" />
                               </a>
                             </div>
                           )}
-                          <span className="text-xs text-gray-500 mt-1 block">
+                          <span className="mt-1 block text-xs text-gray-800">
                             {formatTime(comment.createdAt)}
                           </span>
                         </div>
@@ -1035,6 +1037,7 @@ function IssueDetail({
                         )}
                         <p className="text-sm font-medium text-gray-900">{event.title}</p>
                         <p className="text-xs text-gray-500">{formatDateTime(event.timestamp)}</p>
+                        <p className="text-[11px] font-medium text-gray-500">By: {event.changedBy || 'System'}</p>
                         {event.description && (
                           <p className="mt-1 text-xs leading-relaxed text-gray-600">{event.description}</p>
                         )}
