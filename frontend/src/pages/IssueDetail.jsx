@@ -86,6 +86,25 @@ const resolveCurrentUserId = (user) => {
   }
 };
 
+const resolveCurrentUserRole = (user) => {
+  if (user?.role != null && String(user.role).trim() !== '') {
+    return String(user.role);
+  }
+
+  const storedUser = localStorage.getItem('user');
+  if (!storedUser) {
+    return '';
+  }
+
+  try {
+    const parsedUser = JSON.parse(storedUser);
+    return parsedUser?.role != null ? String(parsedUser.role) : '';
+  } catch (error) {
+    console.warn('Unable to parse localStorage user while resolving role', error);
+    return '';
+  }
+};
+
 function IssueDetail({
   user,
   onLogout,
@@ -125,17 +144,8 @@ function IssueDetail({
   const [nowMs, setNowMs] = useState(() => Date.now());
   const duplicateCandidatesCacheRef = useRef(null);
   const currentUserId = resolveCurrentUserId(user);
-  const normalizedRole = String(user?.role ?? '').trim().toUpperCase();
-  const isAdminUser = normalizedRole === 'ADMIN' || normalizedRole === 'ADMINISTRATOR';
-  const normalizedIssueType = String(issue?.type ?? '').trim().toUpperCase();
-  const normalizedIssueStatus = String(issue?.status ?? '')
-    .trim()
-    .toUpperCase()
-    .replace(/\s+/g, '_');
-  const canFlagAsDuplicate = isAdminUser &&
-    normalizedIssueType === 'BUG' &&
-    normalizedIssueStatus !== 'CLOSED' &&
-    normalizedIssueStatus !== 'RESOLVED';
+  const normalizedRole = resolveCurrentUserRole(user).trim().toUpperCase();
+  const isAdminUser = normalizedRole.includes('ADMIN');
 
   useEffect(() => {
     const timerId = setInterval(() => {
@@ -361,7 +371,7 @@ function IssueDetail({
 
   // Handle Flag as Duplicate button click
   const handleFlagDuplicateClick = async () => {
-    if (!canFlagAsDuplicate) {
+    if (!isAdminUser) {
       return;
     }
 
@@ -643,7 +653,8 @@ function IssueDetail({
                 </button>
                 <button 
                   onClick={handleFlagDuplicateClick}
-                  disabled={!canFlagAsDuplicate}
+                  disabled={!isAdminUser}
+                  title={!isAdminUser ? 'Only admins can flag duplicates' : 'Flag this issue as duplicate'}
                   className="flex items-center gap-2 rounded-lg border border-gray-300 bg-transparent px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Flag className="w-4 h-4" />

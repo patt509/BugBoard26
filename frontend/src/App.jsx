@@ -23,6 +23,8 @@ const getInitialTheme = () => {
   return 'light';
 };
 
+const isAdminRole = (role) => String(role ?? '').trim().toUpperCase().includes('ADMIN');
+
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -52,7 +54,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if ((currentView === 'dashboard' || currentView === 'create-user') && user?.role !== 'ADMIN') {
+    if ((currentView === 'dashboard' || currentView === 'create-user') && !isAdminRole(user?.role)) {
       setCurrentView('issues');
     }
   }, [currentView, user]);
@@ -134,14 +136,14 @@ function App() {
       return;
     }
 
-    if (page === 'dashboard' && user?.role === 'ADMIN') {
+    if (page === 'dashboard' && isAdminRole(user?.role)) {
       setCurrentView('dashboard');
       setSelectedIssueId(null);
       setEditingIssue(null);
       return;
     }
 
-    if (page === 'create-user' && user?.role === 'ADMIN') {
+    if (page === 'create-user' && isAdminRole(user?.role)) {
       setCurrentView('create-user');
       setSelectedIssueId(null);
       setEditingIssue(null);
@@ -212,7 +214,7 @@ function App() {
         onToggleTheme={handleToggleTheme}
       />
     );
-  } else if (currentView === 'dashboard' && user?.role === 'ADMIN') {
+  } else if (currentView === 'dashboard' && isAdminRole(user?.role)) {
     pageContent = (
       <AdminDashboard
         user={user}
@@ -222,7 +224,7 @@ function App() {
         onToggleTheme={handleToggleTheme}
       />
     );
-  } else if (currentView === 'create-user' && user?.role === 'ADMIN') {
+  } else if (currentView === 'create-user' && isAdminRole(user?.role)) {
     pageContent = (
       <CreateUserAccount
         user={user}
