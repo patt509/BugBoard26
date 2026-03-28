@@ -26,6 +26,9 @@ import java.util.logging.Logger;
 public class CommentResource {
 
    private static final Logger logger = Logger.getLogger(CommentResource.class.getName());
+   private static final String MESSAGE_KEY = "message";
+   private static final String USER_HEADER_REQUIRED_MESSAGE = "X-User-Id header is required";
+   private static final String ERROR_CREATING_COMMENT_MESSAGE = "Error creating comment";
 
    private final CommentService commentService;
 
@@ -43,7 +46,7 @@ public class CommentResource {
          List<CommentDTO> comments = commentService.getCommentsByIssueId(issueId);
          return Response.ok(comments).build();
       } catch (Exception e) {
-         logger.log(Level.SEVERE, "Error retrieving comments for issue " + issueId, e);
+         logger.log(Level.SEVERE, e, () -> "Error retrieving comments for issue " + issueId);
          return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error retrieving comments");
       }
    }
@@ -58,7 +61,7 @@ public class CommentResource {
          CommentDTO commentDTO) {
       try {
          if (userId == null) {
-            return ApiResponses.error(Response.Status.BAD_REQUEST, "X-User-Id header is required");
+            return ApiResponses.error(Response.Status.BAD_REQUEST, USER_HEADER_REQUIRED_MESSAGE);
          }
 
          if (commentDTO.getText() == null || commentDTO.getText().trim().isEmpty()) {
@@ -69,20 +72,20 @@ public class CommentResource {
          
          Long commentId = commentService.createComment(issueId, commentDTO.getText(), authorId);
          if (commentId == null) {
-            return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error creating comment");
+            return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, ERROR_CREATING_COMMENT_MESSAGE);
          }
          
          return Response.status(Response.Status.CREATED)
-               .entity(Map.of("id", commentId, "message", "Comment created successfully"))
+               .entity(Map.of("id", commentId, MESSAGE_KEY, "Comment created successfully"))
                .build();
       } catch (IllegalArgumentException e) {
          return ApiResponses.error(Response.Status.BAD_REQUEST, e.getMessage());
       } catch (IllegalStateException e) {
-         logger.log(Level.SEVERE, "Comment persistence failed for issue " + issueId, e);
-         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error creating comment");
+         logger.log(Level.SEVERE, e, () -> "Comment persistence failed for issue " + issueId);
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, ERROR_CREATING_COMMENT_MESSAGE);
       } catch (Exception e) {
-         logger.log(Level.SEVERE, "Error creating comment for issue " + issueId, e);
-         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error creating comment");
+         logger.log(Level.SEVERE, e, () -> "Error creating comment for issue " + issueId);
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, ERROR_CREATING_COMMENT_MESSAGE);
       }
    }
 
@@ -98,7 +101,7 @@ public class CommentResource {
          CommentDTO commentDTO) {
       try {
          if (userId == null) {
-            return ApiResponses.error(Response.Status.BAD_REQUEST, "X-User-Id header is required");
+            return ApiResponses.error(Response.Status.BAD_REQUEST, USER_HEADER_REQUIRED_MESSAGE);
          }
 
          if (commentDTO.getText() == null || commentDTO.getText().trim().isEmpty()) {
@@ -107,13 +110,13 @@ public class CommentResource {
 
          commentService.updateComment(commentId, commentDTO.getText(), userId);
          
-         return Response.ok(Map.of("message", "Comment updated successfully")).build();
+         return Response.ok(Map.of(MESSAGE_KEY, "Comment updated successfully")).build();
       } catch (SecurityException e) {
          return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
       } catch (IllegalArgumentException e) {
          return ApiResponses.error(Response.Status.NOT_FOUND, e.getMessage());
       } catch (Exception e) {
-         logger.log(Level.SEVERE, "Error updating comment " + commentId, e);
+         logger.log(Level.SEVERE, e, () -> "Error updating comment " + commentId);
          return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error updating comment");
       }
    }
@@ -129,18 +132,18 @@ public class CommentResource {
          @HeaderParam("X-User-Id") Long userId) {
       try {
          if (userId == null) {
-            return ApiResponses.error(Response.Status.BAD_REQUEST, "X-User-Id header is required");
+            return ApiResponses.error(Response.Status.BAD_REQUEST, USER_HEADER_REQUIRED_MESSAGE);
          }
 
          commentService.deleteComment(commentId, userId);
          
-         return Response.ok(Map.of("message", "Comment deleted successfully")).build();
+         return Response.ok(Map.of(MESSAGE_KEY, "Comment deleted successfully")).build();
       } catch (SecurityException e) {
          return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
       } catch (IllegalArgumentException e) {
          return ApiResponses.error(Response.Status.NOT_FOUND, e.getMessage());
       } catch (Exception e) {
-         logger.log(Level.SEVERE, "Error deleting comment " + commentId, e);
+         logger.log(Level.SEVERE, e, () -> "Error deleting comment " + commentId);
          return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error deleting comment");
       }
    }

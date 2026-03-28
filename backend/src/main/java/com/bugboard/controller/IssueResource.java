@@ -48,6 +48,7 @@ import jakarta.ws.rs.core.Response;
 public class IssueResource {
 
    private static final Logger logger = Logger.getLogger(IssueResource.class.getName());
+   private static final String MESSAGE_KEY = "message";
 
    private final IssueService issueService;
    private final AuthService authService;
@@ -162,7 +163,7 @@ public class IssueResource {
          }
          
          return Response.status(Response.Status.CREATED)
-               .entity(Map.of("id", id, "message", "Issue created successfully"))
+               .entity(Map.of("id", id, MESSAGE_KEY, "Issue created successfully"))
                .build();
       } catch (IllegalArgumentException e) {
          return ApiResponses.error(Response.Status.BAD_REQUEST, e.getMessage());
@@ -187,7 +188,7 @@ public class IssueResource {
          }
 
          issueService.updateIssue(id, issueDTO, userId);
-         return Response.ok(Map.of("message", "Issue updated successfully")).build();
+         return Response.ok(Map.of(MESSAGE_KEY, "Issue updated successfully")).build();
       } catch (IllegalArgumentException e) {
          return ApiResponses.error(Response.Status.NOT_FOUND, e.getMessage());
       } catch (Exception e) {
@@ -212,7 +213,7 @@ public class IssueResource {
          }
 
          issueService.updateStatus(id, newStatus, userId);
-         return Response.ok(Map.of("message", "Status updated successfully")).build();
+         return Response.ok(Map.of(MESSAGE_KEY, "Status updated successfully")).build();
       } catch (IllegalArgumentException e) {
          return ApiResponses.error(Response.Status.NOT_FOUND, e.getMessage());
       } catch (Exception e) {
@@ -258,7 +259,7 @@ public class IssueResource {
          // Admin validation is done inside the service method
          issueService.processDuplicate(duplicateId, originalId, adminId);
          return Response.ok(Map.of(
-               "message", "Issue marked as duplicate successfully",
+               MESSAGE_KEY, "Issue marked as duplicate successfully",
                "duplicateId", duplicateId,
                "originalId", originalId)).build();
       } catch (SecurityException e) {

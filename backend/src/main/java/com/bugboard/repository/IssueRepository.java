@@ -21,6 +21,9 @@ import jakarta.transaction.Transactional;
 @ApplicationScoped
 public class IssueRepository {
 
+   private static final String FETCH_REPORTER_CLAUSE = "LEFT JOIN FETCH i.reporter ";
+   private static final String FETCH_ASSIGNEE_CLAUSE = "LEFT JOIN FETCH i.assignee ";
+
    @PersistenceContext
    private EntityManager em;
 
@@ -39,8 +42,8 @@ public class IssueRepository {
    public List<Issue> findAll() {
       return em.createQuery(
             "SELECT DISTINCT i FROM Issue i " +
-                  "LEFT JOIN FETCH i.reporter " +
-                  "LEFT JOIN FETCH i.assignee " +
+                  FETCH_REPORTER_CLAUSE +
+                  FETCH_ASSIGNEE_CLAUSE +
                   "ORDER BY i.createdAt DESC, i.id DESC",
             Issue.class)
             .getResultList();
@@ -51,8 +54,8 @@ public class IssueRepository {
       try {
          return em.createQuery(
                "SELECT i FROM Issue i " +
-                     "LEFT JOIN FETCH i.reporter " +
-                     "LEFT JOIN FETCH i.assignee " +
+                     FETCH_REPORTER_CLAUSE +
+                     FETCH_ASSIGNEE_CLAUSE +
                      "WHERE i.id = :id",
                Issue.class)
                .setParameter("id", id)
@@ -104,7 +107,7 @@ public class IssueRepository {
    // ==================== STATISTICS FOR ADMIN DASHBOARD ====================
 
    /**
-    * Count open issues (TODO or IN_PROGRESS) grouped by assignee username.
+    * Count open and in-progress issues grouped by assignee username.
     * @return list of Object[] where [0] = username (String), [1] = count (Long)
     */
    public List<Object[]> countOpenIssuesPerAssignee() {
@@ -213,7 +216,7 @@ public class IssueRepository {
    public List<Issue> findClosedResolvedIssuesWithAssignee() {
       return em.createQuery(
             "SELECT i FROM Issue i " +
-                  "LEFT JOIN FETCH i.assignee " +
+                  FETCH_ASSIGNEE_CLAUSE +
                   "WHERE i.assignee IS NOT NULL " +
                   "AND i.createdAt IS NOT NULL " +
                   "AND i.closedAt IS NOT NULL " +

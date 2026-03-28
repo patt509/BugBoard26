@@ -55,10 +55,7 @@ public class AttachmentService {
          buffer.write(data, 0, bytesRead);
       }
       byte[] bodyBytes = buffer.toByteArray();
-      
-      // Convert to string to find boundaries (for small headers)
-      String bodyStr = new String(bodyBytes, 0, Math.min(bodyBytes.length, 2000), "UTF-8");
-      
+
       // Find the start of actual file content (after the headers end with \r\n\r\n)
       int contentStart = -1;
       for (int i = 0; i < bodyBytes.length - 4; i++) {
@@ -156,7 +153,8 @@ public class AttachmentService {
       Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
 
       // Return relative path for storage in database
-      String relativePath = subDirectory + "/" + entityId + "/" + uniqueFileName;
+      Path relativeFilePath = Paths.get(subDirectory, entityId.toString(), uniqueFileName);
+      String relativePath = relativeFilePath.toString().replace(java.io.File.separatorChar, '/');
 
       logger.log(Level.INFO, "Attachment saved: {0}", relativePath);
 
@@ -184,7 +182,7 @@ public class AttachmentService {
 
          return deleted;
       } catch (IOException e) {
-         logger.log(Level.WARNING, "Failed to delete attachment: " + relativePath, e);
+         logger.log(Level.WARNING, e, () -> "Failed to delete attachment: " + relativePath);
          return false;
       }
    }
