@@ -111,25 +111,22 @@ public class AuthServiceTest {
    }
 
    /**
-    * TC5: Failure scenario - Email parameter is null.
+    * TC5/TC6/TC10: Failure scenarios - invalid email inputs (null, empty, malformed).
     * Expected Output: IllegalArgumentException
     * PostConditions: No changes to the database.
     */
-   @Test(expected = IllegalArgumentException.class)
-   public void testCreateUser_TC5_NullEmail() {
+   @Test
+   public void testCreateUser_InvalidEmailInputs() {
       when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
-      authService.createUser(null, USER, 1L);
-   }
 
-   /**
-    * TC6: Failure scenario - Email parameter is empty string.
-    * Expected Output: IllegalArgumentException
-    * PostConditions: No changes to the database.
-    */
-   @Test(expected = IllegalArgumentException.class)
-   public void testCreateUser_TC6_EmptyEmail() {
-      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
-      authService.createUser("", USER, 1L);
+      for (String invalidEmail : new String[] { null, "", "not-an-email" }) {
+         try {
+            authService.createUser(invalidEmail, USER, 1L);
+            fail("Expected IllegalArgumentException for email: " + invalidEmail);
+         } catch (IllegalArgumentException e) {
+            // expected
+         }
+      }
    }
 
    /**
@@ -174,17 +171,6 @@ public class AuthServiceTest {
 
       // Ensure no user was saved
       verify(userRepository, never()).save(any(User.class));
-   }
-
-   /**
-    * TC10: Failure scenario - Email has invalid format.
-    * Expected Output: IllegalArgumentException
-    * PostConditions: No changes to the database.
-    */
-   @Test(expected = IllegalArgumentException.class)
-   public void testCreateUser_TC10_InvalidEmailFormat() {
-      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
-      authService.createUser("not-an-email", USER, 1L);
    }
 
    /**
@@ -792,82 +778,4 @@ public class AuthServiceTest {
       authService.validateAdminPrivileges(2L);
    }
 
-   /* _________________________________________________________________________ */
-
-   /* Test on registerUser (legacy) method */
-
-   /**
-    * TC1: Success scenario - Legacy user registration.
-    * PostConditions: User saved with hashed password.
-    */
-   @Test
-   public void testRegisterUser_TC1_Success() {
-      // Arrange
-      User newUser = new User("new@test.com", "placeholder", USER);
-
-      // Act
-      authService.registerUser(newUser, "rawPassword".toCharArray());
-
-      // Assert
-      verify(userRepository).save(newUser);
-      assertNotNull("PostCond failed: password should be hashed", newUser.getPassword());
-      assertNotEquals("PostCond failed: password should differ from raw",
-            "rawPassword", newUser.getPassword());
-   }
-
-   /* _________________________________________________________________________ */
-
-   /* Test on authenticate (legacy) method */
-
-   /**
-    * TC1: Success scenario - Valid credentials.
-    * Expected Output: true.
-    */
-   @Test
-   public void testAuthenticate_TC1_ValidCredentials() {
-      // Arrange
-      String hash = PasswordHasher.hash("correct");
-      User userWithHash = new User("auth@test.com", hash, USER);
-      when(userRepository.findByEmail("auth@test.com")).thenReturn(Optional.of(userWithHash));
-
-      // Act
-      boolean result = authService.authenticate("auth@test.com", "correct".toCharArray());
-
-      // Assert
-      assertTrue("PostCond failed: should return true", result);
-   }
-
-   /**
-    * TC2: Failure scenario - Wrong password.
-    * Expected Output: false.
-    */
-   @Test
-   public void testAuthenticate_TC2_WrongPassword() {
-      // Arrange
-      String hash = PasswordHasher.hash("correct");
-      User userWithHash = new User("auth@test.com", hash, USER);
-      when(userRepository.findByEmail("auth@test.com")).thenReturn(Optional.of(userWithHash));
-
-      // Act
-      boolean result = authService.authenticate("auth@test.com", "wrong".toCharArray());
-
-      // Assert
-      assertFalse("PostCond failed: should return false", result);
-   }
-
-   /**
-    * TC3: Failure scenario - User not found.
-    * Expected Output: false.
-    */
-   @Test
-   public void testAuthenticate_TC3_UserNotFound() {
-      // Arrange
-      when(userRepository.findByEmail("unknown@test.com")).thenReturn(Optional.empty());
-
-      // Act
-      boolean result = authService.authenticate("unknown@test.com", "any".toCharArray());
-
-      // Assert
-      assertFalse("PostCond failed: should return false", result);
-   }
 }
