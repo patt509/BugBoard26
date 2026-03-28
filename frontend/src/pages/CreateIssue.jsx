@@ -168,6 +168,7 @@ function CreateIssue({
 }) {
    const isEditMode = !!editingIssue;
    const currentPage = 'issues';
+   const isAdminUser = String(user?.role || '').toUpperCase() === 'ADMIN';
    const [formData, setFormData] = useState({
       title: editingIssue?.title || '',
       type: normalizeIssueType(editingIssue?.type),
@@ -226,6 +227,13 @@ function CreateIssue({
       let mounted = true;
       const currentUserId = resolveCurrentUserId(user);
 
+      if (!isAdminUser) {
+         setAssignableUsers([]);
+         setAssignableUsersError(null);
+         setAssignableUsersLoading(false);
+         return () => { mounted = false; };
+      }
+
       if (currentUserId == null) {
          setAssignableUsers([]);
          setAssignableUsersError('Unable to load assignable users. Please login again.');
@@ -255,7 +263,7 @@ function CreateIssue({
       })();
 
       return () => { mounted = false; };
-   }, [user]);
+   }, [isAdminUser, user]);
 
    useEffect(() => {
       if (showAssigneeModal) {
@@ -339,6 +347,7 @@ function CreateIssue({
    const assigneeRowHoverClass = isDarkMode ? 'hover:bg-[#151515]' : 'hover:bg-gray-50';
    const assigneeRowSelectedClass = isDarkMode ? 'bg-[#1f1f1f]' : 'bg-blue-50';
    const assigneeSecondaryTextClass = isDarkMode ? 'text-gray-300' : 'text-gray-500';
+   const assigneeButtonDisabled = assignableUsersLoading || !isAdminUser;
 
 const processAttachmentFile = (file) => {
    setError(null);
@@ -473,7 +482,7 @@ const handleSubmit = async (e) => {
    setLoading(true);
 
    try {
-      const assigneeId = formData.assigneeId ? Number(formData.assigneeId) : null;
+      const assigneeId = isAdminUser && formData.assigneeId ? Number(formData.assigneeId) : null;
       if (assigneeId != null && Number.isNaN(assigneeId)) {
          throw new Error('Invalid assignee selected.');
       }
@@ -632,9 +641,13 @@ return (
                      </label>
                      <button
                         type="button"
-                        onClick={() => setShowAssigneeModal(true)}
-                        disabled={assignableUsersLoading}
-                        className="inline-flex h-12 w-full items-center justify-between gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        onClick={() => {
+                           if (!assigneeButtonDisabled) {
+                              setShowAssigneeModal(true);
+                           }
+                        }}
+                        disabled={assigneeButtonDisabled}
+                        className="inline-flex h-12 w-full items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                      >
                         <div className="flex min-w-0 items-center gap-2">
                            {selectedAssigneeUser ? (
@@ -654,12 +667,13 @@ return (
                            )}
                            <span className="truncate text-left">{selectedAssigneeLabel}</span>
                         </div>
-                        {assignableUsersLoading ? (
-                           <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
-                        ) : (
-                           <ChevronDown className="h-4 w-4 text-gray-500" />
+                        {assignableUsersLoading && (
+                           <Loader2 className="ml-auto h-4 w-4 animate-spin text-gray-500" />
                         )}
                      </button>
+                     {!isAdminUser && (
+                        <p className="mt-1 text-xs text-gray-500">Only admins can assign issues.</p>
+                     )}
                      {assignableUsersError && (
                         <p className="mt-1 text-xs text-red-600">{assignableUsersError}</p>
                      )}
