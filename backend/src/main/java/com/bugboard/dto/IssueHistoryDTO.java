@@ -7,15 +7,21 @@ public class IssueHistoryDTO {
    private LocalDateTime timestamp;
    private String title;
    private String description;
+   private String changedBy;
 
    public IssueHistoryDTO() {
    }
 
    public IssueHistoryDTO(Long id, LocalDateTime timestamp, String title, String description) {
+      this(id, timestamp, title, description, null);
+   }
+
+   public IssueHistoryDTO(Long id, LocalDateTime timestamp, String title, String description, String changedBy) {
       this.id = id;
       this.timestamp = timestamp;
       this.title = title;
       this.description = description;
+      this.changedBy = changedBy;
    }
 
    public Long getId() {
@@ -48,5 +54,13 @@ public class IssueHistoryDTO {
 
    public void setDescription(String description) {
       this.description = description;
+   }
+
+   public String getChangedBy() {
+      return changedBy;
+   }
+
+   public void setChangedBy(String changedBy) {
+      this.changedBy = changedBy;
    }
 }

@@ -106,7 +106,7 @@ public class AttachmentResource {
                cleanFileStream, fileName, actualContentType, fileSize, "issues", issueId);
 
          // Update issue with new attachment path
-         issueService.setAttachmentPath(issueId, relativePath);
+         issueService.setAttachmentPath(issueId, relativePath, userId);
 
          logger.log(Level.INFO, "User {0} uploaded attachment to issue {1}",
                new Object[] { userId, issueId });
@@ -146,7 +146,7 @@ public class AttachmentResource {
          }
 
          // Delete file and clear path
-         String oldPath = issueService.removeAttachment(issueId);
+         String oldPath = issueService.removeAttachment(issueId, userId);
          attachmentService.deleteAttachment(oldPath);
 
          return Response.ok(Map.of("message", "Attachment deleted successfully")).build();

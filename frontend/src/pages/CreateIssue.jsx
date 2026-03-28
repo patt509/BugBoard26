@@ -491,7 +491,7 @@ const handleSubmit = async (e) => {
 
       if (isEditMode) {
          // Update existing issue
-         await issueService.update(editingIssue.id, issueData);
+         await issueService.update(editingIssue.id, issueData, reporterId);
          issueId = editingIssue.id;
       } else {
          // Create new issue

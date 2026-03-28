@@ -23,6 +23,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import com.bugboard.dto.DashboardStatsDTO;
 import com.bugboard.dto.IssueDTO;
+import com.bugboard.dto.IssueHistoryDTO;
 import com.bugboard.enums.IssueStatus;
 import com.bugboard.enums.IssueType;
 import com.bugboard.enums.PriorityLevel;
@@ -600,6 +601,7 @@ public class IssueServiceTest {
       verify(issueHistoryRepository).save(historyCaptor.capture());
       IssueHistoryEntry capturedHistory = historyCaptor.getValue();
       assertEquals("PostCond failed: history title should be 'Issue updated'", "Issue updated", capturedHistory.getTitle());
+      assertEquals("PostCond failed: default history author should be System", "System", capturedHistory.getChangedBy());
       assertTrue("PostCond failed: history should mention title change", capturedHistory.getDescription().contains("Title:"));
       assertTrue("PostCond failed: history should mention description change",
             capturedHistory.getDescription().contains("Description updated."));
@@ -875,6 +877,23 @@ public class IssueServiceTest {
 
       // Act
       issueService.getIssueById(999L);
+   }
+
+   /**
+    * TC38b: getIssueHistory includes changedBy author information.
+    */
+   @Test
+   public void testGetIssueHistory_TC38b_IncludesChangedBy() {
+      Issue issue = spy(new Issue("Valid title for history", "Desc", reporter, IssueType.BUG));
+      IssueHistoryEntry historyEntry = new IssueHistoryEntry(issue, "Status changed", "Status: TODO -> IN_PROGRESS", "admin");
+
+      when(repository.findById(55L)).thenReturn(issue);
+      when(issueHistoryRepository.findByIssueId(55L)).thenReturn(List.of(historyEntry));
+
+      List<IssueHistoryDTO> history = issueService.getIssueHistory(55L);
+
+      assertEquals("PostCond failed: history should contain one entry", 1, history.size());
+      assertEquals("PostCond failed: changedBy should be propagated to DTO", "admin", history.get(0).getChangedBy());
    }
 
    // ==================== convertSingleToDTO branch coverage ====================

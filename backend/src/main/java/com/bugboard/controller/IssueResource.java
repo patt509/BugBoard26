@@ -178,6 +178,7 @@ public class IssueResource {
    @PUT
    @Path("/{id}")
    public Response updateIssue(
+         @HeaderParam("X-User-Id") Long userId,
          @PathParam("id") Long id,
          IssueDTO issueDTO) {
       try {
@@ -185,7 +186,7 @@ public class IssueResource {
             return ApiResponses.error(Response.Status.BAD_REQUEST, "Request body is required");
          }
 
-         issueService.updateIssue(id, issueDTO);
+         issueService.updateIssue(id, issueDTO, userId);
          return Response.ok(Map.of("message", "Issue updated successfully")).build();
       } catch (IllegalArgumentException e) {
          return ApiResponses.error(Response.Status.NOT_FOUND, e.getMessage());
@@ -201,6 +202,7 @@ public class IssueResource {
    @PATCH
    @Path("/{id}/status")
    public Response updateStatus(
+         @HeaderParam("X-User-Id") Long userId,
          @PathParam("id") Long id,
          @QueryParam("newStatus") String rawNewStatus) {
       try {
@@ -209,7 +211,7 @@ public class IssueResource {
             return ApiResponses.error(Response.Status.BAD_REQUEST, "newStatus parameter is required");
          }
 
-         issueService.updateStatus(id, newStatus);
+         issueService.updateStatus(id, newStatus, userId);
          return Response.ok(Map.of("message", "Status updated successfully")).build();
       } catch (IllegalArgumentException e) {
          return ApiResponses.error(Response.Status.NOT_FOUND, e.getMessage());

@@ -58,7 +58,8 @@ public class IssueService {
       User reporter = reporterId != null ? userRepository.findById(reporterId).orElse(null) : null;
       Issue issue = new Issue(title, description, reporter, type);
       repository.save(issue);
-      recordHistoryEntry(issue, "Issue created", "Reported by " + resolveUserLabel(reporter) + ".");
+      recordHistoryEntry(issue, "Issue created", "Reported by " + resolveUserLabel(reporter) + ".",
+            resolveHistoryActor(reporterId, reporter));
       return issue.getId();
    }
 
@@ -98,12 +99,18 @@ public class IssueService {
       }
 
       repository.save(issue);
-      recordHistoryEntry(issue, "Issue created", "Reported by " + resolveUserLabel(reporter) + ".");
+      recordHistoryEntry(issue, "Issue created", "Reported by " + resolveUserLabel(reporter) + ".",
+            resolveHistoryActor(reporterId, reporter));
       return issue.getId();
    }
 
    @Transactional
    public void updateIssue(Long id, IssueDTO dto) {
+      updateIssue(id, dto, null);
+   }
+
+   @Transactional
+   public void updateIssue(Long id, IssueDTO dto, Long actorUserId) {
       Issue issue = repository.findById(id);
       if (issue == null) {
          throw new IllegalArgumentException("Issue not found");
@@ -168,11 +175,16 @@ public class IssueService {
       }
 
       repository.save(issue);
-      recordHistoryEntry(issue, "Issue updated", String.join(" | ", changes));
+      recordHistoryEntry(issue, "Issue updated", String.join(" | ", changes), resolveHistoryActor(actorUserId, null));
    }
 
    @Transactional
    public void updateStatus(Long id, IssueStatus newStatus) {
+      updateStatus(id, newStatus, null);
+   }
+
+   @Transactional
+   public void updateStatus(Long id, IssueStatus newStatus, Long actorUserId) {
       Issue issue = repository.findById(id);
       if (issue == null) {
          throw new IllegalArgumentException("Issue not found");
@@ -187,7 +199,8 @@ public class IssueService {
       // CLOSED
       issue.setStatus(newStatus);
       repository.save(issue);
-      recordHistoryEntry(issue, "Status changed", "Status: " + previousStatus + " -> " + newStatus);
+      recordHistoryEntry(issue, "Status changed", "Status: " + previousStatus + " -> " + newStatus,
+            resolveHistoryActor(actorUserId, null));
    }
 
    // ==================== ATTACHMENT OPERATIONS ====================
@@ -198,6 +211,11 @@ public class IssueService {
     */
    @Transactional
    public void setAttachmentPath(Long issueId, String attachmentPath) {
+      setAttachmentPath(issueId, attachmentPath, null);
+   }
+
+   @Transactional
+   public void setAttachmentPath(Long issueId, String attachmentPath, Long actorUserId) {
       Issue issue = repository.findById(issueId);
       if (issue == null) {
          throw new IllegalArgumentException("Issue not found");
@@ -206,10 +224,12 @@ public class IssueService {
       issue.setAttachmentPath(attachmentPath);
       repository.save(issue);
       if (oldPath == null && attachmentPath != null) {
-         recordHistoryEntry(issue, "Attachment added", "Added attachment: " + extractFileName(attachmentPath));
+         recordHistoryEntry(issue, "Attachment added", "Added attachment: " + extractFileName(attachmentPath),
+               resolveHistoryActor(actorUserId, null));
       } else if (oldPath != null && attachmentPath != null && !oldPath.equals(attachmentPath)) {
          recordHistoryEntry(issue, "Attachment replaced",
-               "Replaced attachment: " + extractFileName(oldPath) + " -> " + extractFileName(attachmentPath));
+               "Replaced attachment: " + extractFileName(oldPath) + " -> " + extractFileName(attachmentPath),
+               resolveHistoryActor(actorUserId, null));
       }
    }
 
@@ -219,6 +239,11 @@ public class IssueService {
     */
    @Transactional
    public String removeAttachment(Long issueId) {
+      return removeAttachment(issueId, null);
+   }
+
+   @Transactional
+   public String removeAttachment(Long issueId, Long actorUserId) {
       Issue issue = repository.findById(issueId);
       if (issue == null) {
          throw new IllegalArgumentException("Issue not found");
@@ -227,7 +252,8 @@ public class IssueService {
       issue.setAttachmentPath(null);
       repository.save(issue);
       if (oldPath != null) {
-         recordHistoryEntry(issue, "Attachment removed", "Removed attachment: " + extractFileName(oldPath));
+         recordHistoryEntry(issue, "Attachment removed", "Removed attachment: " + extractFileName(oldPath),
+               resolveHistoryActor(actorUserId, null));
       }
       return oldPath;
    }
@@ -316,7 +342,8 @@ public class IssueService {
                   entry.getId(),
                   entry.getCreatedAt(),
                   entry.getTitle(),
-                  entry.getDescription()))
+                  entry.getDescription(),
+                  entry.getChangedBy()))
             .toList();
    }
 
@@ -368,7 +395,8 @@ public class IssueService {
       recordHistoryEntry(
             duplicate,
             "Marked as duplicate",
-            "Duplicate of issue #" + originalIssueId + ". Status: " + previousStatus + " -> " + duplicate.getStatus());
+            "Duplicate of issue #" + originalIssueId + ". Status: " + previousStatus + " -> " + duplicate.getStatus(),
+            resolveHistoryActor(adminId, admin));
 
       logger.log(Level.INFO, "Admin {0} marked Issue #{1} as duplicate of Issue #{2}",
             new Object[] { admin.getEmail(), duplicateIssueId, originalIssueId });
@@ -568,8 +596,8 @@ public class IssueService {
       return value != null ? value : 0L;
    }
 
-   private void recordHistoryEntry(Issue issue, String title, String description) {
-      issueHistoryRepository.save(new IssueHistoryEntry(issue, title, description));
+   private void recordHistoryEntry(Issue issue, String title, String description, String changedBy) {
+      issueHistoryRepository.save(new IssueHistoryEntry(issue, title, description, changedBy));
    }
 
    private boolean isSameUser(User first, User second) {
@@ -594,6 +622,21 @@ public class IssueService {
          return user.getEmail();
       }
       return "Unknown user";
+   }
+
+   private String resolveHistoryActor(Long actorUserId, User fallbackUser) {
+      if (actorUserId != null) {
+         User actor = userRepository.findById(actorUserId).orElse(null);
+         if (actor != null) {
+            return resolveUserLabel(actor);
+         }
+      }
+
+      if (fallbackUser != null) {
+         return resolveUserLabel(fallbackUser);
+      }
+
+      return "System";
    }
 
    private String extractFileName(String path) {

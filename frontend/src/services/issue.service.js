@@ -92,20 +92,26 @@ export const issueService = {
    * Update issue
    * @param {number} id - Issue ID
    * @param {Object} issueData - Updated issue data
+   * @param {number|string} [userId] - Optional user id for X-User-Id header
    * @returns {Promise<Object>} Updated issue
    */
-  update(id, issueData) {
-    return httpClient.put(API_ENDPOINTS.ISSUES_BY_ID(id), issueData);
+  update(id, issueData, userId) {
+    return httpClient.put(API_ENDPOINTS.ISSUES_BY_ID(id), issueData, {
+      headers: resolveAuthHeaders(userId)
+    });
   },
 
   /**
    * Update issue status
    * @param {number} id - Issue ID
    * @param {string} status - New status (TODO, IN_PROGRESS, RESOLVED, CLOSED)
+   * @param {number|string} [userId] - Optional user id for X-User-Id header
    * @returns {Promise<Object>} Updated issue
    */
-  updateStatus(id, status) {
-    return httpClient.patch(`${API_ENDPOINTS.ISSUE_STATUS(id)}?newStatus=${status}`);
+  updateStatus(id, status, userId) {
+    return httpClient.patch(`${API_ENDPOINTS.ISSUE_STATUS(id)}?newStatus=${status}`, undefined, {
+      headers: resolveAuthHeaders(userId)
+    });
   },
 
   /**

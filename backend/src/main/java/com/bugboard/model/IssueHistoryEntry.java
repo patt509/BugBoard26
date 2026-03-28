@@ -30,6 +30,9 @@ public class IssueHistoryEntry {
    @Column(nullable = false, length = 1500)
    private String description;
 
+   @Column(name = "changed_by", length = 160)
+   private String changedBy;
+
    @Column(nullable = false)
    private LocalDateTime createdAt;
 
@@ -38,6 +41,10 @@ public class IssueHistoryEntry {
    }
 
    public IssueHistoryEntry(Issue issue, String title, String description) {
+      this(issue, title, description, "System");
+   }
+
+   public IssueHistoryEntry(Issue issue, String title, String description, String changedBy) {
       if (issue == null) {
          throw new IllegalArgumentException("Issue is required.");
       }
@@ -51,6 +58,7 @@ public class IssueHistoryEntry {
       this.issue = issue;
       this.title = title.trim();
       this.description = description.trim();
+      this.changedBy = normalizeChangedBy(changedBy);
       this.createdAt = LocalDateTime.now();
    }
 
@@ -72,5 +80,16 @@ public class IssueHistoryEntry {
 
    public LocalDateTime getCreatedAt() {
       return createdAt;
+   }
+
+   public String getChangedBy() {
+      return changedBy;
+   }
+
+   private String normalizeChangedBy(String changedBy) {
+      if (changedBy == null || changedBy.trim().isEmpty()) {
+         return "System";
+      }
+      return changedBy.trim();
    }
 }
