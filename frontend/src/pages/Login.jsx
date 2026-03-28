@@ -4,7 +4,7 @@ import { authService } from '../services/auth.service';
 import ThemeToggle from '../components/ThemeToggle';
 
 function Login({ onLoginSuccess, isDarkMode, onToggleTheme }) {
-  const [email, setEmail] = useState('');
+  const [loginIdentifier, setLoginIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,7 +15,7 @@ function Login({ onLoginSuccess, isDarkMode, onToggleTheme }) {
     setLoading(true);
 
     try {
-      const user = await authService.login({ email, password });
+      const user = await authService.login({ email: loginIdentifier, password });
       localStorage.setItem('user', JSON.stringify(user));
       if (user?.id != null) {
         localStorage.setItem('userId', String(user.id));
@@ -50,18 +50,18 @@ function Login({ onLoginSuccess, isDarkMode, onToggleTheme }) {
         <div className="rounded-2xl bg-white p-8 shadow-xl">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="mb-2 block text-sm font-medium text-gray-700">
-                Email
+              <label htmlFor="loginIdentifier" className="mb-2 block text-sm font-medium text-gray-700">
+                Email o username
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
                 <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="text"
+                  id="loginIdentifier"
+                  value={loginIdentifier}
+                  onChange={(e) => setLoginIdentifier(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 py-3 pl-11 pr-4 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="admin@bugboard.com"
+                  placeholder="admin@bugboard.com oppure admin"
                   required
                   autoFocus
                 />
