@@ -1,5 +1,13 @@
 package com.bugboard.service;
 
+import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
+
 import com.bugboard.dto.PasswordResetRequestDTO;
 import com.bugboard.dto.UserDTO;
 import com.bugboard.enums.UserRole;
@@ -8,17 +16,10 @@ import com.bugboard.model.User;
 import com.bugboard.repository.PasswordResetRequestRepository;
 import com.bugboard.repository.UserRepository;
 import com.bugboard.security.PasswordHasher;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-
-import java.security.SecureRandom;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.regex.Pattern;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 @ApplicationScoped
 public class AuthService {
@@ -362,8 +363,9 @@ public class AuthService {
       if (userId == null) {
          throw new SecurityException("Authentication required.");
       }
-      userRepository.findById(userId)
-            .orElseThrow(() -> new SecurityException("User not found."));
+      if (userRepository.findById(userId).isEmpty()) {
+         throw new SecurityException("User not found.");
+      }
    }
 
    /**

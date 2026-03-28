@@ -1,6 +1,5 @@
 package com.bugboard.service;
 
-import jakarta.enterprise.context.ApplicationScoped;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -14,6 +13,8 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import jakarta.enterprise.context.ApplicationScoped;
+
 /**
  * Service for handling file attachments.
  * Supports only JPG/PNG images with max 5MB size.
@@ -24,7 +25,7 @@ public class AttachmentService {
    private static final Logger logger = Logger.getLogger(AttachmentService.class.getName());
 
    // Configuration constants
-   private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+   private static final long MAX_FILE_SIZE = 5L * 1024 * 1024; // 5 MB
    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
          "image/jpeg",
          "image/png");
