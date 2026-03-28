@@ -724,38 +724,57 @@ function IssueDetail({
                   {comments.length === 0 ? (
                     <p className="text-gray-500 text-center py-4">No comments yet</p>
                   ) : (
-                    comments.map((comment) => (
+                    comments.map((comment) => {
+                      const isOwnComment = comment.authorId === currentUserId;
+                      const usesLightBubble = isOwnComment || !isDarkMode;
+                      const bubbleClass = isOwnComment
+                        ? 'bg-blue-100 text-slate-900'
+                        : isDarkMode
+                          ? 'bg-gray-800 text-gray-100'
+                          : 'bg-gray-100 text-gray-900';
+                      const authorTextClass = usesLightBubble ? 'text-slate-900' : 'text-gray-100';
+                      const bodyTextClass = usesLightBubble ? 'text-slate-900' : 'text-gray-100';
+                      const timeTextClass = usesLightBubble ? 'text-[#1f2937]' : 'text-gray-300';
+                      const attachmentPanelClass = usesLightBubble
+                        ? 'mt-2 flex items-center gap-2 rounded border border-gray-300 bg-white/80 p-2'
+                        : 'mt-2 flex items-center gap-2 rounded border border-gray-600 bg-black/25 p-2';
+                      const attachmentThumbClass = usesLightBubble
+                        ? 'w-10 h-10 bg-gray-100 rounded overflow-hidden flex-shrink-0 transition-transform hover:scale-[1.03]'
+                        : 'w-10 h-10 bg-gray-700 rounded overflow-hidden flex-shrink-0 transition-transform hover:scale-[1.03]';
+                      const attachmentNameClass = usesLightBubble
+                        ? 'text-xs text-slate-900 truncate flex-1 text-left hover:underline'
+                        : 'text-xs text-gray-100 truncate flex-1 text-left hover:underline';
+                      const downloadButtonClass = usesLightBubble
+                        ? 'group p-1 rounded transition-colors hover:bg-gray-200'
+                        : 'group p-1 rounded transition-colors hover:bg-white/10';
+                      const downloadIconClass = usesLightBubble
+                        ? 'w-4 h-4 text-gray-800 transition-colors group-hover:text-black'
+                        : 'w-4 h-4 text-gray-300 transition-colors group-hover:text-white';
+
+                      return (
                       <div
                         key={comment.id}
-                        className={`flex gap-3 ${
-                          comment.authorId === currentUserId ? 'flex-row-reverse' : ''
-                        }`}
+                        className={`flex gap-3 ${isOwnComment ? 'flex-row-reverse' : ''}`}
                       >
                         <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
                           <span className="text-gray-600 text-sm font-medium">
                             {(comment.authorUsername || 'U').charAt(0).toUpperCase()}
                           </span>
                         </div>
-                        <div
-                          className={`max-w-md px-4 py-3 rounded-lg ${
-                            comment.authorId === currentUserId
-                              ? 'bg-blue-100 text-gray-900'
-                              : 'bg-gray-100 text-gray-900'
-                          }`}
-                        >
+                        <div className={`max-w-md px-4 py-3 rounded-lg ${bubbleClass}`}>
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-medium">
+                            <span className={`text-sm font-medium ${authorTextClass}`}>
                               {comment.authorUsername || 'Unknown'}
                             </span>
                           </div>
-                          <p className="text-sm">{comment.text}</p>
+                          <p className={`text-sm ${bodyTextClass}`}>{comment.text}</p>
                           {/* Comment Attachment */}
                           {comment.attachmentPath && (
-                            <div className="mt-2 flex items-center gap-2 rounded border border-gray-300 bg-white/80 p-2">
+                            <div className={attachmentPanelClass}>
                               <button
                                 type="button"
                                 onClick={() => openAttachmentPreview(`/api/attachments/comments/${comment.id}`, comment.attachmentPath?.split('/').pop())}
-                                className="w-10 h-10 bg-gray-100 rounded overflow-hidden flex-shrink-0 transition-transform hover:scale-[1.03]"
+                                className={attachmentThumbClass}
                               >
                                 <img
                                   src={`/api/attachments/comments/${comment.id}`}
@@ -763,33 +782,34 @@ function IssueDetail({
                                   className="w-full h-full object-cover"
                                   onError={(e) => {
                                     e.target.style.display = 'none';
-                                    e.target.parentElement.innerHTML = '📎';
+                                    e.target.parentElement.innerHTML = '[file]';
                                   }}
                                 />
                               </button>
                               <button
                                 type="button"
                                 onClick={() => openAttachmentPreview(`/api/attachments/comments/${comment.id}`, comment.attachmentPath?.split('/').pop())}
-                                className="text-xs text-gray-900 truncate flex-1 text-left hover:underline"
+                                className={attachmentNameClass}
                               >
                                 {comment.attachmentPath.split('/').pop()}
                               </button>
                               <a
                                 href={`/api/attachments/comments/${comment.id}`}
                                 download
-                                className="group p-1 rounded transition-colors hover:bg-gray-200"
+                                className={downloadButtonClass}
                                 title="Download attachment"
                               >
-                                <Download className="w-4 h-4 text-gray-800 transition-colors group-hover:text-black" />
+                                <Download className={downloadIconClass} />
                               </a>
                             </div>
                           )}
-                          <span className="mt-1 block text-xs text-gray-800">
+                          <span className={`mt-1 block text-xs ${timeTextClass}`}>
                             {formatTime(comment.createdAt)}
                           </span>
                         </div>
                       </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
 
