@@ -1,12 +1,26 @@
-\documentclass[11pt,a4paper]{article}
+﻿\documentclass[11pt,a4paper]{article}
 \usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[italian]{babel}
 \usepackage[a4paper,left=2.5cm,right=2.5cm,top=3cm,bottom=3cm]{geometry}
+\usepackage{lmodern}
+\usepackage{microtype}
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{enumitem}
-\usepackage{tabularx}
+\usepackage{array}
+\usepackage{ragged2e}
+\usepackage{ltablex}
 \usepackage{amssymb}
 \usepackage{seqsplit}
+\keepXColumns
+\renewcommand{\tabularxcolumn}[1]{>{\RaggedRight\arraybackslash}p{#1}}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\LTleft}{0pt}
+\setlength{\LTright}{0pt}
+\setlength{\emergencystretch}{2em}
+\newcommand{\code}[1]{\texttt{\seqsplit{#1}}}
 
 \hypersetup{
     colorlinks=true,
@@ -31,19 +45,47 @@
 \section{Specifica dei Requisiti Software}
 
 \subsection{Glossario}
-% Inserire qui il glossario
+Il seguente glossario consolida i termini funzionali e tecnici usati nella traccia e nel codice del progetto.
+
+\noindent{\footnotesize
+\begin{tabularx}{\textwidth}{|l|X|X|}
+    \hline
+    \textbf{Termine} & \textbf{Definizione operativa} & \textbf{Evidenza nel codice} \\ \hline
+    Issue & Segnalazione tracciata in board con titolo, descrizione, tipo, priorità, stato e metadati temporali. & Entità \texttt{Issue}, endpoint \texttt{POST /issues}. \\ \hline
+    Tipo Issue & Classificazione semantica dell'issue (\texttt{BUG}, \texttt{FEATURE}, \texttt{DOCUMENTATION}, \texttt{QUESTION}). & Enum \texttt{IssueType}, validazione in \texttt{IssueService.parseIssueType}. \\ \hline
+    Priorità & Livello di urgenza dell'issue (\texttt{LOW}, \texttt{MEDIUM}, \texttt{HIGH}, \texttt{CRITICAL}). & Enum \texttt{PriorityLevel}, filtri board e dashboard. \\ \hline
+    Stato Issue & Stato di avanzamento (\texttt{TODO}, \texttt{IN\_PROGRESS}, \texttt{RESOLVED}, \texttt{CLOSED}). & Enum \texttt{IssueStatus}, \texttt{IssueStateMachine}. \\ \hline
+    Reporter & Utente che crea l'issue. & Campo \texttt{Issue.reporter}, \texttt{IssueDTO.reporterName}. \\ \hline
+    Assignee & Utente assegnato alla lavorazione dell'issue (opzionale). & Campo \texttt{Issue.assignee}, filtri \texttt{assigneeId}. \\ \hline
+    Duplicate workflow & Regola che consente ad admin di marcare una issue BUG come duplicato di un'altra, chiudendola. & \code{POST /issues/\{id\}/duplicate/\{originalId\}}, \code{IssueService.processDuplicate}. \\ \hline
+    Dashboard Admin & Vista statistiche aggregate per monitorare il carico e lo stato del progetto. & \texttt{GET /issues/admin/dashboard}, \texttt{DashboardStatsDTO}. \\ \hline
+    Utente ADMIN & Utente con privilegi gestionali (creazione utenze, dashboard, duplicate). & Enum \texttt{UserRole.ADMIN}, check in \code{AuthService.validateAdminPrivileges}. \\ \hline
+    Utente USER & Utente operativo autenticato senza privilegi amministrativi. & Enum \texttt{UserRole.USER}. \\ \hline
+    First login & Stato iniziale account che impone la scelta username al primo accesso utile. & Campo \texttt{User.firstLogin}, endpoint \texttt{PUT /auth/profile/username}. \\ \hline
+    DTO & Oggetti di trasferimento dati tra backend e frontend per isolare i contratti API dal modello JPA. & Package \code{backend/src/main/java/com/bugboard/dto}. \\ \hline
+    Service layer & Livello applicativo che centralizza business rules, validazioni e autorizzazioni. & \code{AuthService}, \code{IssueService}, \code{CommentService}. \\ \hline
+    Repository & Livello persistenza basato su JPA/JPQL con query dedicate. & \code{IssueRepository}, \code{UserRepository}, ecc. \\ \hline
+    API-first & Strategia di sviluppo in cui i contratti backend sono consolidati prima dell'allineamento UI. & Hardening endpoint + allineamento service frontend. \\ \hline
+    History & Timeline append-only degli eventi di una issue con attore e timestamp. & Entità \texttt{IssueHistoryEntry}, endpoint \texttt{GET /issues/\{id\}/history}. \\ \hline
+    Allegato & File immagine associato a issue o commento, con vincoli di tipo e dimensione. & \texttt{AttachmentResource}, \texttt{AttachmentService}. \\ \hline
+    Header \texttt{X-User-Id} & Identificativo utente inviato dal frontend per autorizzazione a livello applicativo nell'MVP corrente. & Validazioni in controller/resource e service. \\ \hline
+\end{tabularx}
+}
 
 \subsection{Use Case Diagram}
-% Inserire qui il diagramma dei casi d'uso
+Il diagramma dei casi d'uso è mantenuto in formato sorgente Visual Paradigm nel file:
+\code{Documentazione/Primo homework/ProgettoINGSWUseCases.vpp}.
+
+\noindent La modellazione dei casi d'uso tramite Use Case Diagram è prodotta come artefatto grafico esterno (tool CASE), in coerenza con quanto richiesto dalla traccia. In questo capitolo si mantiene il riferimento ai sorgenti e agli artefatti allegati senza duplicare il diagramma in forma testuale estesa.
 
 \subsection{Caratterizzazione Target Utenti}
 Il sistema BugBoard26 è progettato per servire diverse tipologie di utenti,
 ciascuna con competenze, esigenze e modalità d'uso specifiche.
 
-\subsubsection*{1. Sviluppatori e QA Tester (Utenti Operativi)}
+\subsubsection*{1. Sviluppatori e Tester (Utenti Operativi)}
 \begin{itemize}
     \item \textbf{Esperienza Informatica:} Elevata; sono abituati a IDE, terminali e sistemi di versioning.
-    \item \textbf{Conoscenza del Dominio:} Media/Alta; comprendono perfettamente il ciclo di vita di un bug (TODO $\to$ Resolved).
+    \item \textbf{Conoscenza del Dominio:} Media/Alta; comprendono perfettamente il ciclo di vita di una issue.
     \item \textbf{Frequenza d'uso:} Alta (uso quotidiano).
     \item \textbf{Necessità:} Velocità nell'inserimento delle issue e possibilità di allegare prove tecniche come screenshot.
 \end{itemize}
@@ -53,10 +95,10 @@ ciascuna con competenze, esigenze e modalità d'uso specifiche.
     \item \textbf{Esperienza Informatica:} Elevata.
     \item \textbf{Conoscenza del Dominio:} Massima; hanno la visione globale del progetto e delle priorità.
     \item \textbf{Frequenza d'uso:} Alta.
-    \item \textbf{Necessità:} Strumenti di supervisione (Dashboard) e gestione dei permessi (rimozione duplicati, archiviazione, ecc\dots).
+    \item \textbf{Necessità:} Strumenti di supervisione (Dashboard) e gestione dei permessi (rimozione duplicati, ecc\dots).
 \end{itemize}
 
-\subsubsection*{3. Stakeholder e Clienti (Utenti Osservatori)}
+\subsubsection*{3. Stakeholder (Utenti Osservatori)}
 \begin{itemize}
     \item \textbf{Esperienza Informatica:} Variabile (spesso Bassa/Media).
     \item \textbf{Conoscenza del Dominio:} Bassa/Media; interessati ai progressi macroscopici.
@@ -64,32 +106,116 @@ ciascuna con competenze, esigenze e modalità d'uso specifiche.
     \item \textbf{Necessità:} Una modalità "readonly" semplice che non permetta modifiche accidentali e offra report chiari.
 \end{itemize}
 
-\subsection{Requisiti Non-Funzionali e di Sistema}
-Questi requisiti definiscono le qualità del sistema e i vincoli tecnologici.
-Seguendo la traccia del progetto e le buone norme dell'Ingegneria del Software,
-possiamo categorizzarli come segue.
+\subsubsection*{Matrice target--obiettivi--permessi}
+\noindent{\footnotesize
+\begin{tabularx}{\textwidth}{|l|X|X|X|}
+    \hline
+    \textbf{Target} & \textbf{Obiettivi primari} & \textbf{Operazioni abilitate (stato attuale)} & \textbf{Rischi UX da mitigare} \\ \hline
+    Sviluppatore / QA & Aprire issue rapidamente, aggiornare stato, commentare con evidenze, cercare issue simili. & Login, creazione issue, modifica issue, commenti, allegati, filtri avanzati, history issue. & Sovraccarico informativo su board grandi; necessità di feedback immediato su errori input/API. \\ \hline
+    Team Leader / Admin & Gestire utenti e ruoli, bilanciare carico, consolidare duplicate, supervisionare KPI. & Tutte le operazioni USER + creazione utenti, dashboard admin, duplicate workflow, reset password utenti. & Rischio azioni ad alto impatto (duplicate/reset): richiesto flusso conferma chiaro e audit leggibile. \\ \hline
+    Stakeholder / Cliente & Visione sintetica dello stato progetto e dell'avanzamento. & Attualmente non esiste profilo readonly dedicato (R15 non attivo). & Necessità di report sintetici e navigazione semplificata senza permessi di modifica. \\ \hline
+\end{tabularx}
+}
 
-\subsubsection*{Requisiti di Sistema (Vincoli della Traccia)}
+\subsection{Requisiti Funzionali di Sistema}
+La seguente sezione formalizza i requisiti funzionali assegnati/implementati nel ciclo corrente sulla base della traccia ufficiale (Sezione 3.1 del documento del Committente) e della codebase reale.
+
+\noindent{\footnotesize
+\begin{tabularx}{\textwidth}{|l|X|X|X|}
+    \hline
+    \textbf{ID} & \textbf{Richiesta del Committente} & \textbf{Evidenza implementativa (codice/API)} & \textbf{Stato} \\ \hline
+    R1 & Autenticazione email/password e creazione utenze da admin con ruolo USER/ADMIN. & \code{POST /auth/login}, \code{POST /auth/admin/users}, \code{AuthService.createUser}. UI: \code{CreateUserAccount.jsx}. & Implementato \\ \hline
+    R2 & Creazione issue con titolo/descrizione, tipologia e priorità opzionale, con allegato immagine gradito. & \code{POST /issues} con validazione tipo/priorità; supporto allegati via \code{POST /attachments/issues/\{issueId\}}. & Implementato \\ \hline
+    R3 & Vista riepilogativa con filtri/ordinamenti per parametri rilevanti. & \code{GET /issues/search} con \code{term,status,priority,type,assigneeId}; Specification Pattern in repository; UI filtri custom in \code{Issues.jsx}. & Implementato \\ \hline
+    R4 & Assegnazione bug da admin, notifica assegnatario e visualizzazione bug assegnati. & Assegnazione presente su create/edit issue e filtro per assignee; nessun modulo notifiche in codebase; vincolo ``solo admin assegna'' non imposto rigidamente a livello API. & Parziale \\ \hline
+    R5 & Sezione commenti associata ai bug, accessibile agli utenti. & Endpoint \code{/issues/\{issueId\}/comments} CRUD, autorizzazione owner/admin su update/delete in \code{CommentService}. & Implementato \\ \hline
+    R7 & Dashboard admin con metriche aggregate, assegnazioni per utente, tempi medi. & \code{GET /issues/admin/dashboard}, \code{IssueService.getDashboardStats}, metriche \code{issuesAssignedPerUser} e \code{avgResolutionTimeHoursPerUser}. & Implementato \\ \hline
+    R11 & Ricerca bug per parole chiave. & Filtro testuale su titolo/descrizione/reporter in \code{IssueRepository.search}. & Implementato \\ \hline
+    R12 & Cronologia modifiche bug con autore e timestamp. & \code{IssueHistoryEntry} con \code{changedBy}/\code{createdAt}, endpoint \code{GET /issues/\{id\}/history}, popolamento da service su eventi principali. & Implementato \\ \hline
+    R15 & - & - \\ \hline
+    R16 & Admin marca bug duplicato di altro bug con chiusura immediata del duplicato. & \code{POST /issues/\{id\}/duplicate/\{originalId\}}, regole dominio in \code{IssueService.processDuplicate} e \code{Issue.markAsDuplicateOf}. & Implementato \\ \hline
+\end{tabularx}
+}
+
+\paragraph{Nota di perimetro}
+I requisiti non elencati in tabella (es. R8, R9, R10, R13, R14, R17, R18) non rientrano tra i requisiti obbligatori, oppure risultano, volontariamente, solo parzialmente esplorati. L'evoluzione resta possibile grazie alla struttura modulare backend/frontend.
+
+\subsubsection*{Criteri di accettazione funzionali (sintesi verificabile)}
 \begin{itemize}
-    \item \textbf{RNF\_01 - Architettura}: Il sistema deve essere distribuito, con Back-end e Front-end logicamente e fisicamente indipendenti.
-    \item \textbf{RNF\_02 - Tecnologia}: Entrambi i componenti devono essere realizzati con linguaggi di programmazione Object-Oriented.
-    \item \textbf{RNF\_03 - Comunicazione}: Il Front-end deve comunicare con il Back-end esclusivamente tramite API (es. REST) via rete.
-    \item \textbf{RNF\_04 - Deployment}: Il Back-end deve essere predisposto per l'esecuzione tramite container Docker.
+    \item \textbf{R1 (utenze/admin)}: solo un utente ADMIN autenticato può invocare \code{POST /auth/admin/users}; email univoca e valida; ruolo ammesso solo USER/ADMIN; password opzionale (se omessa viene generata server-side e restituita in risposta).
+    \item \textbf{R2 (creazione issue)}: \code{POST /issues} richiede titolo/descrizione/tipo validi; priorità opzionale con default di dominio; assignee opzionale risolto per ID o username; supporto allegato immagine tramite endpoint attachment dedicato.
+    \item \textbf{R3 + R11 (ricerca e filtri)}: \code{GET /issues/search} accetta combinazioni di \code{term}, \code{status}, \code{priority}, \code{type}, \code{assigneeId}; risultati deterministici, senza side effect; filtri allineati alla UI con debounce.
+    \item \textbf{R4 (assegnazione, parziale)}: assegnazione issue presente nei flussi create/edit e nei filtri; non implementato modulo notifiche; vincolo ``assegnazione solo admin'' non ancora imposto come policy hard a livello API.
+    \item \textbf{R5 (commenti)}: CRUD commenti disponibile su issue; update/delete consentiti solo ad autore commento o admin; allegati commento gestiti separatamente.
+    \item \textbf{R7 (dashboard admin)}: endpoint admin aggrega KPI di stato/priorità, andamento giornaliero, carico aperto per assignee e tempo medio risoluzione per utente.
+    \item \textbf{R12 (history)}: ogni evento significativo genera una entry append-only con timestamp, titolo evento, descrizione del cambiamento e attore (\texttt{changedBy}).
+    \item \textbf{R16 (duplicate)}: solo admin può marcare duplicate; vietati self-duplicate, issue non BUG e issue gi\`a RESOLVED/CLOSED; la duplicate viene chiusa e collegata all'originale.
 \end{itemize}
 
-\subsubsection*{Requisiti di Qualità (Proprietà Emergenti)}
+\subsection{Requisiti di Sistema e Non-Funzionali}
+Questa sezione dettaglia i vincoli architetturali e i requisiti di qualità richiesti dalla traccia, con evidenza dello stato attuale del prodotto.
+
+\subsubsection*{Requisiti di Sistema (vincoli architetturali e tecnologici)}
 \begin{itemize}
-    \item \textbf{Sicurezza (Security):} Le password non devono essere salvate in chiaro nel database, ma tramite algoritmi di hashing sicuri (es. BCrypt). L'accesso alle API deve essere protetto da token di sessione (es. JWT) per garantire l'integrità dei dati.
+    \item \textbf{RS\_01 - Sistema distribuito}: separazione netta tra back-end e front-end, eseguibili in modo indipendente.
+    \item \textbf{RS\_02 - Comunicazione via rete}: il front-end usa esclusivamente API HTTP del back-end.
+    \item \textbf{RS\_03 - Stato centralizzato server-side}: persistenza e coerenza dati concentrate nel back-end.
+    \item \textbf{RS\_04 - Linguaggi OO}: stack implementativo object-oriented conforme ai vincoli della traccia.
+    \item \textbf{RS\_05 - Design astratto e riusabile}: separazione in layer (resource/service/repository/dto) per estendibilità.
+    \item \textbf{RS\_06 - Supporto deployment containerizzato}: progetto predisposto a esecuzione Docker.
+\end{itemize}
 
-    \item \textbf{Affidabilità e Robustezza (Reliability):} Il sistema deve gestire gli errori di rete tra client e server mostrando messaggi informativi e non interrompendo l'esecuzione (come previsto nei diagrammi di Cockburn).
+\subsubsection*{Requisiti Non-Funzionali (qualità del prodotto)}
+\noindent{\footnotesize
+\begin{tabularx}{\textwidth}{|l|X|X|X|}
+    \hline
+    \textbf{Categoria} & \textbf{Requisito qualitativo} & \textbf{Evidenza attuale in codebase} & \textbf{Indicatore / gap} \\ \hline
+    Sicurezza & Hardening input + controllo autorizzazioni su operazioni sensibili. & Hash password (\code{PasswordHasher}), check admin centralizzati, mapping errori uniforme, policy owner/admin su commenti e duplicate admin-only. & Mancano token firmati/session management forte e audit trail persistente cross-risorsa. \\ \hline
+    Affidabilità & Comportamento prevedibile in errore e in input invalidi (fail-fast). & Validazioni esplicite in resource/service, eccezioni mappate in HTTP coerenti, test negativi su auth/issue/comment. & Estendere regressione E2E su failure modes di infrastruttura (DB down, timeout, retry policy). \\ \hline
+    Usabilità & Ridurre attrito sui flussi frequenti e prevenire errori operatore. & UI con filtri custom, modali guidate, anteprima allegati, first-login obbligatorio username, feedback toast/error contextuali. & Migliorare accessibilità avanzata (WCAG: contrasto sistematico, focus management, ARIA su componenti custom). \\ \hline
+    Performance & Tempi di risposta adeguati in board/search/dashboard con dataset medio. & Debounce 300ms lato client, query aggregate dedicate dashboard, composizione Specification per filtri dinamici. & Definire SLO quantitativi (es. P95 ricerca) e monitorarli in ambiente integrato. \\ \hline
+    Manutenibilità & Evoluzione incrementale con basso impatto regressivo. & Separazione layer Resource/Service/Repository/DTO, pattern Specification/State/Builder/DI, suite test service+model. & Aggiungere quality gate statici continui (analisi duplicazioni, code smell, security hotspots). \\ \hline
+    Portabilità \& Deploy & Riproducibilità ambiente e avvio consistente tra macchine. & Composizione frontend/backend/db separati, avvio containerizzato, configurazioni endpoint centralizzate. & Formalizzare pipeline CI/CD con ambienti stage/prod e controlli di configurazione per ambiente. \\ \hline
+\end{tabularx}
+}
 
-    \item \textbf{Usabilità (Usability):} L'interfaccia deve essere intuitiva: un utente "Standard" deve essere in grado di creare una nuova issue in meno di 30 secondi dal primo accesso.
+\subsubsection*{Requisiti non-funzionali formalizzati (RNF)}
+\begin{itemize}
+    \item \textbf{RNF\_01 -- Sicurezza credenziali}: nessuna password in chiaro persistita; hashing obbligatorio lato backend.
+    \item \textbf{RNF\_02 -- Coerenza errori API}: per ogni risorsa, errore serializzato con payload JSON uniforme e codice HTTP semantico.
+    \item \textbf{RNF\_03 -- Robustezza input}: ogni endpoint che accetta body/query/path valida precondizioni e rifiuta input non conforme.
+    \item \textbf{RNF\_04 -- Usabilità operativa}: i flussi principali (login, create issue, ricerca, commento, duplicate) devono essere eseguibili senza navigazione multi-pagina ridondante.
+    \item \textbf{RNF\_05 -- Osservabilità minima}: gli eventi amministrativi ad alto impatto sono loggati lato backend.
+    \item \textbf{RNF\_06 -- Modificabilità}: nuova regola di filtro o validazione deve richiedere modifica locale e test associato, senza refactor cross-layer massivo.
+\end{itemize}
+
+\subsubsection*{Vincoli e assunzioni esplicite}
+\begin{itemize}
+    \item Le notifiche evento-driven richieste in R4 e R6 non sono presenti nel perimetro implementato.
+    \item Il modello auth corrente è coerente con MVP API-first, ma non sostituisce un meccanismo token-based completo.
+    \item La modalità readonly stakeholder (R15) non è attiva nel ciclo corrente.
 \end{itemize}
 
 \subsection{Casi d'Uso: Formalizzazione e Mockup}
-% Formalizzazione Cockburn di 2 use case principali e visualizzazione mock up
+La formalizzazione Cockburn e i mockup UI richiesti dal punto 1.e della traccia sono stati prodotti come artefatti dedicati e mantenuti nei file di progetto esterni (cartelle mockup e sorgenti CASE). In questo capitolo si evita la duplicazione integrale di tali contenuti per mantenere allineamento e singola fonte di verità sugli elaborati grafici.
 
-Nei mockup operativi della board issue, la \textbf{Search Bar testuale} e i \textbf{filtri a discesa} sono stati collegati nativamente agli endpoint REST del backend tramite chiamata \texttt{GET /issues/search} con parametri opzionali \texttt{term}, \texttt{status}, \texttt{priority}, \texttt{type} e \texttt{assigneeId}. In coerenza con i requisiti R3 e R11, il frontend invia solamente i parametri valorizzati (escludendo i campi impostati a ``all'') e applica un \textbf{debouncing lato client di 300ms} sull'insieme dei filtri per ridurre richieste ridondanti durante digitazione e selezioni multiple. Le opzioni di assegnazione usate nei form e nei filtri non sono hardcoded ma caricate dall'API \texttt{GET /auth/users/assignable}.
+\subsection{Avanzamento artefatti richiesti dalla traccia (stato corrente)}
+La traccia richiede anche artefatti che in parte vivono in file separati o saranno finalizzati in una consegna successiva. Di seguito la fotografia aggiornata su ciò che è già disponibile ora.
+
+\noindent{\footnotesize
+\begin{tabularx}{\textwidth}{|X|X|l|}
+    \hline
+    \textbf{Artefatto richiesto in traccia} & \textbf{Evidenza disponibile in repository} & \textbf{Stato} \\ \hline
+    Specifica requisiti + target utenti + RNF & Sezione 1 del presente documento (\texttt{main.tex}). & Completato \\ \hline
+    Glossario & Sezione ``Glossario'' del presente documento (appena consolidata). & Completato \\ \hline
+    Use Case Diagram (sorgente) & \texttt{Documentazione/Primo homework/ProgettoINGSWUseCases.vpp}. & Completato \\ \hline
+    Formalizzazione Cockburn + mockup & Artefatti mantenuti in file/cartelle esterni dedicati (non duplicati qui): sorgenti CASE + cartelle mockup \texttt{\#1} e \texttt{\#2}. & Completato \\ \hline
+    Design classi/persistenza & Sezione ``Schema per la persistenza dati e Diagramma delle classi di design''. & Completato \\ \hline
+    Piano test e test automatici & Sezione ``Testing e Verifica'', suite Maven/JaCoCo e tabelle test-case. & Completato \\ \hline
+    Evidenza versioning/statistiche repo & Non ancora allegata in forma finale in questa versione del documento. & Parziale \\ \hline
+    Report qualità backend (es. SonarQube) & Attualmente presenti quality gate, lint/build/test e coperture JaCoCo; report Sonar dedicato da produrre nel file successivo. & Parziale \\ \hline
+\end{tabularx}
+}
 
 \section{Design del Sistema}
 
@@ -115,7 +241,7 @@ Il frontend utilizza:
     \item \textbf{Client HTTP unico} (\texttt{src/utils/httpClient.js}) con gestione centralizzata di error parsing, body JSON/non-JSON e status 204.
     \item \textbf{Service layer modulare} (\texttt{auth.service.js}, \texttt{issue.service.js}, \texttt{comment.service.js}, \texttt{attachment.service.js}) allineato ai contratti REST backend.
     \item \textbf{localStorage} per la persistenza dei dati di sessione (user object e userId) tra ricariche della pagina.
-    \item \textbf{UI API-first}: i dati di assegnazione utenti per form e filtri provengono da \texttt{GET /auth/users/assignable}, evitando hardcoding lato client.
+    \item \textbf{UI API-first}: i dati di assegnazione utenti per form e filtri provengono da \code{GET /auth/users/assignable}, evitando hardcoding lato client.
 \end{itemize}
 
 \paragraph{Flusso di Autenticazione:}
@@ -129,42 +255,42 @@ Questa sezione segue il documento \textbf{Design patterns.pdf}: per ogni pattern
 \paragraph{Singleton (Creazionale)}
 \textbf{Nome}: Singleton. \\
 \textbf{Problema}: garantire un unico punto di accesso condiviso alla configurazione HTTP lato frontend, evitando istanze multiple incoerenti. \\
-\textbf{Soluzione}: esportazione di una singola istanza \texttt{httpClient} da \texttt{frontend/src/utils/httpClient.js}, riusata dai service client. \\
+\textbf{Soluzione}: esportazione di una singola istanza \texttt{httpClient} da \code{frontend/src/utils/httpClient.js}, riusata dai service client. \\
 \textbf{Conseguenze}: configurazione centralizzata e consistente; minore duplicazione di logica di parsing/error handling; maggiore accoppiamento a un client globale (accettabile nel contesto SPA). \\
-\textbf{Evidenze}: file \texttt{frontend/src/utils/httpClient.js}; uso da \texttt{frontend/src/services/*.js}. \\
-\textbf{Test/Evidenze di verifica}: non esiste un test unitario dedicato al singleton; il comportamento e' verificato indirettamente dai test/flow funzionali che usano i service client.
+\textbf{Evidenze}: file \code{frontend/src/utils/httpClient.js}; uso da \code{frontend/src/services/*.js}. \\
+\textbf{Test/Evidenze di verifica}: non esiste un test unitario dedicato al singleton; il comportamento è verificato indirettamente dai test/flow funzionali che usano i service client.
 
 \paragraph{Builder (Creazionale)}
 \textbf{Nome}: Builder. \\
 \textbf{Problema}: costruire DTO con molti campi opzionali evitando costruttori lunghi e fragili. \\
 \textbf{Soluzione}: builder annidati nei DTO backend (\texttt{IssueDTO}, \texttt{DashboardStatsDTO}, \texttt{UserDTO}, \texttt{IssueHistoryDTO}). \\
-\textbf{Conseguenze}: codice piu' leggibile e robusto ai cambiamenti incrementali dei contratti API; costo minimo in termini di boilerplate. \\
-\textbf{Evidenze}: package \texttt{backend/src/main/java/com/bugboard/dto}. \\
-\textbf{Test/Evidenze di verifica}: uso estensivo dei builder in \texttt{backend/src/test/java/com/bugboard/service/IssueServiceTest.java} e \texttt{backend/src/test/java/com/bugboard/controller/AuthResourceTest.java}.
+\textbf{Conseguenze}: codice più leggibile e robusto ai cambiamenti incrementali dei contratti API; costo minimo in termini di boilerplate. \\
+\textbf{Evidenze}: package \code{backend/src/main/java/com/bugboard/dto}. \\
+\textbf{Test/Evidenze di verifica}: uso estensivo dei builder in \code{backend/src/test/java/com/bugboard/service/IssueServiceTest.java} e \code{backend/src/test/java/com/bugboard/controller/AuthResourceTest.java}.
 
 \paragraph{Composite (Strutturale)}
 \textbf{Nome}: Composite. \\
 \textbf{Problema}: combinare criteri di ricerca indipendenti mantenendo un'interfaccia uniforme. \\
-\textbf{Soluzione}: \texttt{CompositeIssueSpecification} compone piu' \texttt{IssueSpecification} atomiche in AND. \\
+\textbf{Soluzione}: \texttt{CompositeIssueSpecification} compone più \texttt{IssueSpecification} atomiche in AND. \\
 \textbf{Conseguenze}: estensione semplice dei filtri senza modificare codice esistente; riduzione di if/append monolitici nella query dinamica. \\
-\textbf{Evidenze}: \texttt{backend/src/main/java/com/bugboard/repository/specification/CompositeIssueSpecification.java} e uso in \texttt{IssueRepository.search(...)}. \\
-\textbf{Test/Evidenze di verifica}: \texttt{backend/src/test/java/com/bugboard/repository/specification/IssueSpecificationsTest.java}.
+\textbf{Evidenze}: \code{backend/src/main/java/com/bugboard/repository/specification/CompositeIssueSpecification.java} e uso in \texttt{IssueRepository.search(...)}. \\
+\textbf{Test/Evidenze di verifica}: \code{backend/src/test/java/com/bugboard/repository/specification/IssueSpecificationsTest.java}.
 
 \paragraph{State (Comportamentale)}
 \textbf{Nome}: State. \\
 \textbf{Problema}: gestire in modo coerente il comportamento delle transizioni di stato issue (TODO, IN\_PROGRESS, RESOLVED, CLOSED) evitando logica condizionale dispersa. \\
 \textbf{Soluzione}: introduzione di \texttt{IssueStateMachine}, interfaccia \texttt{IssueState} e stati concreti (\texttt{TodoIssueState}, \texttt{InProgressIssueState}, \texttt{ResolvedIssueState}, \texttt{ClosedIssueState}); \texttt{Issue.setStatus(...)} delega alla state machine. \\
 \textbf{Conseguenze}: regole di transizione e gestione \texttt{closedAt} centralizzate; maggiore chiarezza del dominio; leggero aumento del numero di classi. \\
-\textbf{Evidenze}: package \texttt{backend/src/main/java/com/bugboard/model} (classi \texttt{IssueState*}) e \texttt{Issue.java}. \\
-\textbf{Test/Evidenze di verifica}: \texttt{backend/src/test/java/com/bugboard/model/IssueTest.java} (casi su transizioni TODO/CLOSED/RESOLVED/riapertura).
+\textbf{Evidenze}: package \code{backend/src/main/java/com/bugboard/model} (classi \texttt{IssueState*}) e \texttt{Issue.java}. \\
+\textbf{Test/Evidenze di verifica}: \code{backend/src/test/java/com/bugboard/model/IssueTest.java} (casi su transizioni TODO/CLOSED/RESOLVED/riapertura).
 
 \paragraph{Dependency Injection - IoC (Pattern Moderno)}
 \textbf{Nome}: Dependency Injection (IoC). \\
-\textbf{Problema}: evitare dipendenze hardcoded tra controller, service e repository, migliorando sostituibilita' e testabilita'. \\
+\textbf{Problema}: evitare dipendenze hardcoded tra controller, service e repository, migliorando sostituibilità e testabilità. \\
 \textbf{Soluzione}: iniezione tramite \texttt{@Inject} e componenti \texttt{@ApplicationScoped}; costruttori espliciti nei service/resource. \\
-\textbf{Conseguenze}: migliore isolamento nei test con mock; architettura piu' modulare; inizializzazione demandata al container CDI. \\
+\textbf{Conseguenze}: migliore isolamento nei test con mock; architettura più modulare; inizializzazione demandata al container CDI. \\
 \textbf{Evidenze}: \texttt{IssueResource}, \texttt{AuthResource}, \texttt{IssueService}, \texttt{AuthService}, \texttt{CommentService}. \\
-\textbf{Test/Evidenze di verifica}: uso di \texttt{@InjectMocks} e \texttt{@Mock} in \texttt{IssueServiceTest}, \texttt{AuthServiceTest}, \texttt{CommentServiceTest}.
+\textbf{Test/Evidenze di verifica}: uso di \code{@InjectMocks} e \code{@Mock} in \code{IssueServiceTest}, \code{AuthServiceTest}, \code{CommentServiceTest}.
 
 \subsubsection*{Pattern del PDF non adottati e motivazione}
 
@@ -172,34 +298,34 @@ Questa sezione segue il documento \textbf{Design patterns.pdf}: per ogni pattern
     \hline
     \textbf{Categoria} & \textbf{Pattern} & \textbf{Motivazione della non adozione} \\ \hline
     Strutturale & Adapter & Al momento non ci sono integrazioni con sistemi esterni con interfacce incompatibili; introdurlo ora sarebbe prematuro. \\ \hline
-    Strutturale & Decorator & Le estensioni runtime del comportamento non sono un requisito attuale; la complessita' aggiuntiva non e' giustificata. \\ \hline
-    Comportamentale & Observer & Non e' presente un bus eventi interno o una notifica broadcast multi-subscriber nel dominio backend da modellare con Subject/Observer. \\ \hline
+    Strutturale & Decorator & Le estensioni runtime del comportamento non sono un requisito attuale; la complessità aggiuntiva non è giustificata. \\ \hline
+    Comportamentale & Observer & Non è presente un bus eventi interno o una notifica broadcast multi-subscriber nel dominio backend da modellare con Subject/Observer. \\ \hline
 \end{tabularx}
 
 \subsubsection*{Altri pattern usati}
-Oltre ai pattern esplicitati nel PDF, il progetto usa anche pattern architetturali utili alla manutenibilita':
+Oltre ai pattern esplicitati nel PDF, il progetto usa anche pattern architetturali utili alla manutenibilità:
 
 \begin{tabularx}{\textwidth}{|l|X|X|}
     \hline
     \textbf{Pattern} & \textbf{Evidenze (file/test)} & \textbf{Motivazione tecnica} \\ \hline
-    Specification & \texttt{repository/specification/*}, \texttt{IssueRepository.search(...)}, \texttt{IssueSpecificationsTest}. & Filtri composabili R3/R11 (\texttt{term/status/priority/type/assigneeId}) senza query builder monolitico. \\ \hline
-    Repository & \texttt{IssueRepository}, \texttt{UserRepository}, \texttt{CommentRepository}, \texttt{PasswordResetRequestRepository}, \texttt{IssueHistoryRepository}. & Isola accesso dati JPA/JPQL dalla logica business. \\ \hline
-    Service Layer & \texttt{IssueService}, \texttt{AuthService}, \texttt{CommentService}, \texttt{AttachmentService}; test di service dedicati. & Centralizza regole di business, validazioni e autorizzazioni. \\ \hline
+    Specification & \code{repository/specification/*}, \code{IssueRepository.search(...)}, \code{IssueSpecificationsTest}. & Filtri composabili R3/R11 (\code{term/status/priority/type/assigneeId}) senza query builder monolitico. \\ \hline
+    Repository & \code{IssueRepository}, \code{UserRepository}, \code{CommentRepository}, \code{PasswordResetRequestRepository}, \code{IssueHistoryRepository}. & Isola accesso dati JPA/JPQL dalla logica business. \\ \hline
+    Service Layer & \code{IssueService}, \code{AuthService}, \code{CommentService}, \code{AttachmentService}; test di service dedicati. & Centralizza regole di business, validazioni e autorizzazioni. \\ \hline
     DTO & Package \texttt{dto}; mapping e asserzioni nei test controller/service. & Contratti API stabili tra backend e frontend. \\ \hline
 \end{tabularx}
 
 \subsection{Filtraggio esteso e Dashboard (Requisiti 3 e 7)}
-Il sistema implementa un meccanismo di filtraggio esteso delle issue (Requisito 3) che consente agli utenti di cercare e filtrare per: \textbf{testo libero} (titolo, descrizione, reporter), \textbf{priorita'} (\texttt{PriorityLevel}), \textbf{stato} (\texttt{IssueStatus}), \textbf{tipo} (\texttt{IssueType}: QUESTION, BUG, DOCUMENTATION, FEATURE) e \textbf{assegnatario} (\texttt{assigneeId}). I filtri sono tutti opzionali e componibili: la query JPQL viene costruita dinamicamente tramite Specification Pattern, componendo specifiche atomiche in AND e aggiungendo clausole \texttt{WHERE} solo per i parametri valorizzati.
+Il sistema implementa un meccanismo di filtraggio esteso delle issue (Requisito 3) che consente agli utenti di cercare e filtrare per: \textbf{testo libero} (titolo, descrizione, reporter), \textbf{priorità} (\texttt{PriorityLevel}), \textbf{stato} (\texttt{IssueStatus}), \textbf{tipo} (\texttt{IssueType}: QUESTION, BUG, DOCUMENTATION, FEATURE) e \textbf{assegnatario} (\texttt{assigneeId}). I filtri sono tutti opzionali e componibili: la query JPQL viene costruita dinamicamente tramite Specification Pattern, componendo specifiche atomiche in AND e aggiungendo clausole \texttt{WHERE} solo per i parametri valorizzati.
 
 Per il Requisito 7 (Dashboard Admin), la statistica \texttt{issuesAssignedPerUser} aggrega il numero di issue aperte (stato TODO o IN\_PROGRESS) per ciascun assegnatario, permettendo all'amministratore di monitorare il carico di lavoro distribuito tra i membri del team.
 
 \subsection{Hardening API-First e Tracciabilita Preliminare}
-Nel ciclo corrente e' stata adottata una strategia \textbf{API-first}: prima consolidamento di contratti, validazioni e autorizzazioni lato backend, poi allineamento frontend. Le decisioni di hardening gia' applicate includono:
+Nel ciclo corrente è stata adottata una strategia \textbf{API-first}: prima consolidamento di contratti, validazioni e autorizzazioni lato backend, poi allineamento frontend. Le decisioni di hardening già applicate includono:
 \begin{itemize}
     \item normalizzazione dei payload di errore REST su shape uniforme \texttt{\{"error": "..."\}};
-    \item rimozione di layer frontend legacy non piu' aderenti ai contratti backend;
+    \item rimozione di layer frontend legacy non più aderenti ai contratti backend;
     \item validazioni esplicite su input auth/issue (body null, enum invalidi, campi obbligatori);
-    \item policy di autorizzazione piu' stretta sui commenti (modifica/cancellazione solo autore o admin).
+    \item policy di autorizzazione più stretta sui commenti (modifica/cancellazione solo autore o admin).
 \end{itemize}
 
 \noindent La tabella seguente rappresenta la \textbf{tracciabilita preliminare} dei requisiti obbligatori, da rifinire nelle sezioni successive con evidenze di test e schermate aggiornate.
@@ -216,28 +342,28 @@ Nel ciclo corrente e' stata adottata una strategia \textbf{API-first}: prima con
 \end{tabularx}
 
 \subsection{Evidenze API-First per R1-R2-R3-R7-R11-R16}
-La seguente matrice collega i requisiti obbligatori agli endpoint e alle regole implementate nel backend dopo l'attivita' di hardening.
+La seguente matrice collega i requisiti obbligatori agli endpoint e alle regole implementate nel backend dopo l'attività di hardening.
 
 \begin{tabularx}{\textwidth}{|l|X|X|}
     \hline
     \textbf{Req} & \textbf{API e regole implementate} & \textbf{Evidenze di verifica} \\ \hline
-    R1 & \texttt{POST /auth/admin/users}: solo admin, validazione email, ruolo e unicita'. Password temporanea generata server-side. & Test unitari \texttt{AuthServiceTest} su casi validi, ruolo/permessi, email duplicate e formato non valido. \\ \hline
-    R2 & \texttt{POST /issues}: tipo obbligatorio, priorita' validata, assegnazione supportata sia per \texttt{assigneeId} sia per \texttt{assigneeUsername}. & Test \texttt{IssueServiceTest} su creazione da DTO con assignee valido/non valido, tipo nullo e reporter opzionale. \\ \hline
-    R3 & \texttt{GET /issues/search}: filtri opzionali combinabili (\texttt{term}, \texttt{status}, \texttt{priority}, \texttt{type}, \texttt{assigneeId}) con validazione input. & Test su ricerca con combinazioni multiple e query normalizzata (trim), risposta deterministica. \\ \hline
-    R7 & \texttt{GET /issues/admin/dashboard}: metriche aggregate e \texttt{issuesAssignedPerUser} con contratto stabile per la UI admin. & Test \texttt{IssueServiceTest} su popolamento mappa per assegnatario e dati giornalieri dashboard. \\ \hline
+    R1 & \code{POST /auth/admin/users}: solo admin, validazione email, ruolo e unicità. Password temporanea generata server-side. & Test unitari \code{AuthServiceTest} su casi validi, ruolo/permessi, email duplicate e formato non valido. \\ \hline
+    R2 & \code{POST /issues}: tipo obbligatorio, priorità validata, assegnazione supportata sia per \texttt{assigneeId} sia per \texttt{assigneeUsername}. & Test \code{IssueServiceTest} su creazione da DTO con assignee valido/non valido, tipo nullo e reporter opzionale. \\ \hline
+    R3 & \code{GET /issues/search}: filtri opzionali combinabili (\texttt{term}, \texttt{status}, \texttt{priority}, \texttt{type}, \texttt{assigneeId}) con validazione input. & Test su ricerca con combinazioni multiple e query normalizzata (trim), risposta deterministica. \\ \hline
+    R7 & \code{GET /issues/admin/dashboard}: metriche aggregate e \texttt{issuesAssignedPerUser} con contratto stabile per la UI admin. & Test \code{IssueServiceTest} su popolamento mappa per assegnatario e dati giornalieri dashboard. \\ \hline
     R11 & Ricerca keyword su titolo, descrizione e reporter tramite query JPQL dinamica con ordinamento stabile. & Test su filtro testuale e regressione sui filtri composti. \\ \hline
-    R16 & \texttt{POST /issues/\{id\}/duplicate/\{originalId\}}: solo admin, ID distinti, issue esistenti e vincolo tipo BUG per entrambe le issue. & Test \texttt{IssueServiceTest} su successo, permessi, self-duplicate, issue chiuse/risolte e tipi non BUG. \\ \hline
+    R16 & \code{POST /issues/\{id\}/duplicate/\{originalId\}}: solo admin, ID distinti, issue esistenti e vincolo tipo BUG per entrambe le issue. & Test \code{IssueServiceTest} su successo, permessi, self-duplicate, issue chiuse/risolte e tipi non BUG. \\ \hline
 \end{tabularx}
 
-L'approccio API-first riduce regressioni frontend durante i refactor: la UI viene allineata a contratti backend gia' consolidati, mentre le funzionalita' extra (commenti, allegati, reset password) restano operative con controlli di regressione dedicati.
+L'approccio API-first riduce regressioni frontend durante i refactor: la UI viene allineata a contratti backend già consolidati, mentre le funzionalità extra (commenti, allegati, reset password) restano operative con controlli di regressione dedicati.
 
 \subsection{Evidenze UI e Tracciabilita End-to-End}
-Nel ciclo corrente e' stato completato anche l'allineamento frontend ai contratti API per i requisiti obbligatori:
+Nel ciclo corrente è stato completato anche l'allineamento frontend ai contratti API per i requisiti obbligatori:
 \begin{itemize}
-    \item \textbf{R2}: la UI Create/Edit Issue usa utenti assegnabili caricati da \texttt{GET /auth/users/assignable} e invia \texttt{assigneeId} nel payload di creazione.
-    \item \textbf{R3/R11}: la pagina Issues applica debounce di 300ms e invia filtri completi \texttt{term,status,priority,type,assigneeId} verso \texttt{GET /issues/search}.
-    \item \textbf{R7}: la Dashboard Admin visualizza la metrica \texttt{issuesAssignedPerUser} oltre alle distribuzioni per stato/priorita'.
-    \item \textbf{R16}: il pulsante ``Flag as Duplicate'' e' esposto solo ad admin lato UI, con allineamento ai vincoli backend (solo BUG non chiuse/risolte).
+    \item \textbf{R2}: la UI Create/Edit Issue usa utenti assegnabili caricati da \code{GET /auth/users/assignable} e invia \texttt{assigneeId} nel payload di creazione.
+    \item \textbf{R3/R11}: la pagina Issues applica debounce di 300ms e invia filtri completi \code{term,status,priority,type,assigneeId} verso \code{GET /issues/search}.
+    \item \textbf{R7}: la Dashboard Admin visualizza la metrica \texttt{issuesAssignedPerUser} oltre alle distribuzioni per stato/priorità.
+    \item \textbf{R16}: il pulsante ``Flag as Duplicate'' è esposto solo ad admin lato UI, con allineamento ai vincoli backend (solo BUG non chiuse/risolte).
 \end{itemize}
 
 \noindent Sono stati inoltre allineati i campi DTO visualizzati in dettaglio issue (\texttt{assigneeUsername} al posto di alias legacy), riducendo mismatch tra risposta REST e rendering frontend.
@@ -267,14 +393,26 @@ Il metodo \texttt{processDuplicate} gestisce la marcatura di una issue come dupl
 
 \begin{tabularx}{\textwidth}{|X|X|}
     \hline
-    \multicolumn{2}{|l|}{\textbf{Class Name}: AdminController}                        \\ \hline
-    \multicolumn{2}{|l|}{\textbf{Superclasses}: RestController}                       \\ \hline
-    \multicolumn{2}{|l|}{\textbf{Subclasses}: None}                                   \\ \hline
-    \textbf{Responsibilities}                                & \textbf{Collaborators} \\ \hline
-    Expose endpoints for creating new user accounts (R1)     & UserService            \\ \hline
-    Handle requests for the statistical dashboard (R7)       & IssueService           \\ \hline
-    Trigger marking a bug as a duplicate (R16)               & IssueService           \\ \hline
-    Validate administrator permissions for incoming requests & SecurityContext        \\ \hline
+    \multicolumn{2}{|l|}{\textbf{Class Name}: IssueResource}                          \\ \hline
+    \multicolumn{2}{|l|}{\textbf{Superclasses}: None (JAX-RS Resource)}               \\ \hline
+    \multicolumn{2}{|l|}{\textbf{Subclasses}: None}                                    \\ \hline
+    \textbf{Responsibilities}                                 & \textbf{Collaborators} \\ \hline
+    Espone endpoint board/search/detail/update issue (R2, R3, R11) & IssueService      \\ \hline
+    Espone endpoint dashboard admin (R7)                      & IssueService, AuthService \\ \hline
+    Espone endpoint duplicate workflow (R16)                  & IssueService        \\ \hline
+    Converte errori applicativi in codici HTTP coerenti       & ApiResponses        \\ \hline
+\end{tabularx}
+
+\begin{tabularx}{\textwidth}{|X|X|}
+    \hline
+    \multicolumn{2}{|l|}{\textbf{Class Name}: AuthResource}                           \\ \hline
+    \multicolumn{2}{|l|}{\textbf{Superclasses}: None (JAX-RS Resource)}               \\ \hline
+    \multicolumn{2}{|l|}{\textbf{Subclasses}: None}                                    \\ \hline
+    \textbf{Responsibilities}                                 & \textbf{Collaborators} \\ \hline
+    Espone login e finalizzazione username first-login        & AuthService          \\ \hline
+    Espone creazione utenti admin (R1)                        & AuthService          \\ \hline
+    Espone endpoint utenti assegnabili per form/filtri        & AuthService          \\ \hline
+    Gestisce richieste/reset password amministrative           & AuthService          \\ \hline
 \end{tabularx}
 
 \begin{tabularx}{\textwidth}{|X|X|}
@@ -303,7 +441,7 @@ Il metodo \texttt{processDuplicate} gestisce la marcatura di una issue come dupl
 \end{tabularx}
 
 \subsection{createUser}
-Il metodo \texttt{createUser} (esposto dall'\texttt{AdminController}) permette ad un amministratore di creare una nuova utenza: verifica i parametri in ingresso, controlla i permessi dell'operatore, assicura l'unicità dell'email, genera una password temporanea cifrata e provvede al salvataggio della nuova utenza nel repository.
+Il metodo \texttt{createUser} (esposto da \texttt{AuthResource} e implementato in \texttt{AuthService}) permette a un amministratore di creare una nuova utenza: verifica i parametri in ingresso, controlla i permessi dell'operatore, assicura l'unicità dell'email e gestisce due rami equivalenti per la password iniziale (custom fornita da admin oppure temporanea generata server-side), provvedendo infine al salvataggio con hash sicuro nel repository utenti.
 
 \clearpage
 
@@ -321,7 +459,6 @@ Di seguito verranno descritte le attività di verifica condotte sulle logiche di
 
 La seguente tabella descrive i test case progettati per verificare il comportamento del metodo \texttt{processDuplicate} dell'\texttt{IssueService}. Il metodo gestisce la marcatura di un Issue come duplicato di un altro, con validazione dei permessi amministrativi e controllo di esistenza delle entità.\\
 
-\vspace{-4pt}
 \noindent{\footnotesize
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
@@ -381,11 +518,10 @@ La seguente tabella descrive i test case progettati per verificare il comportame
 
 \clearpage
 
-\subsubsection{Issue (Entità di Dominio) — White Box Testing}
+\subsubsection{Issue (Entità di Dominio) --- White Box Testing}
 
 La seguente tabella descrive i test case progettati per ottenere il 100\% di branch coverage sull'entità di dominio \texttt{Issue}. I test verificano costruttore, setter con validazione, gestione dello stato (\texttt{setStatus}), tipo (\texttt{setType}), e il metodo \texttt{markAsDuplicateOf} includendo il ramo di uguaglianza basato su ID (tramite reflection).\\
 
-\vspace{-4pt}
 \noindent{\footnotesize
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
@@ -450,11 +586,10 @@ La seguente tabella descrive i test case progettati per ottenere il 100\% di bra
 
 \clearpage
 
-\subsubsection{IssueService — Copertura Completa dei Metodi}
+\subsubsection{IssueService --- Copertura Completa dei Metodi}
 
 La seguente tabella descrive i test case aggiuntivi (TC16--TC43) progettati per ottenere il 100\% di branch coverage su tutti i metodi dell'\texttt{IssueService}, oltre ai TC1--TC15 già documentati (\texttt{processDuplicate}, \texttt{searchIssues}, \texttt{getDashboardStats}).\\
 
-\vspace{-4pt}
 \noindent{\footnotesize
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
@@ -527,7 +662,6 @@ La seguente tabella descrive i test case aggiuntivi (TC16--TC43) progettati per 
 
 La seguente tabella descrive i test case progettati per verificare il comportamento del metodo \texttt{createUser}. Il metodo gestisce la creazione di nuovi utenti nel sistema, con validazione dei permessi amministrativi, controllo di unicit\`a dell'email e supporto alla password custom opzionale (in alternativa alla password temporanea generata dal backend).\\
 
-\vspace{-8pt}
 \noindent{\footnotesize
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
@@ -586,13 +720,12 @@ La seguente tabella descrive i test case progettati per verificare il comportame
 
 La seguente tabella descrive i test case REST del controller \texttt{AuthResource} per il mapping della risposta di \texttt{POST /auth/admin/users}, con particolare attenzione alla presenza/assenza del campo \texttt{temporaryPassword}.\\
 
-\vspace{-8pt}
 \noindent{\footnotesize
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
     \textbf{ID} & \textbf{Preconditions} & \textbf{Input} & \textbf{Expected Output} & \textbf{PostCond} \\
     \hline
-    TC1 & Admin authenticated. Service returns generated password. & email valid, role=USER, password omitted & HTTP 201 with \texttt{message,email,role,temporaryPassword,note} & Response exposes temporary password for out-of-band communication. \\
+    TC1 & Admin authenticated. Service returns generated password. & email valid, role=USER, password omitted & HTTP 201 with \code{message,email,role,temporaryPassword,note} & Response exposes temporary password for out-of-band communication. \\
     \hline
     TC2 & Admin authenticated. Service returns provided password. & email valid, role=ADMIN, password=\texttt{CustomPass123} & HTTP 201 with \texttt{message,email,role} only & \texttt{temporaryPassword} and \texttt{note} are intentionally omitted. \\
     \hline
@@ -607,7 +740,6 @@ La seguente tabella descrive i test case REST del controller \texttt{AuthResourc
 
 La seguente tabella descrive i test case progettati per verificare il comportamento del metodo \texttt{finalizeProfile}. Questo metodo consente agli utenti di finalizzare il loro profilo al primo login, impostando uno username univoco.\\
 
-\vspace{-8pt}
 \noindent{\footnotesize
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
@@ -650,7 +782,6 @@ La seguente tabella descrive i test case progettati per verificare il comportame
 
 La seguente tabella descrive i test case progettati per verificare il comportamento dell'entità \texttt{User}. I test coprono costruttore, setter validati, metodo \texttt{finalizeProfile} e metodo \texttt{isAdmin}, garantendo 100\% branch coverage.\\
 
-\vspace{-8pt}
 \noindent{\footnotesize
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
@@ -707,7 +838,6 @@ La seguente tabella descrive i test case progettati per verificare il comportame
 
 La seguente tabella descrive i test case progettati per verificare il comportamento dell'entità \texttt{PasswordResetRequest}. I test coprono costruttori, metodi di business (\texttt{markAsCompleted}, \texttt{markAsRejected}, \texttt{isPending}) e getters, garantendo 100\% branch coverage.\\
 
-\vspace{-8pt}
 \noindent{\footnotesize
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
@@ -744,7 +874,6 @@ La seguente tabella descrive i test case progettati per verificare il comportame
 
 La seguente tabella descrive i test case progettati per verificare il metodo \texttt{resetUserPassword}. Il metodo consente a un amministratore di reimpostare la password di un utente, generando una nuova password temporanea.\\
 
-\vspace{-8pt}
 \noindent{\footnotesize
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
@@ -767,7 +896,6 @@ La seguente tabella descrive i test case progettati per verificare il metodo \te
 
 La seguente tabella descrive i test case per il metodo \texttt{processPasswordResetRequest}. Il metodo consente all'amministratore di approvare o rifiutare le richieste di reset password.\\
 
-\vspace{-8pt}
 \noindent{\footnotesize
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
@@ -792,7 +920,6 @@ La seguente tabella descrive i test case per il metodo \texttt{processPasswordRe
 
 La seguente tabella descrive i test case per il metodo \texttt{login}. Il metodo verifica le credenziali e ritorna un DTO con i dati dell'utente.\\
 
-\vspace{-8pt}
 \noindent{\footnotesize
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
@@ -811,7 +938,6 @@ La seguente tabella descrive i test case per il metodo \texttt{login}. Il metodo
 
 La seguente tabella descrive i test case per il metodo \texttt{getPendingResetRequests}. Il metodo ritorna la lista delle richieste di reset password pendenti.\\
 
-\vspace{-8pt}
 \noindent{\footnotesize
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
@@ -828,7 +954,6 @@ La seguente tabella descrive i test case per il metodo \texttt{getPendingResetRe
 
 La seguente tabella descrive i test case per il metodo \texttt{requestPasswordReset}. Il metodo consente a un utente di richiedere il reset della propria password.\\
 
-\vspace{-8pt}
 \noindent{\footnotesize
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
@@ -851,7 +976,6 @@ La seguente tabella descrive i test case per il metodo \texttt{requestPasswordRe
 
 La seguente tabella descrive i test case per il metodo \texttt{validateAdminPrivileges}. Il metodo verifica che un dato ID corrisponda a un utente amministratore autenticato.\\
 
-\vspace{-8pt}
 \noindent{\footnotesize
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
@@ -868,11 +992,10 @@ La seguente tabella descrive i test case per il metodo \texttt{validateAdminPriv
 \end{tabularx}
 }
 
-\subsubsection{AuthService — Metodi Legacy}
+\subsubsection{AuthService --- Metodi Legacy}
 
 La seguente tabella descrive i test case per i metodi deprecati \texttt{registerUser} e \texttt{authenticate}, necessari per garantire la copertura completa.\\
 
-\vspace{-8pt}
 \noindent{\footnotesize
 \begin{tabularx}{\textwidth}{|l|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
     \hline
@@ -936,7 +1059,7 @@ La suite di test è stata progettata seguendo un approccio di \textbf{White Box 
     
     \item \textbf{when().thenReturn()}: Configura il comportamento atteso dei mock per input specifici, permettendo di testare diversi scenari (successo, eccezioni, etc.) senza dipendenze dal database.
     
-    \item \textbf{verify()}: Verifica che i mock siano stati chiamati con i parametri attesi, assicurando che le operazioni di persistenza avvengano solo nei casi appropriati. Ad esempio, \texttt{verify(userRepository, never()).save(any(User.class))} assicura che nessun salvataggio avvenga in caso di errore.
+    \item \textbf{verify()}: Verifica che i mock siano stati chiamati con i parametri attesi, assicurando che le operazioni di persistenza avvengano solo nei casi appropriati. Ad esempio, \code{verify(userRepository, never()).save(any(User.class))} assicura che nessun salvataggio avvenga in caso di errore.
     
     \item \textbf{Optional.of() / Optional.empty()}: Simulano i comportamenti del repository nel ritornare entità trovate o non trovate, mantenendo coerenza con le firme dei metodi reali che ritornano \texttt{Optional<T>}.
 \end{itemize}
@@ -946,42 +1069,40 @@ La suite di test è stata progettata seguendo un approccio di \textbf{White Box 
 La suite di test raggiunge il \textbf{100\% di branch coverage} sulle classi \texttt{Issue}, \texttt{IssueService}, \texttt{User}, \texttt{PasswordResetRequest} e \texttt{AuthService}, verificate tramite report JaCoCo:
 
 \begin{itemize}
-    \item \textbf{Issue (Entità di Dominio)}: 30 test case — 98\% istruzioni, 100\% branch. Coprono costruttore, setter validati, gestione transizioni di stato, \texttt{markAsDuplicateOf} (incluso ramo di uguaglianza su ID con reflection).
-    \item \textbf{IssueService.processDuplicate}: 11 test case — tutti i rami decisionali (controlli di sicurezza, validazione input, verifiche di esistenza, gestione degli stati).
-    \item \textbf{IssueService.searchIssues}: 3 test case — filtraggio per tipo, assegnatario e combinazione completa.
-    \item \textbf{IssueService.getDashboardStats}: 2 test case — aggregazione per assegnatario e dati giornalieri non vuoti.
-    \item \textbf{IssueService (metodi aggiuntivi)}: 27 test case (TC16--TC42) — createIssue (entrambi gli overload), updateStatus, attachment CRUD, validateIssueExists, getAllIssues, getIssueById, convertSingleToDTO (reporter null/presente, assignee null/presente). 97\% istruzioni, 100\% branch.
-    \item \textbf{User (Entità di Dominio)}: 20 test case — 100\% istruzioni, 100\% branch. Coprono costruttore (email valida/null/senza @), setter \texttt{setPassword} (null/vuoto/spazi), \texttt{finalizeProfile} (successo, già finalizzato, username null/corto/vuoto), \texttt{isAdmin} (ADMIN/USER), getters/setters e costruttore JPA.
-    \item \textbf{PasswordResetRequest (Entità di Dominio)}: 10 test case — 100\% istruzioni, 100\% branch. Coprono costruttore (valido/null), costruttore JPA, \texttt{markAsCompleted} (admin/non-admin), \texttt{markAsRejected} (admin/non-admin), \texttt{isPending} (PENDING/COMPLETED/REJECTED).
+    \item \textbf{Issue (Entità di Dominio)}: 30 test case --- 98\% istruzioni, 100\% branch. Coprono costruttore, setter validati, gestione transizioni di stato, \texttt{markAsDuplicateOf} (incluso ramo di uguaglianza su ID con reflection).
+    \item \textbf{IssueService.processDuplicate}: 11 test case --- tutti i rami decisionali (controlli di sicurezza, validazione input, verifiche di esistenza, gestione degli stati).
+    \item \textbf{IssueService.searchIssues}: 3 test case --- filtraggio per tipo, assegnatario e combinazione completa.
+    \item \textbf{IssueService.getDashboardStats}: 2 test case --- aggregazione per assegnatario e dati giornalieri non vuoti.
+    \item \textbf{IssueService (metodi aggiuntivi)}: 27 test case (TC16--TC42) --- createIssue (entrambi gli overload), updateStatus, attachment CRUD, validateIssueExists, getAllIssues, getIssueById, convertSingleToDTO (reporter null/presente, assignee null/presente). 97\% istruzioni, 100\% branch.
+    \item \textbf{User (Entità di Dominio)}: 20 test case --- 100\% istruzioni, 100\% branch. Coprono costruttore (email valida/null/senza @), setter \texttt{setPassword} (null/vuoto/spazi), \texttt{finalizeProfile} (successo, già finalizzato, username null/corto/vuoto), \texttt{isAdmin} (ADMIN/USER), getters/setters e costruttore JPA.
+    \item \textbf{PasswordResetRequest (Entità di Dominio)}: 10 test case --- 100\% istruzioni, 100\% branch. Coprono costruttore (valido/null), costruttore JPA e i metodi \code{markAsCompleted}, \code{markAsRejected} e \code{isPending} nei rami admin/non-admin e negli stati \code{PENDING/COMPLETED/REJECTED}.
     \item \textbf{AuthService.createUser}: 14 test case --- autenticazione, validazione input, permessi, unicit\`a email e gestione password custom opzionale (success/failure).
-    \item \textbf{AuthService.finalizeProfile}: 6 test case — validazione parametri, unicità username, aggiornamento stato.
-    \item \textbf{AuthService.resetUserPassword}: 5 test case — successo, userId null/non trovato, adminId null/non-admin.
-    \item \textbf{AuthService.processPasswordResetRequest}: 6 test case — approvazione, rifiuto, requestId null/non trovato, richiesta già processata, adminId null.
-    \item \textbf{AuthService.login}: 3 test case — credenziali valide, email non trovata, password errata.
-    \item \textbf{AuthService.getPendingResetRequests}: 2 test case — lista con richieste, lista vuota.
-    \item \textbf{AuthService.requestPasswordReset}: 5 test case — successo, email null/vuota/non trovata, richiesta già pendente.
-    \item \textbf{AuthService.validateAdminPrivileges}: 4 test case — admin valido, adminId null/non trovato/non-admin.
-    \item \textbf{AuthService (metodi legacy)}: 4 test case — registerUser (successo), authenticate (credenziali valide/errate, utente non trovato).
+    \item \textbf{AuthService.finalizeProfile}: 6 test case --- validazione parametri, unicità username, aggiornamento stato.
+    \item \textbf{AuthService.resetUserPassword}: 5 test case --- successo, userId null/non trovato, adminId null/non-admin.
+    \item \textbf{AuthService.processPasswordResetRequest}: 6 test case --- approvazione, rifiuto, requestId null/non trovato, richiesta già processata, adminId null.
+    \item \textbf{AuthService.login}: 3 test case --- credenziali valide, email non trovata, password errata.
+    \item \textbf{AuthService.getPendingResetRequests}: 2 test case --- lista con richieste, lista vuota.
+    \item \textbf{AuthService.requestPasswordReset}: 5 test case --- successo, email null/vuota/non trovata, richiesta già pendente.
+    \item \textbf{AuthService.validateAdminPrivileges}: 4 test case --- admin valido, adminId null/non trovato/non-admin.
+    \item \textbf{AuthService (metodi legacy)}: 4 test case --- registerUser (successo), authenticate (credenziali valide/errate, utente non trovato).
     \item \textbf{AuthService}: Copertura complessiva --- 100\% istruzioni, 100\% branch (47 test case totali).
     \item \textbf{AuthResource.createUser}: 3 test case REST --- mapping risposta 201 con/senza \texttt{temporaryPassword} e validazione errore 400 su password blank.
 \end{itemize}
 
-Totale: \textbf{167 test case}, tutti verdi (\texttt{Tests run: 167, Failures: 0, Errors: 0, Skipped: 0}).
+Totale: \textbf{167 test case}, tutti verdi (\code{Tests run: 167, Failures: 0, Errors: 0, Skipped: 0}).
 
 I test sono configurati per essere eseguiti automaticamente durante la build Maven (fase \texttt{test}) e i report di copertura JaCoCo sono generati in \texttt{target/site/jacoco/index.html}, fornendo una visione dettagliata della completezza della suite di test.
 
 \subsubsection{Quality Gate Finale (Ciclo Hardening + MVP)}
 Per la regressione finale del ciclo hardening+MVP sono stati eseguiti i seguenti gate su ambiente containerizzato:
 \begin{itemize}
-    \item \textbf{Backend unit test}: \texttt{docker run ... maven:3.9.11-eclipse-temurin-21 mvn -q test} $\rightarrow$ \textbf{PASS} (\texttt{tests=161, failures=0, errors=0, skipped=0}).
-    \item \textbf{Frontend build produzione}: \texttt{docker run ... node:20 npm run build} $\rightarrow$ \textbf{PASS}.
-    \item \textbf{Frontend lint}: \texttt{docker run ... node:20 npm run lint} $\rightarrow$ \textbf{PASS}.
+    \item \textbf{Backend unit test}: \code{docker run ... maven:3.9.11-eclipse-temurin-21 mvn -q test} $\rightarrow$ \textbf{PASS} (\code{tests=161, failures=0, errors=0, skipped=0}).
+    \item \textbf{Frontend build produzione}: \code{docker run ... node:20 npm run build} $\rightarrow$ \textbf{PASS}.
+    \item \textbf{Frontend lint}: \code{docker run ... node:20 npm run lint} $\rightarrow$ \textbf{PASS}.
 \end{itemize}
 
-\noindent Nota di compatibilita' emersa in verifica: una prima esecuzione backend su immagine Java 24 ha evidenziato incompatibilita' strumentali (\texttt{ByteBuddy/JaCoCo} su class file major version 68). Il gate ufficiale del progetto e' stato quindi fissato su runtime \texttt{Temurin 21}, coerente con toolchain test attuale.
+\noindent Nota di compatibilità emersa in verifica: una prima esecuzione backend su immagine Java 24 ha evidenziato incompatibilità strumentali (\texttt{ByteBuddy/JaCoCo} su class file major version 68). Il gate ufficiale del progetto è stato quindi fissato su runtime \texttt{Temurin 21}, coerente con toolchain test attuale.
 
 \clearpage
 
 \end{document}
-
-
