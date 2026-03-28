@@ -31,6 +31,7 @@ import jakarta.transaction.Transactional;
 public class IssueService {
 
    private static final Logger logger = Logger.getLogger(IssueService.class.getName());
+   private static final String ISSUE_NOT_FOUND_MESSAGE = "Issue not found";
 
    private final IssueRepository repository;
    private final IssueHistoryRepository issueHistoryRepository;
@@ -111,64 +112,13 @@ public class IssueService {
 
    @Transactional
    public void updateIssue(Long id, IssueDTO dto, Long actorUserId) {
-      Issue issue = repository.findById(id);
-      if (issue == null) {
-         throw new IllegalArgumentException("Issue not found");
-      }
-
+      Issue issue = requireIssue(id);
       List<String> changes = new ArrayList<>();
-
-      // Update fields if provided
-      if (dto.getTitle() != null && !dto.getTitle().trim().isEmpty()) {
-         String normalizedTitle = dto.getTitle().trim();
-         if (!normalizedTitle.equals(issue.getTitle())) {
-            changes.add("Title: \"" + issue.getTitle() + "\" -> \"" + normalizedTitle + "\"");
-            issue.setTitle(normalizedTitle);
-         }
-      }
-      if (dto.getDescription() != null) {
-         String normalizedDescription = dto.getDescription().trim();
-         if (normalizedDescription.isEmpty()) {
-            throw new IllegalArgumentException("Description cannot be empty.");
-         }
-         if (!normalizedDescription.equals(issue.getDescription())) {
-            changes.add("Description updated.");
-            issue.setDescription(normalizedDescription);
-         }
-      }
-      if (dto.getPriority() != null) {
-         PriorityLevel nextPriority = parsePriority(dto.getPriority());
-         if (nextPriority != issue.getPriority()) {
-            changes.add("Priority: " + issue.getPriority() + " -> " + nextPriority);
-            issue.setPriority(nextPriority);
-         }
-      }
-
-      if (dto.getType() != null && !dto.getType().isBlank()) {
-         IssueType nextType = parseIssueType(dto.getType());
-         if (nextType != issue.getType()) {
-            changes.add("Type: " + issue.getType() + " -> " + nextType);
-            issue.setType(nextType);
-         }
-      }
-
-      User nextAssignee = null;
-      boolean assigneeProvided = false;
-      if (dto.getAssigneeId() != null) {
-         assigneeProvided = true;
-         nextAssignee = userRepository.findById(dto.getAssigneeId())
-               .orElseThrow(() -> new IllegalArgumentException("Assignee user not found with ID: " + dto.getAssigneeId()));
-      } else if (dto.getAssigneeUsername() != null && !dto.getAssigneeUsername().isBlank()) {
-         assigneeProvided = true;
-         String normalizedAssigneeUsername = dto.getAssigneeUsername().trim();
-         nextAssignee = userRepository.findByUsername(normalizedAssigneeUsername)
-               .orElseThrow(() -> new IllegalArgumentException("Assignee user not found: " + normalizedAssigneeUsername));
-      }
-
-      if (assigneeProvided && !isSameUser(issue.getAssignee(), nextAssignee)) {
-         changes.add("Assignee: " + resolveUserLabel(issue.getAssignee()) + " -> " + resolveUserLabel(nextAssignee));
-         issue.setAssignee(nextAssignee);
-      }
+      applyTitleUpdate(dto, issue, changes);
+      applyDescriptionUpdate(dto, issue, changes);
+      applyPriorityUpdate(dto, issue, changes);
+      applyTypeUpdate(dto, issue, changes);
+      applyAssigneeUpdate(dto, issue, changes);
 
       if (changes.isEmpty()) {
          return;
@@ -185,10 +135,7 @@ public class IssueService {
 
    @Transactional
    public void updateStatus(Long id, IssueStatus newStatus, Long actorUserId) {
-      Issue issue = repository.findById(id);
-      if (issue == null) {
-         throw new IllegalArgumentException("Issue not found");
-      }
+      Issue issue = requireIssue(id);
 
       IssueStatus previousStatus = issue.getStatus();
       if (previousStatus == newStatus) {
@@ -216,10 +163,7 @@ public class IssueService {
 
    @Transactional
    public void setAttachmentPath(Long issueId, String attachmentPath, Long actorUserId) {
-      Issue issue = repository.findById(issueId);
-      if (issue == null) {
-         throw new IllegalArgumentException("Issue not found");
-      }
+      Issue issue = requireIssue(issueId);
       String oldPath = issue.getAttachmentPath();
       issue.setAttachmentPath(attachmentPath);
       repository.save(issue);
@@ -244,10 +188,7 @@ public class IssueService {
 
    @Transactional
    public String removeAttachment(Long issueId, Long actorUserId) {
-      Issue issue = repository.findById(issueId);
-      if (issue == null) {
-         throw new IllegalArgumentException("Issue not found");
-      }
+      Issue issue = requireIssue(issueId);
       String oldPath = issue.getAttachmentPath();
       issue.setAttachmentPath(null);
       repository.save(issue);
@@ -273,10 +214,7 @@ public class IssueService {
     * @throws IllegalArgumentException if issue not found
     */
    public String getIssueAttachmentPath(Long issueId) {
-      Issue issue = repository.findById(issueId);
-      if (issue == null) {
-         throw new IllegalArgumentException("Issue not found");
-      }
+      Issue issue = requireIssue(issueId);
       return issue.getAttachmentPath();
    }
 
@@ -324,18 +262,12 @@ public class IssueService {
     * Get a single issue by ID.
     */
    public IssueDTO getIssueById(Long id) {
-      Issue issue = repository.findById(id);
-      if (issue == null) {
-         throw new IllegalArgumentException("Issue not found");
-      }
+      Issue issue = requireIssue(id);
       return convertSingleToDTO(issue);
    }
 
    public List<IssueHistoryDTO> getIssueHistory(Long issueId) {
-      Issue issue = repository.findById(issueId);
-      if (issue == null) {
-         throw new IllegalArgumentException("Issue not found");
-      }
+      requireIssue(issueId);
 
       return issueHistoryRepository.findByIssueId(issueId).stream()
             .map(entry -> new IssueHistoryDTO(
@@ -409,100 +341,17 @@ public class IssueService {
     * Only admins should call this method.
     */
    public DashboardStatsDTO getDashboardStats() {
-      // Count by status
-      Map<String, Long> issuesByStatus = new LinkedHashMap<>();
-      for (IssueStatus status : IssueStatus.values()) {
-         issuesByStatus.put(status.name(), 0L);
-      }
-      List<Object[]> statusRows = repository.countByStatusGrouped();
-      if (statusRows != null) {
-         for (Object[] row : statusRows) {
-            IssueStatus status = (IssueStatus) row[0];
-            Long count = (Long) row[1];
-            issuesByStatus.put(status.name(), count);
-         }
-      }
+      Map<String, Long> issuesByStatus = buildIssuesByStatus();
+      Map<String, Long> issuesByPriority = buildIssuesByPriority();
+      Map<String, Long> issuesCreatedPerDay = buildIssuesCreatedPerDay(LocalDateTime.now().minusDays(7));
 
-      // Count by priority
-      Map<String, Long> issuesByPriority = new LinkedHashMap<>();
-      for (PriorityLevel priority : PriorityLevel.values()) {
-         issuesByPriority.put(priority.name(), 0L);
-      }
-      List<Object[]> priorityRows = repository.countByPriorityGrouped();
-      if (priorityRows != null) {
-         for (Object[] row : priorityRows) {
-            PriorityLevel priority = (PriorityLevel) row[0];
-            Long count = (Long) row[1];
-            issuesByPriority.put(priority.name(), count);
-         }
-      }
-
-      // Issues created per day (last 7 days)
-      LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
-      Map<String, Long> issuesCreatedPerDay = new LinkedHashMap<>();
-
-      List<Object[]> dailyData = repository.getIssuesCreatedPerDaySince(sevenDaysAgo);
-      for (Object[] row : dailyData) {
-         String date = row[0].toString();
-         Long count = (Long) row[1];
-         issuesCreatedPerDay.put(date, count);
-      }
-
-      // Calculate open issues (to-do + in-progress)
       long openIssues = countFromMap(issuesByStatus, IssueStatus.TODO.name()) +
             countFromMap(issuesByStatus, IssueStatus.IN_PROGRESS.name());
       long resolvedIssues = countFromMap(issuesByStatus, IssueStatus.RESOLVED.name());
       long closedIssues = countFromMap(issuesByStatus, IssueStatus.CLOSED.name());
 
-      // Count open issues per assignee (Requisito 7)
-      Map<String, Long> issuesAssignedPerUser = new LinkedHashMap<>();
-      userRepository.findAssignableUsers().forEach(user -> {
-         if (user.getUsername() != null) {
-            issuesAssignedPerUser.put(user.getUsername(), 0L);
-         }
-      });
-      List<Object[]> assigneeData = repository.countOpenIssuesPerAssignee();
-      for (Object[] row : assigneeData) {
-         String username = (String) row[0];
-         Long count = (Long) row[1];
-         issuesAssignedPerUser.put(username, count);
-      }
-
-      // Average resolution time (hours) grouped by assignee username (R7)
-      Map<String, Double> avgResolutionTimeHoursPerUser = new LinkedHashMap<>();
-      userRepository.findAssignableUsers().forEach(user -> {
-         if (user.getUsername() != null) {
-            avgResolutionTimeHoursPerUser.put(user.getUsername(), 0.0);
-         }
-      });
-
-      Map<String, Long> resolvedIssuesCountPerUser = new LinkedHashMap<>();
-      Map<String, Double> totalResolutionHoursPerUser = new LinkedHashMap<>();
-      List<Issue> closedResolvedAssignedIssues = repository.findClosedResolvedIssuesWithAssignee();
-      if (closedResolvedAssignedIssues != null) {
-         for (Issue resolvedIssue : closedResolvedAssignedIssues) {
-            if (resolvedIssue.getAssignee() == null || resolvedIssue.getAssignee().getUsername() == null) {
-               continue;
-            }
-            if (resolvedIssue.getCreatedAt() == null || resolvedIssue.getClosedAt() == null) {
-               continue;
-            }
-
-            String username = resolvedIssue.getAssignee().getUsername();
-            double resolutionHours = Duration.between(resolvedIssue.getCreatedAt(), resolvedIssue.getClosedAt()).toMinutes() / 60.0;
-
-            totalResolutionHoursPerUser.merge(username, resolutionHours, Double::sum);
-            resolvedIssuesCountPerUser.merge(username, 1L, Long::sum);
-         }
-      }
-
-      for (Map.Entry<String, Double> totalByUserEntry : totalResolutionHoursPerUser.entrySet()) {
-         String username = totalByUserEntry.getKey();
-         long resolvedCount = resolvedIssuesCountPerUser.getOrDefault(username, 0L);
-         if (resolvedCount > 0) {
-            avgResolutionTimeHoursPerUser.put(username, totalByUserEntry.getValue() / resolvedCount);
-         }
-      }
+      Map<String, Long> issuesAssignedPerUser = buildIssuesAssignedPerUser();
+      Map<String, Double> avgResolutionTimeHoursPerUser = buildAvgResolutionTimeHoursPerUser();
 
       return DashboardStatsDTO.builder()
             .totalIssues(repository.countAll())
@@ -591,9 +440,209 @@ public class IssueService {
       return normalized.isEmpty() ? null : normalized;
    }
 
+   private Issue requireIssue(Long issueId) {
+      Issue issue = repository.findById(issueId);
+      if (issue == null) {
+         throw new IllegalArgumentException(ISSUE_NOT_FOUND_MESSAGE);
+      }
+      return issue;
+   }
+
+   private void applyTitleUpdate(IssueDTO dto, Issue issue, List<String> changes) {
+      if (dto.getTitle() == null || dto.getTitle().trim().isEmpty()) {
+         return;
+      }
+
+      String normalizedTitle = dto.getTitle().trim();
+      if (!normalizedTitle.equals(issue.getTitle())) {
+         changes.add("Title: \"" + issue.getTitle() + "\" -> \"" + normalizedTitle + "\"");
+         issue.setTitle(normalizedTitle);
+      }
+   }
+
+   private void applyDescriptionUpdate(IssueDTO dto, Issue issue, List<String> changes) {
+      if (dto.getDescription() == null) {
+         return;
+      }
+
+      String normalizedDescription = dto.getDescription().trim();
+      if (normalizedDescription.isEmpty()) {
+         throw new IllegalArgumentException("Description cannot be empty.");
+      }
+      if (!normalizedDescription.equals(issue.getDescription())) {
+         changes.add("Description updated.");
+         issue.setDescription(normalizedDescription);
+      }
+   }
+
+   private void applyPriorityUpdate(IssueDTO dto, Issue issue, List<String> changes) {
+      if (dto.getPriority() == null) {
+         return;
+      }
+
+      PriorityLevel nextPriority = parsePriority(dto.getPriority());
+      if (nextPriority != issue.getPriority()) {
+         changes.add("Priority: " + issue.getPriority() + " -> " + nextPriority);
+         issue.setPriority(nextPriority);
+      }
+   }
+
+   private void applyTypeUpdate(IssueDTO dto, Issue issue, List<String> changes) {
+      if (dto.getType() == null || dto.getType().isBlank()) {
+         return;
+      }
+
+      IssueType nextType = parseIssueType(dto.getType());
+      if (nextType != issue.getType()) {
+         changes.add("Type: " + issue.getType() + " -> " + nextType);
+         issue.setType(nextType);
+      }
+   }
+
+   private void applyAssigneeUpdate(IssueDTO dto, Issue issue, List<String> changes) {
+      AssigneeSelection assigneeSelection = resolveAssigneeSelection(dto);
+      if (!assigneeSelection.provided() || isSameUser(issue.getAssignee(), assigneeSelection.assignee())) {
+         return;
+      }
+
+      changes.add("Assignee: " + resolveUserLabel(issue.getAssignee()) + " -> "
+            + resolveUserLabel(assigneeSelection.assignee()));
+      issue.setAssignee(assigneeSelection.assignee());
+   }
+
+   private AssigneeSelection resolveAssigneeSelection(IssueDTO dto) {
+      if (dto.getAssigneeId() != null) {
+         User assignee = userRepository.findById(dto.getAssigneeId())
+               .orElseThrow(() -> new IllegalArgumentException("Assignee user not found with ID: " + dto.getAssigneeId()));
+         return new AssigneeSelection(true, assignee);
+      }
+
+      if (dto.getAssigneeUsername() != null && !dto.getAssigneeUsername().isBlank()) {
+         String normalizedAssigneeUsername = dto.getAssigneeUsername().trim();
+         User assignee = userRepository.findByUsername(normalizedAssigneeUsername)
+               .orElseThrow(() -> new IllegalArgumentException("Assignee user not found: " + normalizedAssigneeUsername));
+         return new AssigneeSelection(true, assignee);
+      }
+
+      return AssigneeSelection.notProvided();
+   }
+
+   private Map<String, Long> buildIssuesByStatus() {
+      Map<String, Long> issuesByStatus = new LinkedHashMap<>();
+      for (IssueStatus status : IssueStatus.values()) {
+         issuesByStatus.put(status.name(), 0L);
+      }
+
+      List<Object[]> statusRows = repository.countByStatusGrouped();
+      if (statusRows != null) {
+         for (Object[] row : statusRows) {
+            IssueStatus status = (IssueStatus) row[0];
+            Long count = (Long) row[1];
+            issuesByStatus.put(status.name(), count);
+         }
+      }
+      return issuesByStatus;
+   }
+
+   private Map<String, Long> buildIssuesByPriority() {
+      Map<String, Long> issuesByPriority = new LinkedHashMap<>();
+      for (PriorityLevel priority : PriorityLevel.values()) {
+         issuesByPriority.put(priority.name(), 0L);
+      }
+
+      List<Object[]> priorityRows = repository.countByPriorityGrouped();
+      if (priorityRows != null) {
+         for (Object[] row : priorityRows) {
+            PriorityLevel priority = (PriorityLevel) row[0];
+            Long count = (Long) row[1];
+            issuesByPriority.put(priority.name(), count);
+         }
+      }
+      return issuesByPriority;
+   }
+
+   private Map<String, Long> buildIssuesCreatedPerDay(LocalDateTime since) {
+      Map<String, Long> issuesCreatedPerDay = new LinkedHashMap<>();
+      List<Object[]> dailyData = repository.getIssuesCreatedPerDaySince(since);
+      if (dailyData != null) {
+         for (Object[] row : dailyData) {
+            String date = row[0].toString();
+            Long count = (Long) row[1];
+            issuesCreatedPerDay.put(date, count);
+         }
+      }
+      return issuesCreatedPerDay;
+   }
+
+   private Map<String, Long> buildIssuesAssignedPerUser() {
+      Map<String, Long> issuesAssignedPerUser = new LinkedHashMap<>();
+      userRepository.findAssignableUsers().forEach(user -> {
+         if (user.getUsername() != null) {
+            issuesAssignedPerUser.put(user.getUsername(), 0L);
+         }
+      });
+
+      List<Object[]> assigneeData = repository.countOpenIssuesPerAssignee();
+      if (assigneeData != null) {
+         for (Object[] row : assigneeData) {
+            String username = (String) row[0];
+            Long count = (Long) row[1];
+            issuesAssignedPerUser.put(username, count);
+         }
+      }
+      return issuesAssignedPerUser;
+   }
+
+   private Map<String, Double> buildAvgResolutionTimeHoursPerUser() {
+      Map<String, Double> avgResolutionTimeHoursPerUser = new LinkedHashMap<>();
+      userRepository.findAssignableUsers().forEach(user -> {
+         if (user.getUsername() != null) {
+            avgResolutionTimeHoursPerUser.put(user.getUsername(), 0.0);
+         }
+      });
+
+      Map<String, Long> resolvedIssuesCountPerUser = new LinkedHashMap<>();
+      Map<String, Double> totalResolutionHoursPerUser = new LinkedHashMap<>();
+      List<Issue> closedResolvedAssignedIssues = repository.findClosedResolvedIssuesWithAssignee();
+      if (closedResolvedAssignedIssues != null) {
+         for (Issue resolvedIssue : closedResolvedAssignedIssues) {
+            if (isEligibleForResolutionStats(resolvedIssue)) {
+               String username = resolvedIssue.getAssignee().getUsername();
+               double resolutionHours = Duration.between(resolvedIssue.getCreatedAt(), resolvedIssue.getClosedAt())
+                     .toMinutes() / 60.0;
+               totalResolutionHoursPerUser.merge(username, resolutionHours, Double::sum);
+               resolvedIssuesCountPerUser.merge(username, 1L, Long::sum);
+            }
+         }
+      }
+
+      for (Map.Entry<String, Double> totalByUserEntry : totalResolutionHoursPerUser.entrySet()) {
+         String username = totalByUserEntry.getKey();
+         long resolvedCount = resolvedIssuesCountPerUser.getOrDefault(username, 0L);
+         if (resolvedCount > 0) {
+            avgResolutionTimeHoursPerUser.put(username, totalByUserEntry.getValue() / resolvedCount);
+         }
+      }
+
+      return avgResolutionTimeHoursPerUser;
+   }
+
+   private boolean isEligibleForResolutionStats(Issue issue) {
+      return issue.getAssignee() != null &&
+            issue.getAssignee().getUsername() != null &&
+            issue.getCreatedAt() != null &&
+            issue.getClosedAt() != null;
+   }
+
    private long countFromMap(Map<String, Long> source, String key) {
       Long value = source.get(key);
       return value != null ? value : 0L;
+   }
+
+   private record AssigneeSelection(boolean provided, User assignee) {
+      private static AssigneeSelection notProvided() {
+         return new AssigneeSelection(false, null);
+      }
    }
 
    private void recordHistoryEntry(Issue issue, String title, String description, String changedBy) {

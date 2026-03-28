@@ -18,7 +18,6 @@ import org.mockito.Mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.bugboard.dto.DashboardStatsDTO;
@@ -339,7 +338,7 @@ public class IssueServiceTest {
       List<IssueDTO> results = issueService.searchIssues("  bug  ", null, null, null, null);
 
       assertEquals("PostCond failed: should return 1 issue", 1, results.size());
-      verify(repository).search(eq("bug"), eq(null), eq(null), eq(null), eq(null));
+      verify(repository).search("bug", null, null, null, null);
    }
 
    // ==================== getDashboardStats TESTS ====================
