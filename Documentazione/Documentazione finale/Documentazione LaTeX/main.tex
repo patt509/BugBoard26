@@ -122,35 +122,74 @@ Il frontend utilizza:
 L'utente accede tramite login email/password. Il frontend chiama \texttt{POST /auth/login}, persiste i dati utente in \texttt{localStorage} e usa l'identificativo utente per valorizzare l'header \texttt{X-User-Id} nelle chiamate che richiedono autorizzazione (creazione issue, dashboard admin, duplicate workflow, endpoint utenti assegnabili).
 
 \subsection{Design Pattern adottati nel codice}
-Questa sezione e' allineata al documento \textbf{Design patterns.pdf} (categorie GoF + Dependency Injection).
+Questa sezione segue il documento \textbf{Design patterns.pdf}: per ogni pattern applicato vengono esplicitati \textbf{Nome, Problema, Soluzione, Conseguenze}, con collegamento a file e test.
 
-\begin{tabularx}{\textwidth}{|l|l|X|X|}
+\subsubsection*{Pattern del PDF applicati}
+
+\paragraph{Singleton (Creazionale)}
+\textbf{Nome}: Singleton. \\
+\textbf{Problema}: garantire un unico punto di accesso condiviso alla configurazione HTTP lato frontend, evitando istanze multiple incoerenti. \\
+\textbf{Soluzione}: esportazione di una singola istanza \texttt{httpClient} da \texttt{frontend/src/utils/httpClient.js}, riusata dai service client. \\
+\textbf{Conseguenze}: configurazione centralizzata e consistente; minore duplicazione di logica di parsing/error handling; maggiore accoppiamento a un client globale (accettabile nel contesto SPA). \\
+\textbf{Evidenze}: file \texttt{frontend/src/utils/httpClient.js}; uso da \texttt{frontend/src/services/*.js}. \\
+\textbf{Test/Evidenze di verifica}: non esiste un test unitario dedicato al singleton; il comportamento e' verificato indirettamente dai test/flow funzionali che usano i service client.
+
+\paragraph{Builder (Creazionale)}
+\textbf{Nome}: Builder. \\
+\textbf{Problema}: costruire DTO con molti campi opzionali evitando costruttori lunghi e fragili. \\
+\textbf{Soluzione}: builder annidati nei DTO backend (\texttt{IssueDTO}, \texttt{DashboardStatsDTO}, \texttt{UserDTO}, \texttt{IssueHistoryDTO}). \\
+\textbf{Conseguenze}: codice piu' leggibile e robusto ai cambiamenti incrementali dei contratti API; costo minimo in termini di boilerplate. \\
+\textbf{Evidenze}: package \texttt{backend/src/main/java/com/bugboard/dto}. \\
+\textbf{Test/Evidenze di verifica}: uso estensivo dei builder in \texttt{backend/src/test/java/com/bugboard/service/IssueServiceTest.java} e \texttt{backend/src/test/java/com/bugboard/controller/AuthResourceTest.java}.
+
+\paragraph{Composite (Strutturale)}
+\textbf{Nome}: Composite. \\
+\textbf{Problema}: combinare criteri di ricerca indipendenti mantenendo un'interfaccia uniforme. \\
+\textbf{Soluzione}: \texttt{CompositeIssueSpecification} compone piu' \texttt{IssueSpecification} atomiche in AND. \\
+\textbf{Conseguenze}: estensione semplice dei filtri senza modificare codice esistente; riduzione di if/append monolitici nella query dinamica. \\
+\textbf{Evidenze}: \texttt{backend/src/main/java/com/bugboard/repository/specification/CompositeIssueSpecification.java} e uso in \texttt{IssueRepository.search(...)}. \\
+\textbf{Test/Evidenze di verifica}: \texttt{backend/src/test/java/com/bugboard/repository/specification/IssueSpecificationsTest.java}.
+
+\paragraph{State (Comportamentale)}
+\textbf{Nome}: State. \\
+\textbf{Problema}: gestire in modo coerente il comportamento delle transizioni di stato issue (TODO, IN\_PROGRESS, RESOLVED, CLOSED) evitando logica condizionale dispersa. \\
+\textbf{Soluzione}: introduzione di \texttt{IssueStateMachine}, interfaccia \texttt{IssueState} e stati concreti (\texttt{TodoIssueState}, \texttt{InProgressIssueState}, \texttt{ResolvedIssueState}, \texttt{ClosedIssueState}); \texttt{Issue.setStatus(...)} delega alla state machine. \\
+\textbf{Conseguenze}: regole di transizione e gestione \texttt{closedAt} centralizzate; maggiore chiarezza del dominio; leggero aumento del numero di classi. \\
+\textbf{Evidenze}: package \texttt{backend/src/main/java/com/bugboard/model} (classi \texttt{IssueState*}) e \texttt{Issue.java}. \\
+\textbf{Test/Evidenze di verifica}: \texttt{backend/src/test/java/com/bugboard/model/IssueTest.java} (casi su transizioni TODO/CLOSED/RESOLVED/riapertura).
+
+\paragraph{Dependency Injection - IoC (Pattern Moderno)}
+\textbf{Nome}: Dependency Injection (IoC). \\
+\textbf{Problema}: evitare dipendenze hardcoded tra controller, service e repository, migliorando sostituibilita' e testabilita'. \\
+\textbf{Soluzione}: iniezione tramite \texttt{@Inject} e componenti \texttt{@ApplicationScoped}; costruttori espliciti nei service/resource. \\
+\textbf{Conseguenze}: migliore isolamento nei test con mock; architettura piu' modulare; inizializzazione demandata al container CDI. \\
+\textbf{Evidenze}: \texttt{IssueResource}, \texttt{AuthResource}, \texttt{IssueService}, \texttt{AuthService}, \texttt{CommentService}. \\
+\textbf{Test/Evidenze di verifica}: uso di \texttt{@InjectMocks} e \texttt{@Mock} in \texttt{IssueServiceTest}, \texttt{AuthServiceTest}, \texttt{CommentServiceTest}.
+
+\subsubsection*{Pattern del PDF non adottati e motivazione}
+
+\begin{tabularx}{\textwidth}{|l|l|X|}
     \hline
-    \textbf{Categoria} & \textbf{Pattern (dal documento)} & \textbf{Stato nel progetto} & \textbf{Evidenza codice} \\ \hline
-    Creazionale & Singleton & Applicato & Istanza condivisa frontend \texttt{httpClient} in \texttt{src/utils/httpClient.js}. \\ \hline
-    Creazionale & Builder & Applicato & Builder annidati nei DTO backend (\texttt{IssueDTO}, \texttt{DashboardStatsDTO}, \texttt{UserDTO}, \texttt{IssueHistoryDTO}). \\ \hline
-    Strutturale & Composite & Applicato & Composizione di filtri in \texttt{CompositeIssueSpecification} con \texttt{IssueSpecification}. \\ \hline
-    Strutturale & Adapter & Non applicato esplicitamente & Le conversioni request/response sono gestite nei service/DTO senza una classe adapter dedicata. \\ \hline
-    Strutturale & Decorator & Non applicato esplicitamente & Non sono presenti gerarchie di decorator runtime per estendere responsabilita' di oggetti dominio. \\ \hline
-    Comportamentale & Observer & Non applicato esplicitamente & Non e' presente una gerarchia Subject/Observer dedicata nel dominio backend. \\ \hline
-    Comportamentale & State & Applicato & Macchina a stati del dominio issue con \texttt{IssueStateMachine}, interfaccia \texttt{IssueState} e stati concreti (\texttt{Todo/InProgress/Resolved/ClosedIssueState}). \\ \hline
-    Moderno & Dependency Injection (IoC) & Applicato & Uso di \texttt{@Inject}/\texttt{@ApplicationScoped} (controller, service, repository) e test con mock injection. \\ \hline
+    \textbf{Categoria} & \textbf{Pattern} & \textbf{Motivazione della non adozione} \\ \hline
+    Strutturale & Adapter & Al momento non ci sono integrazioni con sistemi esterni con interfacce incompatibili; introdurlo ora sarebbe prematuro. \\ \hline
+    Strutturale & Decorator & Le estensioni runtime del comportamento non sono un requisito attuale; la complessita' aggiuntiva non e' giustificata. \\ \hline
+    Comportamentale & Observer & Non e' presente un bus eventi interno o una notifica broadcast multi-subscriber nel dominio backend da modellare con Subject/Observer. \\ \hline
 \end{tabularx}
 
 \subsubsection*{Altri pattern usati}
-Oltre ai pattern esplicitati nel PDF, il progetto usa ulteriori pattern utili per modularita' e manutenibilita':
+Oltre ai pattern esplicitati nel PDF, il progetto usa anche pattern architetturali utili alla manutenibilita':
 
 \begin{tabularx}{\textwidth}{|l|X|X|}
     \hline
-    \textbf{Pattern} & \textbf{Dove e' applicato} & \textbf{Motivazione tecnica} \\ \hline
-    Specification & Package \texttt{repository.specification} + uso in \texttt{IssueRepository.search(...)}. & Filtri composabili R3/R11 (\texttt{term/status/priority/type/assigneeId}) senza concatenazioni condizionali fragili. \\ \hline
+    \textbf{Pattern} & \textbf{Evidenze (file/test)} & \textbf{Motivazione tecnica} \\ \hline
+    Specification & \texttt{repository/specification/*}, \texttt{IssueRepository.search(...)}, \texttt{IssueSpecificationsTest}. & Filtri composabili R3/R11 (\texttt{term/status/priority/type/assigneeId}) senza query builder monolitico. \\ \hline
     Repository & \texttt{IssueRepository}, \texttt{UserRepository}, \texttt{CommentRepository}, \texttt{PasswordResetRequestRepository}, \texttt{IssueHistoryRepository}. & Isola accesso dati JPA/JPQL dalla logica business. \\ \hline
-    Service Layer & \texttt{IssueService}, \texttt{AuthService}, \texttt{CommentService}, \texttt{AttachmentService}. & Centralizza regole di business, validazioni e autorizzazioni. \\ \hline
-    DTO & \texttt{IssueDTO}, \texttt{UserDTO}, \texttt{DashboardStatsDTO}, \texttt{CommentDTO}, \texttt{IssueHistoryDTO}. & Contratti API stabili tra backend e frontend. \\ \hline
+    Service Layer & \texttt{IssueService}, \texttt{AuthService}, \texttt{CommentService}, \texttt{AttachmentService}; test di service dedicati. & Centralizza regole di business, validazioni e autorizzazioni. \\ \hline
+    DTO & Package \texttt{dto}; mapping e asserzioni nei test controller/service. & Contratti API stabili tra backend e frontend. \\ \hline
 \end{tabularx}
 
 \subsection{Filtraggio esteso e Dashboard (Requisiti 3 e 7)}
-Il sistema implementa un meccanismo di filtraggio esteso delle issue (Requisito 3) che consente agli utenti di cercare e filtrare per: \textbf{testo libero} (titolo, descrizione, reporter), \textbf{priorità} (\texttt{PriorityLevel}), \textbf{stato} (\texttt{IssueStatus}), \textbf{tipo} (\texttt{IssueType}: QUESTION, BUG, DOCUMENTATION, FEATURE) e \textbf{assegnatario} (\texttt{assigneeId}). I filtri sono tutti opzionali e componibili: la query JPQL viene costruita dinamicamente tramite Specification Pattern, componendo specifiche atomiche in AND e aggiungendo clausole \texttt{WHERE} solo per i parametri valorizzati.
+Il sistema implementa un meccanismo di filtraggio esteso delle issue (Requisito 3) che consente agli utenti di cercare e filtrare per: \textbf{testo libero} (titolo, descrizione, reporter), \textbf{priorita'} (\texttt{PriorityLevel}), \textbf{stato} (\texttt{IssueStatus}), \textbf{tipo} (\texttt{IssueType}: QUESTION, BUG, DOCUMENTATION, FEATURE) e \textbf{assegnatario} (\texttt{assigneeId}). I filtri sono tutti opzionali e componibili: la query JPQL viene costruita dinamicamente tramite Specification Pattern, componendo specifiche atomiche in AND e aggiungendo clausole \texttt{WHERE} solo per i parametri valorizzati.
 
 Per il Requisito 7 (Dashboard Admin), la statistica \texttt{issuesAssignedPerUser} aggrega il numero di issue aperte (stato TODO o IN\_PROGRESS) per ciascun assegnatario, permettendo all'amministratore di monitorare il carico di lavoro distribuito tra i membri del team.
 
