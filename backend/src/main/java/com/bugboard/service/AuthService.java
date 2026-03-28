@@ -247,7 +247,9 @@ public class AuthService {
 
       } finally {
          // Clear password from memory
-         Arrays.fill(rawPassword, '\0');
+         if (rawPassword != null) {
+            Arrays.fill(rawPassword, '\0');
+         }
       }
    }
 
@@ -307,36 +309,6 @@ public class AuthService {
       resetRequestRepository.save(request);
 
       logger.log(Level.INFO, "Password reset requested for user {0}", user.getEmail());
-   }
-
-   // ==================== LEGACY METHODS ====================
-
-   /**
-    * @deprecated Use createUser() instead
-    */
-   @Deprecated
-   public void registerUser(User user, char[] rawPassword) {
-      try {
-         String hashedPassword = PasswordHasher.hash(new String(rawPassword));
-         user.setPassword(hashedPassword);
-         userRepository.save(user);
-      } finally {
-         Arrays.fill(rawPassword, '\0');
-      }
-   }
-
-   /**
-    * @deprecated Use login() instead
-    */
-   @Deprecated
-   public boolean authenticate(String email, char[] rawPassword) {
-      try {
-         return userRepository.findByEmail(email)
-               .map(user -> PasswordHasher.verify(new String(rawPassword), user.getPassword()))
-               .orElse(false);
-      } finally {
-         Arrays.fill(rawPassword, '\0');
-      }
    }
 
    // ==================== HELPER METHODS ====================
@@ -440,6 +412,6 @@ public class AuthService {
          return false;
       }
 
-      return domainPart.indexOf('.') > 0;
+      return domainPart.contains(".");
    }
 }
