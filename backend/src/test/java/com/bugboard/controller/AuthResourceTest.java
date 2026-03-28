@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -97,6 +96,6 @@ public class AuthResourceTest {
       assertEquals("PostCond failed: status should be 201", 201, response.getStatus());
       Map<String, Object> payload = (Map<String, Object>) response.getEntity();
       assertEquals("PostCond failed: temporary password should be present", "TmpPass9999", payload.get("temporaryPassword"));
-      verify(authService).createUser(eq("blank.user@test.com"), eq(UserRole.USER), eq(1L), eq(null));
+      verify(authService).createUser("blank.user@test.com", UserRole.USER, 1L, null);
    }
 }
