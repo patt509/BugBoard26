@@ -448,7 +448,7 @@ public class IssueService {
          issuesCreatedPerDay.put(date, count);
       }
 
-      // Calculate open issues (TODO + IN_PROGRESS)
+      // Calculate open issues (to-do + in-progress)
       long openIssues = countFromMap(issuesByStatus, IssueStatus.TODO.name()) +
             countFromMap(issuesByStatus, IssueStatus.IN_PROGRESS.name());
       long resolvedIssues = countFromMap(issuesByStatus, IssueStatus.RESOLVED.name());

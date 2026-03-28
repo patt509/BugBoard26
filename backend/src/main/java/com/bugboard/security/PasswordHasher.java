@@ -24,7 +24,7 @@ public class PasswordHasher {
       if (plainPassword == null) {
          throw new IllegalArgumentException("Password cannot be null.");
       }
-      // TODO: Consider adding password strength validation here
+      // Password complexity checks are handled at service level for user-provided passwords.
 
       // gensalt() generates a random salt, hashpw() hashes the password
       return BCrypt.hashpw(plainPassword, BCrypt.gensalt(SALT_ROUNDS));

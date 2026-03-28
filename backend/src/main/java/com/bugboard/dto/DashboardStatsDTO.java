@@ -8,7 +8,7 @@ import java.util.Map;
  */
 public class DashboardStatsDTO {
    private long totalIssues;
-   private long openIssues; // TODO + IN_PROGRESS
+   private long openIssues; // Open and in-progress issues
    private long resolvedIssues; // RESOLVED
    private long closedIssues; // CLOSED
    private long duplicateIssues; // Issues marked as duplicate
