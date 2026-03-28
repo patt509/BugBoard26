@@ -237,29 +237,35 @@ public class IssueServiceTest {
    }
 
    /**
-    * TC13: Failure scenario - Duplicate issue is not a BUG.
-    * Expected Output: IllegalArgumentException
+    * TC13: Success scenario - Non-BUG issue types can still be marked as duplicate.
+    * Expected Output: None
+    * PostConditions: Duplicate issue status changes to CLOSED and is persisted.
     */
-   @Test(expected = IllegalArgumentException.class)
-   public void testProcessDuplicate_TC13_DuplicateNotBug() {
-      Issue duplicate = new Issue("Title for Feature Issue", "Description", reporter, IssueType.FEATURE);
-      Issue original = new Issue("Title for Original Bug", "Description", reporter, IssueType.BUG);
+   @Test
+   public void testProcessDuplicate_TC13_AllowsNonBugTypes() {
+      Issue duplicate = spy(new Issue("Title for Feature Issue", "Description", reporter, IssueType.FEATURE));
+      Issue original = spy(new Issue("Title for Documentation Original", "Description", reporter, IssueType.DOCUMENTATION));
 
       when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
       when(repository.findById(10L)).thenReturn(duplicate);
       when(repository.findById(20L)).thenReturn(original);
 
       issueService.processDuplicate(10L, 20L, 1L);
+
+      assertEquals("PostCond failed: Status should be CLOSED", IssueStatus.CLOSED, duplicate.getStatus());
+      assertNotNull("PostCond failed: closedAt should be set", duplicate.getClosedAt());
+      verify(repository).save(duplicate);
    }
 
    /**
-    * TC14: Failure scenario - Original issue is not a BUG.
-    * Expected Output: IllegalArgumentException
+    * TC14: Failure scenario - Original issue is not open.
+    * Expected Output: IllegalStateException
     */
-   @Test(expected = IllegalArgumentException.class)
-   public void testProcessDuplicate_TC14_OriginalNotBug() {
-      Issue duplicate = new Issue("Title for Duplicate Bug", "Description", reporter, IssueType.BUG);
-      Issue original = new Issue("Title for Feature Original", "Description", reporter, IssueType.FEATURE);
+   @Test(expected = IllegalStateException.class)
+   public void testProcessDuplicate_TC14_OriginalNotOpen() {
+      Issue duplicate = new Issue("Title for Duplicate Question", "Description", reporter, IssueType.QUESTION);
+      Issue original = new Issue("Title for Closed Original", "Description", reporter, IssueType.FEATURE);
+      original.setStatus(IssueStatus.CLOSED);
 
       when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
       when(repository.findById(10L)).thenReturn(duplicate);

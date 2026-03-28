@@ -382,7 +382,6 @@ function IssueDetail({
         const issues = await issueService.getAll();
         otherIssues = issues.filter((candidateIssue) =>
           candidateIssue.id !== issueId &&
-          String(candidateIssue?.type ?? '').trim().toUpperCase() === 'BUG' &&
           !['CLOSED', 'RESOLVED'].includes(
             String(candidateIssue?.status ?? '').trim().toUpperCase().replace(/\s+/g, '_')
           )

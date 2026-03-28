@@ -284,6 +284,7 @@ public class IssueService {
    /**
     * Mark an issue as duplicate of another.
     * Only admins can perform this action.
+    * Any issue type can be marked as duplicate, but the original issue must be open.
     * 
     * @param duplicateIssueId the ID of the issue to mark as duplicate
     * @param originalIssueId  the ID of the original issue
@@ -316,8 +317,8 @@ public class IssueService {
       if (duplicate == null || original == null) {
          throw new IllegalArgumentException("One or both issues not found.");
       }
-      if (duplicate.getType() != IssueType.BUG || original.getType() != IssueType.BUG) {
-         throw new IllegalArgumentException("Duplicate workflow is allowed only for BUG issues.");
+      if (isClosedOrResolved(original)) {
+         throw new IllegalStateException("Original issue must be open (not closed or resolved).");
       }
 
       // Delegate to domain model for business logic
@@ -632,6 +633,10 @@ public class IssueService {
             issue.getAssignee().getUsername() != null &&
             issue.getCreatedAt() != null &&
             issue.getClosedAt() != null;
+   }
+
+   private boolean isClosedOrResolved(Issue issue) {
+      return issue.getStatus() == IssueStatus.CLOSED || issue.getStatus() == IssueStatus.RESOLVED;
    }
 
    private long countFromMap(Map<String, Long> source, String key) {
