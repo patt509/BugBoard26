@@ -38,6 +38,11 @@ import java.util.logging.Logger;
 public class AttachmentResource {
 
    private static final Logger logger = Logger.getLogger(AttachmentResource.class.getName());
+   private static final String MESSAGE_KEY = "message";
+   private static final String AUTH_REQUIRED_MESSAGE = "Authentication required";
+   private static final String ISSUE_NOT_FOUND_MESSAGE = "Issue not found";
+   private static final String COMMENT_NOT_FOUND_MESSAGE = "Comment not found";
+   private static final String NO_ATTACHMENT_FOUND_MESSAGE = "No attachment found";
 
    private final AttachmentService attachmentService;
    private final IssueService issueService;
@@ -73,12 +78,12 @@ public class AttachmentResource {
       try {
          // Verify user is authenticated
          if (userId == null) {
-            return ApiResponses.error(Response.Status.UNAUTHORIZED, "Authentication required");
+            return ApiResponses.error(Response.Status.UNAUTHORIZED, AUTH_REQUIRED_MESSAGE);
          }
 
          // Verify issue exists (throws if not found)
          if (!issueService.validateIssueExists(issueId)) {
-            return ApiResponses.error(Response.Status.NOT_FOUND, "Issue not found");
+            return ApiResponses.error(Response.Status.NOT_FOUND, ISSUE_NOT_FOUND_MESSAGE);
          }
 
          // Derive content type from file name (more reliable than Content-Type header
@@ -112,7 +117,7 @@ public class AttachmentResource {
                new Object[] { userId, issueId });
 
          return Response.ok(Map.of(
-               "message", "Attachment uploaded successfully",
+               MESSAGE_KEY, "Attachment uploaded successfully",
                "path", relativePath)).build();
 
       } catch (IllegalArgumentException e) {
@@ -134,22 +139,22 @@ public class AttachmentResource {
 
       try {
          if (userId == null) {
-            return ApiResponses.error(Response.Status.UNAUTHORIZED, "Authentication required");
+            return ApiResponses.error(Response.Status.UNAUTHORIZED, AUTH_REQUIRED_MESSAGE);
          }
 
          if (!issueService.validateIssueExists(issueId)) {
-            return ApiResponses.error(Response.Status.NOT_FOUND, "Issue not found");
+            return ApiResponses.error(Response.Status.NOT_FOUND, ISSUE_NOT_FOUND_MESSAGE);
          }
 
          if (!issueService.issueHasAttachment(issueId)) {
-            return ApiResponses.error(Response.Status.NOT_FOUND, "No attachment found");
+            return ApiResponses.error(Response.Status.NOT_FOUND, NO_ATTACHMENT_FOUND_MESSAGE);
          }
 
          // Delete file and clear path
          String oldPath = issueService.removeAttachment(issueId, userId);
          attachmentService.deleteAttachment(oldPath);
 
-         return Response.ok(Map.of("message", "Attachment deleted successfully")).build();
+         return Response.ok(Map.of(MESSAGE_KEY, "Attachment deleted successfully")).build();
 
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error deleting issue attachment", e);
@@ -167,14 +172,14 @@ public class AttachmentResource {
       try {
          if (!issueService.validateIssueExists(issueId)) {
             return Response.status(Response.Status.NOT_FOUND)
-                  .entity("Issue not found")
+                  .entity(ISSUE_NOT_FOUND_MESSAGE)
                   .build();
          }
 
          String attachmentRelativePath = issueService.getIssueAttachmentPath(issueId);
          if (attachmentRelativePath == null) {
             return Response.status(Response.Status.NOT_FOUND)
-                  .entity("No attachment found")
+                  .entity(NO_ATTACHMENT_FOUND_MESSAGE)
                   .build();
          }
 
@@ -220,11 +225,11 @@ public class AttachmentResource {
 
       try {
          if (userId == null) {
-            return ApiResponses.error(Response.Status.UNAUTHORIZED, "Authentication required");
+            return ApiResponses.error(Response.Status.UNAUTHORIZED, AUTH_REQUIRED_MESSAGE);
          }
 
          if (!commentService.validateCommentExists(commentId)) {
-            return ApiResponses.error(Response.Status.NOT_FOUND, "Comment not found");
+            return ApiResponses.error(Response.Status.NOT_FOUND, COMMENT_NOT_FOUND_MESSAGE);
          }
 
          // Derive content type from file name (more reliable than Content-Type header
@@ -256,7 +261,7 @@ public class AttachmentResource {
                new Object[] { userId, commentId });
 
          return Response.ok(Map.of(
-               "message", "Attachment uploaded successfully",
+               MESSAGE_KEY, "Attachment uploaded successfully",
                "path", relativePath)).build();
 
       } catch (IllegalArgumentException e) {
@@ -278,22 +283,22 @@ public class AttachmentResource {
 
       try {
          if (userId == null) {
-            return ApiResponses.error(Response.Status.UNAUTHORIZED, "Authentication required");
+            return ApiResponses.error(Response.Status.UNAUTHORIZED, AUTH_REQUIRED_MESSAGE);
          }
 
          if (!commentService.validateCommentExists(commentId)) {
-            return ApiResponses.error(Response.Status.NOT_FOUND, "Comment not found");
+            return ApiResponses.error(Response.Status.NOT_FOUND, COMMENT_NOT_FOUND_MESSAGE);
          }
 
          if (!commentService.commentHasAttachment(commentId)) {
-            return ApiResponses.error(Response.Status.NOT_FOUND, "No attachment found");
+            return ApiResponses.error(Response.Status.NOT_FOUND, NO_ATTACHMENT_FOUND_MESSAGE);
          }
 
          // Delete file and clear path via service
          String oldPath = commentService.removeCommentAttachment(commentId);
          attachmentService.deleteAttachment(oldPath);
 
-         return Response.ok(Map.of("message", "Attachment deleted successfully")).build();
+         return Response.ok(Map.of(MESSAGE_KEY, "Attachment deleted successfully")).build();
 
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error deleting comment attachment", e);
@@ -311,14 +316,14 @@ public class AttachmentResource {
       try {
          if (!commentService.validateCommentExists(commentId)) {
             return Response.status(Response.Status.NOT_FOUND)
-                  .entity("Comment not found")
+                  .entity(COMMENT_NOT_FOUND_MESSAGE)
                   .build();
          }
 
          String attachmentRelativePath = commentService.getCommentAttachmentPath(commentId);
          if (attachmentRelativePath == null) {
             return Response.status(Response.Status.NOT_FOUND)
-                  .entity("No attachment found")
+                  .entity(NO_ATTACHMENT_FOUND_MESSAGE)
                   .build();
          }
 

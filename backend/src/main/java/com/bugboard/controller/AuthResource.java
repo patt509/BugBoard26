@@ -36,6 +36,10 @@ import java.util.logging.Logger;
 public class AuthResource {
 
    private static final Logger logger = Logger.getLogger(AuthResource.class.getName());
+   private static final String REQUEST_BODY_REQUIRED_MESSAGE = "Request body is required";
+   private static final String INTERNAL_SERVER_ERROR_MESSAGE = "Internal server error";
+   private static final String MESSAGE_KEY = "message";
+   private static final String PASSWORD_COMMUNICATION_NOTE = "Communicate this password to the employee in person";
 
    private final AuthService authService;
 
@@ -56,7 +60,7 @@ public class AuthResource {
    public Response login(LoginRequest request) {
       try {
          if (request == null) {
-            return ApiResponses.error(Response.Status.BAD_REQUEST, "Request body is required");
+            return ApiResponses.error(Response.Status.BAD_REQUEST, REQUEST_BODY_REQUIRED_MESSAGE);
          }
 
          if (request.getEmail() == null || request.getPassword() == null) {
@@ -78,7 +82,7 @@ public class AuthResource {
 
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Login error", e);
-         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Internal server error");
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR_MESSAGE);
       }
    }
 
@@ -93,7 +97,7 @@ public class AuthResource {
          return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error retrieving assignable users", e);
-         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Internal server error");
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR_MESSAGE);
       }
    }
 
@@ -111,7 +115,7 @@ public class AuthResource {
          }
 
          if (body == null) {
-            return ApiResponses.error(Response.Status.BAD_REQUEST, "Request body is required");
+            return ApiResponses.error(Response.Status.BAD_REQUEST, REQUEST_BODY_REQUIRED_MESSAGE);
          }
 
          String username = body.get("username");
@@ -128,7 +132,7 @@ public class AuthResource {
          return ApiResponses.error(Response.Status.CONFLICT, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error setting username", e);
-         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Internal server error");
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR_MESSAGE);
       }
    }
 
@@ -140,7 +144,7 @@ public class AuthResource {
    public Response requestPasswordReset(Map<String, String> body) {
       try {
          if (body == null) {
-            return ApiResponses.error(Response.Status.BAD_REQUEST, "Request body is required");
+            return ApiResponses.error(Response.Status.BAD_REQUEST, REQUEST_BODY_REQUIRED_MESSAGE);
          }
 
          String email = body.get("email");
@@ -151,17 +155,17 @@ public class AuthResource {
          authService.requestPasswordReset(email.trim());
 
          return Response.ok(Map.of(
-               "message", "Password reset request submitted. An administrator will process your request.")).build();
+               MESSAGE_KEY, "Password reset request submitted. An administrator will process your request.")).build();
 
       } catch (IllegalArgumentException e) {
          // Non rivelare se l'email esiste o meno per sicurezza
          return Response.ok(Map.of(
-               "message", "If the email exists, a password reset request has been submitted.")).build();
+               MESSAGE_KEY, "If the email exists, a password reset request has been submitted.")).build();
       } catch (IllegalStateException e) {
          return ApiResponses.error(Response.Status.CONFLICT, "A reset request is already pending for this account.");
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error requesting password reset", e);
-         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Internal server error");
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR_MESSAGE);
       }
    }
 
@@ -181,21 +185,14 @@ public class AuthResource {
       try {
          // Admin validation is done inside the service method
          if (request == null) {
-            return ApiResponses.error(Response.Status.BAD_REQUEST, "Request body is required");
+            return ApiResponses.error(Response.Status.BAD_REQUEST, REQUEST_BODY_REQUIRED_MESSAGE);
          }
 
          if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
             return ApiResponses.error(Response.Status.BAD_REQUEST, "Email is required");
          }
 
-         UserRole role = UserRole.USER; // Default
-         if (request.getRole() != null) {
-            try {
-               role = UserRole.valueOf(request.getRole().trim().toUpperCase());
-            } catch (IllegalArgumentException e) {
-               return ApiResponses.error(Response.Status.BAD_REQUEST, "Invalid role. Use USER or ADMIN");
-            }
-         }
+         UserRole role = resolveUserRole(request.getRole());
 
          String requestedPassword = request.getPassword();
          String normalizedPassword = requestedPassword != null ? requestedPassword.trim() : null;
@@ -210,13 +207,13 @@ public class AuthResource {
                normalizedPassword);
 
          Map<String, Object> responsePayload = new HashMap<>();
-         responsePayload.put("message", "User created successfully");
+         responsePayload.put(MESSAGE_KEY, "User created successfully");
          responsePayload.put("email", request.getEmail().trim());
          responsePayload.put("role", role.name());
 
          if (!customPasswordProvided) {
             responsePayload.put("temporaryPassword", effectivePassword);
-            responsePayload.put("note", "Communicate this password to the employee in person");
+            responsePayload.put("note", PASSWORD_COMMUNICATION_NOTE);
          }
 
          return Response.status(Response.Status.CREATED)
@@ -229,7 +226,7 @@ public class AuthResource {
          return ApiResponses.error(Response.Status.BAD_REQUEST, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error creating user", e);
-         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Internal server error");
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR_MESSAGE);
       }
    }
 
@@ -249,7 +246,7 @@ public class AuthResource {
          return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error getting reset requests", e);
-         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Internal server error");
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR_MESSAGE);
       }
    }
 
@@ -267,7 +264,7 @@ public class AuthResource {
       try {
          // Admin validation is done inside the service method
          if (body == null) {
-            return ApiResponses.error(Response.Status.BAD_REQUEST, "Request body is required");
+            return ApiResponses.error(Response.Status.BAD_REQUEST, REQUEST_BODY_REQUIRED_MESSAGE);
          }
 
          Boolean approve = body.get("approve");
@@ -279,12 +276,12 @@ public class AuthResource {
 
          if (approve) {
             return Response.ok(Map.of(
-                  "message", "Password reset approved",
+                  MESSAGE_KEY, "Password reset approved",
                   "newTemporaryPassword", newPassword,
-                  "note", "Communicate this password to the employee in person")).build();
+                  "note", PASSWORD_COMMUNICATION_NOTE)).build();
          } else {
             return Response.ok(Map.of(
-                  "message", "Password reset request rejected")).build();
+                  MESSAGE_KEY, "Password reset request rejected")).build();
          }
 
       } catch (SecurityException e) {
@@ -295,7 +292,7 @@ public class AuthResource {
          return ApiResponses.error(Response.Status.CONFLICT, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error processing reset request", e);
-         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Internal server error");
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR_MESSAGE);
       }
    }
 
@@ -312,9 +309,9 @@ public class AuthResource {
          String newPassword = authService.resetUserPassword(userId, adminId);
 
          return Response.ok(Map.of(
-               "message", "Password reset successfully",
+               MESSAGE_KEY, "Password reset successfully",
                "newTemporaryPassword", newPassword,
-               "note", "Communicate this password to the employee in person")).build();
+               "note", PASSWORD_COMMUNICATION_NOTE)).build();
 
       } catch (SecurityException e) {
          return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
@@ -322,7 +319,19 @@ public class AuthResource {
          return ApiResponses.error(Response.Status.NOT_FOUND, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error resetting password", e);
-         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Internal server error");
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR_MESSAGE);
+      }
+   }
+
+   private UserRole resolveUserRole(String rawRole) {
+      if (rawRole == null) {
+         return UserRole.USER;
+      }
+
+      try {
+         return UserRole.valueOf(rawRole.trim().toUpperCase());
+      } catch (IllegalArgumentException e) {
+         throw new IllegalArgumentException("Invalid role. Use USER or ADMIN");
       }
    }
 }
