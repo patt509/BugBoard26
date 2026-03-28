@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 import com.bugboard.dto.PasswordResetRequestDTO;
 import com.bugboard.dto.UserDTO;
@@ -27,7 +26,6 @@ public class AuthService {
    private static final Logger logger = Logger.getLogger(AuthService.class.getName());
    private static final String TEMP_PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
    private static final int TEMP_PASSWORD_LENGTH = 12;
-   private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
 
    private final UserRepository userRepository;
    private final PasswordResetRequestRepository resetRequestRepository;
@@ -82,7 +80,7 @@ public class AuthService {
          throw new IllegalArgumentException("Email is required.");
       }
       String normalizedEmail = normalizeEmail(email);
-      if (!EMAIL_PATTERN.matcher(normalizedEmail).matches()) {
+      if (!isValidEmailFormat(normalizedEmail)) {
          throw new IllegalArgumentException("Invalid email format.");
       }
       if (role == null) {
@@ -405,5 +403,32 @@ public class AuthService {
 
    private String normalizeEmail(String email) {
       return email.trim().toLowerCase();
+   }
+
+   // Deterministic parser to avoid regex backtracking hotspots during validation.
+   private boolean isValidEmailFormat(String email) {
+      int atIndex = email.indexOf('@');
+      if (atIndex <= 0 || atIndex != email.lastIndexOf('@') || atIndex == email.length() - 1) {
+         return false;
+      }
+
+      for (int i = 0; i < email.length(); i++) {
+         if (Character.isWhitespace(email.charAt(i))) {
+            return false;
+         }
+      }
+
+      String localPart = email.substring(0, atIndex);
+      String domainPart = email.substring(atIndex + 1);
+
+      if (localPart.startsWith(".") || localPart.endsWith(".") || localPart.contains("..")) {
+         return false;
+      }
+
+      if (domainPart.startsWith(".") || domainPart.endsWith(".") || domainPart.contains("..")) {
+         return false;
+      }
+
+      return domainPart.indexOf('.') > 0;
    }
 }
