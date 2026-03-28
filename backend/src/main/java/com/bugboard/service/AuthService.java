@@ -26,6 +26,7 @@ public class AuthService {
    private static final Logger logger = Logger.getLogger(AuthService.class.getName());
    private static final String TEMP_PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
    private static final int TEMP_PASSWORD_LENGTH = 12;
+   private static final String USER_NOT_FOUND_MESSAGE = "User not found.";
 
    private final UserRepository userRepository;
    private final PasswordResetRequestRepository resetRequestRepository;
@@ -122,7 +123,7 @@ public class AuthService {
       }
 
       User user = userRepository.findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("User not found."));
+            .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND_MESSAGE));
 
       // Generate new temporary password
       String newTempPassword = generateTemporaryPassword();
@@ -210,15 +211,18 @@ public class AuthService {
    /**
     * User login. Returns user data if credentials are correct.
     */
-   // TODO: consider adding account lockout after multiple failed attempts
-   // TODO: consider adding login with username when profile is finalized
-   // (possibility to login with email or username in the same field)
-   public Optional<UserDTO> login(String email, char[] rawPassword) {
+   // Login accepts both email and username in the same input field.
+   // Account lockout after repeated failures can be added as a future enhancement.
+   public Optional<UserDTO> login(String loginIdentifier, char[] rawPassword) {
       try {
-         if (email == null || email.trim().isEmpty()) {
+         if (loginIdentifier == null || loginIdentifier.trim().isEmpty()) {
             return Optional.empty();
          }
-         Optional<User> userOpt = userRepository.findByEmail(normalizeEmail(email));
+         if (rawPassword == null || rawPassword.length == 0) {
+            return Optional.empty();
+         }
+
+         Optional<User> userOpt = findByLoginIdentifier(loginIdentifier.trim());
 
          if (userOpt.isEmpty()) {
             return Optional.empty();
@@ -264,7 +268,7 @@ public class AuthService {
       }
 
       User user = userRepository.findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("User not found."));
+            .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND_MESSAGE));
 
       // Usa il metodo del domain model che gestisce la logica
       user.finalizeProfile(chosenUsername);
@@ -350,7 +354,7 @@ public class AuthService {
       }
       
       User admin = userRepository.findById(adminId)
-            .orElseThrow(() -> new SecurityException("User not found."));
+            .orElseThrow(() -> new SecurityException(USER_NOT_FOUND_MESSAGE));
       
       if (!admin.isAdmin()) {
          throw new SecurityException("Admin privileges required.");
@@ -362,7 +366,7 @@ public class AuthService {
          throw new SecurityException("Authentication required.");
       }
       if (userRepository.findById(userId).isEmpty()) {
-         throw new SecurityException("User not found.");
+         throw new SecurityException(USER_NOT_FOUND_MESSAGE);
       }
    }
 
@@ -403,6 +407,13 @@ public class AuthService {
 
    private String normalizeEmail(String email) {
       return email.trim().toLowerCase();
+   }
+
+   private Optional<User> findByLoginIdentifier(String loginIdentifier) {
+      if (loginIdentifier.contains("@")) {
+         return userRepository.findByEmail(normalizeEmail(loginIdentifier));
+      }
+      return userRepository.findByUsername(loginIdentifier);
    }
 
    // Deterministic parser to avoid regex backtracking hotspots during validation.

@@ -547,6 +547,27 @@ public class AuthServiceTest {
    }
 
    /**
+    * TC1b: Success scenario - Valid username and password.
+    * Expected Output: Optional containing UserDTO.
+    * PostConditions: Repository lookup is performed by username.
+    */
+   @Test
+   public void testLogin_TC1b_Success_WithUsername() {
+      String hash = PasswordHasher.hash("correctPassword");
+      User userWithHash = spy(new User("login@test.com", hash, USER));
+      userWithHash.setUsername("loginUser");
+      when(userWithHash.getId()).thenReturn(6L);
+      when(userRepository.findByUsername("loginUser")).thenReturn(Optional.of(userWithHash));
+
+      Optional<UserDTO> result = authService.login("loginUser", "correctPassword".toCharArray());
+
+      assertTrue("PostCond failed: should return a UserDTO", result.isPresent());
+      assertEquals("PostCond failed: username should match", "loginUser", result.get().getUsername());
+      verify(userRepository).findByUsername("loginUser");
+      verify(userRepository, never()).findByEmail("loginuser");
+   }
+
+   /**
     * TC2: Failure scenario - Email not found.
     * Expected Output: Empty Optional.
     */
