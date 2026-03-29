@@ -27,6 +27,13 @@ export const attachmentService = {
       'X-File-Name': file.name,
       'X-File-Size': String(file.size),
     };
+    const accessToken = localStorage.getItem('accessToken');
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`;
+    }
+    if (headers['X-User-Id'] == null) {
+      delete headers['X-User-Id'];
+    }
 
     const response = await fetch(`/api${url}`, {
       method: 'POST',
@@ -59,6 +66,13 @@ export const attachmentService = {
       'X-File-Name': file.name,
       'X-File-Size': String(file.size),
     };
+    const accessToken = localStorage.getItem('accessToken');
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`;
+    }
+    if (headers['X-User-Id'] == null) {
+      delete headers['X-User-Id'];
+    }
 
     const response = await fetch(`/api${url}`, {
       method: 'POST',

@@ -15,12 +15,21 @@ function Login({ onLoginSuccess, isDarkMode, onToggleTheme }) {
     setLoading(true);
 
     try {
-      const user = await authService.login({ email: loginIdentifier, password });
-      localStorage.setItem('user', JSON.stringify(user));
-      if (user?.id != null) {
-        localStorage.setItem('userId', String(user.id));
+      const loginResponse = await authService.login({ email: loginIdentifier, password });
+      const authenticatedUser = loginResponse?.user ?? loginResponse;
+
+      if (loginResponse?.accessToken) {
+        localStorage.setItem('accessToken', loginResponse.accessToken);
       }
-      onLoginSuccess(user);
+      if (loginResponse?.expiresAtEpochSeconds != null) {
+        localStorage.setItem('accessTokenExpiresAt', String(loginResponse.expiresAtEpochSeconds));
+      }
+
+      localStorage.setItem('user', JSON.stringify(authenticatedUser));
+      if (authenticatedUser?.id != null) {
+        localStorage.setItem('userId', String(authenticatedUser.id));
+      }
+      onLoginSuccess(authenticatedUser);
     } catch (err) {
       setError(err.message || 'Connection error. Make sure the backend is running.');
       console.error('Login error:', err);

@@ -30,6 +30,8 @@ public class AuthService {
 
    private final UserRepository userRepository;
    private final PasswordResetRequestRepository resetRequestRepository;
+   @Inject
+   AuthSessionService authSessionService;
 
    // CDI requires no-arg constructor for proxy
    protected AuthService() {
@@ -132,6 +134,9 @@ public class AuthService {
       user.setPassword(hashedPassword);
       user.setFirstLogin(true); // Force username choice on next login
       userRepository.save(user);
+      if (authSessionService != null) {
+         authSessionService.revokeAllSessionsForUser(user.getId());
+      }
 
       logger.log(Level.INFO, "Admin {0} reset password for user {1}",
             new Object[] { admin.getEmail(), user.getEmail() });

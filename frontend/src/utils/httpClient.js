@@ -26,6 +26,15 @@ class HttpClient {
       ...customHeaders,
     };
 
+    const storedAccessToken = localStorage.getItem('accessToken');
+    if (
+      storedAccessToken &&
+      !headers.Authorization &&
+      !headers.authorization
+    ) {
+      headers.Authorization = `Bearer ${storedAccessToken}`;
+    }
+
     if (!headers['Content-Type'] && !headers['content-type'] && hasBody) {
       headers['Content-Type'] = 'application/json';
     }
@@ -42,6 +51,18 @@ class HttpClient {
 
       if (!response.ok) {
         const errorPayload = isJsonResponse ? await response.json().catch(() => ({})) : {};
+        if (response.status === 401) {
+          const sessionExpiredMessage = errorPayload.error || errorPayload.message || 'Session expired. Please login again.';
+          const hasActiveToken = Boolean(localStorage.getItem('accessToken'));
+          if (hasActiveToken && typeof window !== 'undefined') {
+            window.dispatchEvent(
+              new CustomEvent('auth:unauthorized', {
+                detail: { message: sessionExpiredMessage },
+              })
+            );
+          }
+          throw new Error(sessionExpiredMessage);
+        }
         throw new Error(
           errorPayload.error ||
             errorPayload.message ||

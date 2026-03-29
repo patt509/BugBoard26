@@ -12,6 +12,7 @@
         <class>com.bugboard.model.IssueHistoryEntry</class>
         <class>com.bugboard.model.Comment</class>
         <class>com.bugboard.model.PasswordResetRequest</class>
+        <class>com.bugboard.model.AuthSession</class>
         
         <properties>
             <property name="jakarta.persistence.schema-generation.database.action" value="create-or-extend-tables"/>

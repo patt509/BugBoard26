@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Login from './pages/Login';
 import Issues from './pages/Issues';
 import CreateIssue from './pages/CreateIssue';
@@ -34,7 +34,26 @@ function App() {
   const [successMessage, setSuccessMessage] = useState(null);
   const [theme, setTheme] = useState(() => getInitialTheme());
 
+  const clearLocalSession = useCallback(() => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('accessTokenExpiresAt');
+    setUser(null);
+    setCurrentView('issues');
+    setSelectedIssueId(null);
+    setEditingIssue(null);
+  }, []);
+
   useEffect(() => {
+    const storedTokenExpiry = Number(localStorage.getItem('accessTokenExpiresAt'));
+    if (!Number.isNaN(storedTokenExpiry) && storedTokenExpiry > 0) {
+      const nowEpochSeconds = Math.floor(Date.now() / 1000);
+      if (storedTokenExpiry <= nowEpochSeconds) {
+        clearLocalSession();
+      }
+    }
+
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       try {
@@ -45,13 +64,12 @@ function App() {
         }
       } catch (error) {
         console.error('Error parsing saved user:', error);
-        localStorage.removeItem('user');
-        localStorage.removeItem('userId');
+        clearLocalSession();
       }
     }
 
     setLoading(false);
-  }, []);
+  }, [clearLocalSession]);
 
   useEffect(() => {
     if ((currentView === 'dashboard' || currentView === 'create-user') && !isAdminRole(user?.role)) {
@@ -65,6 +83,15 @@ function App() {
     localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
 
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      clearLocalSession();
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
+  }, [clearLocalSession]);
+
   const handleLoginSuccess = (userData) => {
     setUser(userData);
     if (userData?.id != null) {
@@ -73,13 +100,14 @@ function App() {
     setCurrentView('issues');
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('userId');
-    setUser(null);
-    setCurrentView('issues');
-    setSelectedIssueId(null);
-    setEditingIssue(null);
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.warn('Logout request failed, clearing local session anyway.', error);
+    }
+
+    clearLocalSession();
   };
 
   const handleCreateIssue = () => {

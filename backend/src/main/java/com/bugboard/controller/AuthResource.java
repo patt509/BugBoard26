@@ -3,6 +3,7 @@ package com.bugboard.controller;
 import com.bugboard.dto.*;
 import com.bugboard.enums.UserRole;
 import com.bugboard.service.AuthService;
+import com.bugboard.service.AuthSessionService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -42,10 +43,17 @@ public class AuthResource {
    private static final String PASSWORD_COMMUNICATION_NOTE = "Communicate this password to the employee in person";
 
    private final AuthService authService;
+   private final AuthSessionService authSessionService;
 
    @Inject
-   public AuthResource(AuthService authService) {
+   public AuthResource(AuthService authService, AuthSessionService authSessionService) {
       this.authService = authService;
+      this.authSessionService = authSessionService;
+   }
+
+   // Constructor used by unit tests that instantiate resources directly.
+   public AuthResource(AuthService authService) {
+      this(authService, null);
    }
 
    // ==================== USER ENDPOINTS ====================
@@ -78,10 +86,30 @@ public class AuthResource {
          UserDTO user = userOpt.get();
 
          // Se è il primo login, il client dovrà chiedere lo username
-         return Response.ok(user).build();
+         if (authSessionService == null) {
+            return Response.ok(user).build();
+         }
+         AuthLoginResponse loginResponse = authSessionService.createLoginResponse(user);
+         return Response.ok(loginResponse).build();
 
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Login error", e);
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR_MESSAGE);
+      }
+   }
+
+   @POST
+   @Path("/logout")
+   public Response logout(@HeaderParam("Authorization") String authorizationHeader) {
+      try {
+         if (authSessionService != null) {
+            authSessionService.revokeCurrentSession(authorizationHeader);
+         }
+         return Response.ok(Map.of(MESSAGE_KEY, "Logout successful")).build();
+      } catch (SecurityException e) {
+         return ApiResponses.error(Response.Status.UNAUTHORIZED, e.getMessage());
+      } catch (Exception e) {
+         logger.log(Level.SEVERE, "Logout error", e);
          return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR_MESSAGE);
       }
    }

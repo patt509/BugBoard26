@@ -56,6 +56,10 @@ export const authService = {
     return httpClient.post(API_ENDPOINTS.AUTH_LOGIN, credentials);
   },
 
+  logout() {
+    return httpClient.post(API_ENDPOINTS.AUTH_LOGOUT, {});
+  },
+
   setUsername(userId, username) {
     const resolvedUserId = userId ?? resolveStoredUserId();
     if (resolvedUserId == null || resolvedUserId === '') {
