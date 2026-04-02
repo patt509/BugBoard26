@@ -27,6 +27,8 @@ services:
       DB_USER: postgres
       DB_PASSWORD: postgres
       BUGBOARD_ATTACHMENTS_DIR: /opt/payara/uploads/attachments
+      AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET}
+      AUTH_ACCESS_TOKEN_TTL_MINUTES: ${AUTH_ACCESS_TOKEN_TTL_MINUTES:-480}
     ports:
       - "8080:8080"
       - "4848:4848"

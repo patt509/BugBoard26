@@ -92,6 +92,26 @@ function App() {
     return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
   }, [clearLocalSession]);
 
+  useEffect(() => {
+    const storedTokenExpiry = Number(localStorage.getItem('accessTokenExpiresAt'));
+    if (!user || Number.isNaN(storedTokenExpiry) || storedTokenExpiry <= 0) {
+      return undefined;
+    }
+
+    const nowEpochSeconds = Math.floor(Date.now() / 1000);
+    const remainingMilliseconds = (storedTokenExpiry - nowEpochSeconds) * 1000;
+    if (remainingMilliseconds <= 0) {
+      clearLocalSession();
+      return undefined;
+    }
+
+    const expiryTimer = window.setTimeout(() => {
+      clearLocalSession();
+    }, remainingMilliseconds);
+
+    return () => window.clearTimeout(expiryTimer);
+  }, [user, clearLocalSession]);
+
   const handleLoginSuccess = (userData) => {
     setUser(userData);
     if (userData?.id != null) {
