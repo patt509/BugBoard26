@@ -1,6 +1,7 @@
 package com.bugboard.controller;
 
 import com.bugboard.service.AttachmentService;
+import com.bugboard.service.AuthService;
 import com.bugboard.service.CommentService;
 import com.bugboard.service.IssueService;
 import jakarta.inject.Inject;
@@ -23,11 +24,11 @@ import java.util.logging.Logger;
 
 /**
  * REST Controller for attachment uploads.
- * 
+ *
  * Supports:
  * - Issue attachments: POST /attachments/issues/{issueId}
  * - Comment attachments: POST /attachments/comments/{commentId}
- * 
+ *
  * Constraints:
  * - Max file size: 5 MB
  * - Allowed formats: JPG, PNG only
@@ -47,15 +48,18 @@ public class AttachmentResource {
    private final AttachmentService attachmentService;
    private final IssueService issueService;
    private final CommentService commentService;
+   private final AuthService authService;
 
    @Inject
    public AttachmentResource(
          AttachmentService attachmentService,
          IssueService issueService,
-         CommentService commentService) {
+         CommentService commentService,
+         AuthService authService) {
       this.attachmentService = attachmentService;
       this.issueService = issueService;
       this.commentService = commentService;
+      this.authService = authService;
    }
 
    // ==================== ISSUE ATTACHMENTS ====================
@@ -76,41 +80,33 @@ public class AttachmentResource {
          InputStream fileInputStream) {
 
       try {
-         // Verify user is authenticated
          if (userId == null) {
             return ApiResponses.error(Response.Status.UNAUTHORIZED, AUTH_REQUIRED_MESSAGE);
          }
 
-         // Verify issue exists (throws if not found)
+         authService.validateWritableUser(userId);
+
          if (!issueService.validateIssueExists(issueId)) {
             return ApiResponses.error(Response.Status.NOT_FOUND, ISSUE_NOT_FOUND_MESSAGE);
          }
 
-         // Derive content type from file name (more reliable than Content-Type header
-         // for multipart)
          String actualContentType = deriveContentTypeFromFileName(fileName);
          if (actualContentType == null) {
-            // Fallback to extracting from header
             actualContentType = extractContentType(contentType);
          }
 
-         // Validate file before saving
          attachmentService.validateAttachment(actualContentType, fileSize, fileName);
 
-         // Delete old attachment if exists
          String existingPath = issueService.getIssueAttachmentPath(issueId);
          if (existingPath != null) {
             attachmentService.deleteAttachment(existingPath);
          }
 
-         // Extract actual file content from multipart body
-         java.io.InputStream cleanFileStream = attachmentService.extractFileFromMultipart(fileInputStream);
+         InputStream cleanFileStream = attachmentService.extractFileFromMultipart(fileInputStream);
 
-         // Save new attachment
          String relativePath = attachmentService.saveAttachment(
                cleanFileStream, fileName, actualContentType, fileSize, "issues", issueId);
 
-         // Update issue with new attachment path
          issueService.setAttachmentPath(issueId, relativePath, userId);
 
          logger.log(Level.INFO, "User {0} uploaded attachment to issue {1}",
@@ -120,6 +116,8 @@ public class AttachmentResource {
                MESSAGE_KEY, "Attachment uploaded successfully",
                "path", relativePath)).build();
 
+      } catch (SecurityException e) {
+         return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
       } catch (IllegalArgumentException e) {
          return ApiResponses.error(Response.Status.BAD_REQUEST, e.getMessage());
       } catch (Exception e) {
@@ -142,6 +140,8 @@ public class AttachmentResource {
             return ApiResponses.error(Response.Status.UNAUTHORIZED, AUTH_REQUIRED_MESSAGE);
          }
 
+         authService.validateWritableUser(userId);
+
          if (!issueService.validateIssueExists(issueId)) {
             return ApiResponses.error(Response.Status.NOT_FOUND, ISSUE_NOT_FOUND_MESSAGE);
          }
@@ -150,12 +150,13 @@ public class AttachmentResource {
             return ApiResponses.error(Response.Status.NOT_FOUND, NO_ATTACHMENT_FOUND_MESSAGE);
          }
 
-         // Delete file and clear path
          String oldPath = issueService.removeAttachment(issueId, userId);
          attachmentService.deleteAttachment(oldPath);
 
          return Response.ok(Map.of(MESSAGE_KEY, "Attachment deleted successfully")).build();
 
+      } catch (SecurityException e) {
+         return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error deleting issue attachment", e);
          return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error deleting attachment");
@@ -190,11 +191,11 @@ public class AttachmentResource {
                   .build();
          }
 
-         String contentType = Files.probeContentType(filePath);
+         String mediaType = Files.probeContentType(filePath);
          byte[] fileContent = Files.readAllBytes(filePath);
 
          return Response.ok(fileContent)
-               .header("Content-Type", contentType)
+               .header("Content-Type", mediaType)
                .header("Content-Disposition", "inline; filename=\"" + filePath.getFileName() + "\"")
                .build();
 
@@ -228,33 +229,29 @@ public class AttachmentResource {
             return ApiResponses.error(Response.Status.UNAUTHORIZED, AUTH_REQUIRED_MESSAGE);
          }
 
+         authService.validateWritableUser(userId);
+
          if (!commentService.validateCommentExists(commentId)) {
             return ApiResponses.error(Response.Status.NOT_FOUND, COMMENT_NOT_FOUND_MESSAGE);
          }
 
-         // Derive content type from file name (more reliable than Content-Type header
-         // for multipart)
          String actualContentType = deriveContentTypeFromFileName(fileName);
          if (actualContentType == null) {
-            // Fallback to extracting from header
             actualContentType = extractContentType(contentType);
          }
+
          attachmentService.validateAttachment(actualContentType, fileSize, fileName);
 
-         // Delete old attachment if exists
          String existingPath = commentService.getCommentAttachmentPath(commentId);
          if (existingPath != null) {
             attachmentService.deleteAttachment(existingPath);
          }
 
-         // Extract actual file content from multipart body
-         java.io.InputStream cleanFileStream = attachmentService.extractFileFromMultipart(fileInputStream);
+         InputStream cleanFileStream = attachmentService.extractFileFromMultipart(fileInputStream);
 
-         // Save new attachment
          String relativePath = attachmentService.saveAttachment(
                cleanFileStream, fileName, actualContentType, fileSize, "comments", commentId);
 
-         // Update comment with new attachment path via service
          commentService.setCommentAttachmentPath(commentId, relativePath);
 
          logger.log(Level.INFO, "User {0} uploaded attachment to comment {1}",
@@ -264,6 +261,8 @@ public class AttachmentResource {
                MESSAGE_KEY, "Attachment uploaded successfully",
                "path", relativePath)).build();
 
+      } catch (SecurityException e) {
+         return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
       } catch (IllegalArgumentException e) {
          return ApiResponses.error(Response.Status.BAD_REQUEST, e.getMessage());
       } catch (Exception e) {
@@ -286,6 +285,8 @@ public class AttachmentResource {
             return ApiResponses.error(Response.Status.UNAUTHORIZED, AUTH_REQUIRED_MESSAGE);
          }
 
+         authService.validateWritableUser(userId);
+
          if (!commentService.validateCommentExists(commentId)) {
             return ApiResponses.error(Response.Status.NOT_FOUND, COMMENT_NOT_FOUND_MESSAGE);
          }
@@ -294,12 +295,13 @@ public class AttachmentResource {
             return ApiResponses.error(Response.Status.NOT_FOUND, NO_ATTACHMENT_FOUND_MESSAGE);
          }
 
-         // Delete file and clear path via service
          String oldPath = commentService.removeCommentAttachment(commentId);
          attachmentService.deleteAttachment(oldPath);
 
          return Response.ok(Map.of(MESSAGE_KEY, "Attachment deleted successfully")).build();
 
+      } catch (SecurityException e) {
+         return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error deleting comment attachment", e);
          return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error deleting attachment");
@@ -334,11 +336,11 @@ public class AttachmentResource {
                   .build();
          }
 
-         String mimeType = Files.probeContentType(filePath);
+         String mediaType = Files.probeContentType(filePath);
          byte[] fileContent = Files.readAllBytes(filePath);
 
          return Response.ok(fileContent)
-               .header("Content-Type", mimeType)
+               .header("Content-Type", mediaType)
                .header("Content-Disposition", "inline; filename=\"" + filePath.getFileName() + "\"")
                .build();
 
@@ -371,7 +373,6 @@ public class AttachmentResource {
       if (contentType == null) {
          return null;
       }
-      // Handle multipart content type header
       if (contentType.contains(";")) {
          return contentType.split(";")[0].trim();
       }
@@ -389,7 +390,8 @@ public class AttachmentResource {
       String lowerName = fileName.toLowerCase();
       if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg")) {
          return "image/jpeg";
-      } else if (lowerName.endsWith(".png")) {
+      }
+      if (lowerName.endsWith(".png")) {
          return "image/png";
       }
       return null;

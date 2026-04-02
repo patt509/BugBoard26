@@ -347,6 +347,19 @@ public class AuthService {
       }
    }
 
+   public void validateWritableUser(Long userId) {
+      if (userId == null) {
+         throw new SecurityException("Authentication required.");
+      }
+
+      User user = userRepository.findById(userId)
+            .orElseThrow(() -> new SecurityException(USER_NOT_FOUND_MESSAGE));
+
+      if (user.getRole() == UserRole.STAKEHOLDER) {
+         throw new SecurityException("Stakeholder accounts are read-only.");
+      }
+   }
+
    /**
     * Internal helper to get admin User after validation.
     * Used by service methods that need to log admin actions.

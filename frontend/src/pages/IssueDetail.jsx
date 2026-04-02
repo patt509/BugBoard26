@@ -202,6 +202,8 @@ function IssueDetail({
   const currentUserId = resolveCurrentUserId(user);
   const normalizedRole = resolveCurrentUserRole(user).trim().toUpperCase();
   const isAdminUser = normalizedRole.includes('ADMIN');
+  const isStakeholderUser = normalizedRole === 'STAKEHOLDER';
+  const canWriteIssue = !isStakeholderUser;
 
   useEffect(() => {
     const timerId = setInterval(() => {
@@ -296,13 +298,17 @@ function IssueDetail({
   }, [showHistoryModal]);
 
   const handleStatusChange = async (newStatus) => {
+    if (!canWriteIssue) {
+      return;
+    }
+
     try {
       await issueService.updateStatus(issueId, newStatus, currentUserId);
       setIssue(prev => ({ ...prev, status: newStatus }));
       setStatusDropdownOpen(false);
     } catch (err) {
-      console.error('Error updating status:', err);
-      setError(err.message || 'Failed to update status');
+      console.error("Error updating status:", err);
+      setError(err.message || "Failed to update status");
     }
   };
 
@@ -354,6 +360,10 @@ function IssueDetail({
 
   const handleSubmitComment = async (e) => {
     e.preventDefault();
+    if (!canWriteIssue) {
+      setError("Stakeholder accounts are read-only.");
+      return;
+    }
     if (!newComment.trim()) return;
     setError(null);
 
@@ -420,6 +430,10 @@ function IssueDetail({
 
   // Handle Edit Issue button click
   const handleEditClick = () => {
+    if (!canWriteIssue) {
+      return;
+    }
+
     if (onEditIssue && issue) {
       onEditIssue(issue);
     }
@@ -699,14 +713,16 @@ function IssueDetail({
             <div className="flex-1">
               {/* Action Buttons */}
               <div className="flex items-center gap-3 mb-6">
-                <button 
+                <button
                   onClick={handleEditClick}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  disabled={!canWriteIssue}
+                  title={!canWriteIssue ? 'Stakeholder accounts are read-only' : 'Edit issue'}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Edit className="w-4 h-4" />
                   Edit Issue
                 </button>
-                <button 
+                <button
                   onClick={handleFlagDuplicateClick}
                   disabled={!isAdminUser}
                   title={!isAdminUser ? 'Only admins can flag duplicates' : 'Flag this issue as duplicate'}
@@ -715,18 +731,20 @@ function IssueDetail({
                   <Flag className="w-4 h-4" />
                   Flag as Duplicate
                 </button>
-                
+
                 {/* Status Dropdown */}
                 <div className="relative ml-auto">
                   <button
-                    onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${getStatusColor(issue?.status)}`}
+                    onClick={() => canWriteIssue && setStatusDropdownOpen(!statusDropdownOpen)}
+                    disabled={!canWriteIssue}
+                    title={!canWriteIssue ? 'Stakeholder accounts are read-only' : 'Change issue status'}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${getStatusColor(issue?.status)} ${!canWriteIssue ? 'cursor-not-allowed opacity-60' : ''}`}
                   >
                     Status: {getStatusLabel(issue?.status)}
                     <ChevronDown className="w-4 h-4" />
                   </button>
-                  
-                  {statusDropdownOpen && (
+
+                  {statusDropdownOpen && canWriteIssue && (
                     <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
                       {statusOptions.map((status) => (
                         <button
@@ -898,6 +916,7 @@ function IssueDetail({
                 </div>
 
                 {/* Add Comment Form */}
+                {!isStakeholderUser ? (
                 <form onSubmit={handleSubmitComment} className="space-y-3">
                   <div className="flex gap-3">
                     <input
@@ -959,6 +978,11 @@ function IssueDetail({
                     PNG, JPG up to {attachInfo.maxFileSizeMB} MB
                   </p>
                 </form>
+                ) : (
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                    Stakeholder account: comments are read-only.
+                  </div>
+                )}
               </div>
             </div>
 

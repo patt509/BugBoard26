@@ -209,6 +209,8 @@ function Issues({
   const [error, setError] = useState(null);
   const lastSearchKeyRef = useRef(null);
   const currentPage = 'issues';
+  const normalizedRole = String(user?.role ?? '').trim().toUpperCase();
+  const isStakeholderUser = normalizedRole === 'STAKEHOLDER';
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -529,13 +531,19 @@ function Issues({
                 {assignableUsersLoading && <Loader2 className="h-4 w-4 animate-spin text-gray-500" />}
               </button>
 
-              <button
-                onClick={onCreateIssue}
-                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-blue-600 px-4 font-medium text-white transition-colors hover:bg-blue-700 xl:px-6"
-              >
-                <Plus size={20} />
-                <span>New Issue</span>
-              </button>
+              {!isStakeholderUser ? (
+                <button
+                  onClick={onCreateIssue}
+                  className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-blue-600 px-4 font-medium text-white transition-colors hover:bg-blue-700 xl:px-6"
+                >
+                  <Plus size={20} />
+                  <span>New Issue</span>
+                </button>
+              ) : (
+                <span className="inline-flex h-11 items-center rounded-xl border border-gray-300 bg-gray-100 px-4 text-sm font-medium text-gray-600">
+                  Read-only stakeholder
+                </span>
+              )}
             </div>
           </div>
 

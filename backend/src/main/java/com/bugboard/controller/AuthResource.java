@@ -359,7 +359,7 @@ public class AuthResource {
       try {
          return UserRole.valueOf(rawRole.trim().toUpperCase());
       } catch (IllegalArgumentException e) {
-         throw new IllegalArgumentException("Invalid role. Use USER or ADMIN");
+         throw new IllegalArgumentException("Invalid role. Use USER, ADMIN or STAKEHOLDER");
       }
    }
 }

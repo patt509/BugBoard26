@@ -30,6 +30,7 @@ import com.bugboard.dto.PasswordResetRequestDTO;
 import com.bugboard.dto.UserDTO;
 import static com.bugboard.enums.UserRole.ADMIN;
 import static com.bugboard.enums.UserRole.USER;
+import static com.bugboard.enums.UserRole.STAKEHOLDER;
 import com.bugboard.model.PasswordResetRequest;
 import com.bugboard.model.User;
 import com.bugboard.repository.PasswordResetRequestRepository;
@@ -50,11 +51,13 @@ public class AuthServiceTest {
 
    private User admin;
    private User normalUser;
+   private User stakeholderUser;
 
    @Before
    public void setUp() {
       admin = spy(new User("admin@test.com", "password", ADMIN));
       normalUser = spy(new User("user@test.com", "password", USER));
+      stakeholderUser = spy(new User("stakeholder@test.com", "password", STAKEHOLDER));
    }
 
    /* Test on createUser method */
@@ -778,4 +781,41 @@ public class AuthServiceTest {
       authService.validateAdminPrivileges(2L);
    }
 
+
+   /* _________________________________________________________________________ */
+
+   /* Test on validateWritableUser method */
+
+   /**
+    * TC1: Success scenario - Regular USER can perform write operations.
+    * Expected Output: No exception thrown.
+    */
+   @Test
+   public void testValidateWritableUser_TC1_RegularUser() {
+      when(userRepository.findById(2L)).thenReturn(Optional.of(normalUser));
+
+      authService.validateWritableUser(2L);
+   }
+
+   /**
+    * TC2: Failure scenario - STAKEHOLDER account is read-only.
+    * Expected Output: SecurityException.
+    */
+   @Test(expected = SecurityException.class)
+   public void testValidateWritableUser_TC2_StakeholderReadOnly() {
+      when(userRepository.findById(3L)).thenReturn(Optional.of(stakeholderUser));
+
+      authService.validateWritableUser(3L);
+   }
+
+   /**
+    * TC3: Failure scenario - User not found.
+    * Expected Output: SecurityException.
+    */
+   @Test(expected = SecurityException.class)
+   public void testValidateWritableUser_TC3_UserNotFound() {
+      when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+      authService.validateWritableUser(999L);
+   }
 }

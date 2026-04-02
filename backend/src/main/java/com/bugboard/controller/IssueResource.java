@@ -97,6 +97,8 @@ public class IssueResource {
          }
          List<IssueDTO> results = issueService.searchIssues(term, priority, status, type, assigneeId);
          return Response.ok(results).build();
+      } catch (SecurityException e) {
+         return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
       } catch (IllegalArgumentException e) {
          return ApiResponses.error(Response.Status.BAD_REQUEST, e.getMessage());
       } catch (Exception e) {
@@ -156,6 +158,8 @@ public class IssueResource {
             return ApiResponses.error(Response.Status.BAD_REQUEST, "X-User-Id header is required");
          }
          
+         authService.validateWritableUser(userId);
+
          Long id = issueService.createIssue(issueDTO, userId);
          
          if (id == null) {
@@ -165,6 +169,8 @@ public class IssueResource {
          return Response.status(Response.Status.CREATED)
                .entity(Map.of("id", id, MESSAGE_KEY, "Issue created successfully"))
                .build();
+      } catch (SecurityException e) {
+         return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
       } catch (IllegalArgumentException e) {
          return ApiResponses.error(Response.Status.BAD_REQUEST, e.getMessage());
       } catch (Exception e) {
@@ -187,8 +193,12 @@ public class IssueResource {
             return ApiResponses.error(Response.Status.BAD_REQUEST, "Request body is required");
          }
 
+         authService.validateWritableUser(userId);
+
          issueService.updateIssue(id, issueDTO, userId);
          return Response.ok(Map.of(MESSAGE_KEY, "Issue updated successfully")).build();
+      } catch (SecurityException e) {
+         return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
       } catch (IllegalArgumentException e) {
          return ApiResponses.error(Response.Status.NOT_FOUND, e.getMessage());
       } catch (Exception e) {
@@ -212,8 +222,11 @@ public class IssueResource {
             return ApiResponses.error(Response.Status.BAD_REQUEST, "newStatus parameter is required");
          }
 
+         authService.validateWritableUser(userId);
          issueService.updateStatus(id, newStatus, userId);
          return Response.ok(Map.of(MESSAGE_KEY, "Status updated successfully")).build();
+      } catch (SecurityException e) {
+         return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
       } catch (IllegalArgumentException e) {
          return ApiResponses.error(Response.Status.NOT_FOUND, e.getMessage());
       } catch (Exception e) {

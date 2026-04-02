@@ -1,6 +1,7 @@
 package com.bugboard.controller;
 
 import com.bugboard.dto.CommentDTO;
+import com.bugboard.service.AuthService;
 import com.bugboard.service.CommentService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -31,10 +32,12 @@ public class CommentResource {
    private static final String ERROR_CREATING_COMMENT_MESSAGE = "Error creating comment";
 
    private final CommentService commentService;
+   private final AuthService authService;
 
    @Inject
-   public CommentResource(CommentService commentService) {
+   public CommentResource(CommentService commentService, AuthService authService) {
       this.commentService = commentService;
+      this.authService = authService;
    }
 
    /**
@@ -64,20 +67,24 @@ public class CommentResource {
             return ApiResponses.error(Response.Status.BAD_REQUEST, USER_HEADER_REQUIRED_MESSAGE);
          }
 
-         if (commentDTO.getText() == null || commentDTO.getText().trim().isEmpty()) {
+         authService.validateWritableUser(userId);
+
+         if (commentDTO == null || commentDTO.getText() == null || commentDTO.getText().trim().isEmpty()) {
             return ApiResponses.error(Response.Status.BAD_REQUEST, "Comment text is required");
          }
 
          Long authorId = userId;
-         
+
          Long commentId = commentService.createComment(issueId, commentDTO.getText(), authorId);
          if (commentId == null) {
             return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, ERROR_CREATING_COMMENT_MESSAGE);
          }
-         
+
          return Response.status(Response.Status.CREATED)
                .entity(Map.of("id", commentId, MESSAGE_KEY, "Comment created successfully"))
                .build();
+      } catch (SecurityException e) {
+         return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
       } catch (IllegalArgumentException e) {
          return ApiResponses.error(Response.Status.BAD_REQUEST, e.getMessage());
       } catch (IllegalStateException e) {
@@ -104,12 +111,14 @@ public class CommentResource {
             return ApiResponses.error(Response.Status.BAD_REQUEST, USER_HEADER_REQUIRED_MESSAGE);
          }
 
-         if (commentDTO.getText() == null || commentDTO.getText().trim().isEmpty()) {
+         authService.validateWritableUser(userId);
+
+         if (commentDTO == null || commentDTO.getText() == null || commentDTO.getText().trim().isEmpty()) {
             return ApiResponses.error(Response.Status.BAD_REQUEST, "Comment text is required");
          }
 
          commentService.updateComment(commentId, commentDTO.getText(), userId);
-         
+
          return Response.ok(Map.of(MESSAGE_KEY, "Comment updated successfully")).build();
       } catch (SecurityException e) {
          return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
@@ -135,8 +144,10 @@ public class CommentResource {
             return ApiResponses.error(Response.Status.BAD_REQUEST, USER_HEADER_REQUIRED_MESSAGE);
          }
 
+         authService.validateWritableUser(userId);
+
          commentService.deleteComment(commentId, userId);
-         
+
          return Response.ok(Map.of(MESSAGE_KEY, "Comment deleted successfully")).build();
       } catch (SecurityException e) {
          return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());

@@ -1,6 +1,7 @@
 package com.bugboard.repository;
 
 import com.bugboard.model.User;
+import com.bugboard.enums.UserRole;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -59,8 +60,9 @@ public class UserRepository {
 
    public List<User> findAssignableUsers() {
       return em.createQuery(
-            "SELECT u FROM User u WHERE u.username IS NOT NULL AND u.isFirstLogin = false ORDER BY u.username ASC",
+            "SELECT u FROM User u WHERE u.username IS NOT NULL AND u.isFirstLogin = false AND u.role <> :stakeholderRole ORDER BY u.username ASC",
             User.class)
+            .setParameter("stakeholderRole", UserRole.STAKEHOLDER)
             .getResultList();
    }
 }

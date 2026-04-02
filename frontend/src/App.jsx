@@ -24,6 +24,7 @@ const getInitialTheme = () => {
 };
 
 const isAdminRole = (role) => String(role ?? '').trim().toUpperCase().includes('ADMIN');
+const isStakeholderRole = (role) => String(role ?? '').trim().toUpperCase() === 'STAKEHOLDER';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -76,6 +77,13 @@ function App() {
       setCurrentView('issues');
     }
   }, [currentView, user]);
+
+  useEffect(() => {
+    if ((currentView === 'create' || currentView === 'edit') && isStakeholderRole(user?.role)) {
+      setEditingIssue(null);
+      setCurrentView(selectedIssueId ? 'detail' : 'issues');
+    }
+  }, [currentView, user, selectedIssueId]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -131,11 +139,19 @@ function App() {
   };
 
   const handleCreateIssue = () => {
+    if (isStakeholderRole(user?.role)) {
+      return;
+    }
+
     setEditingIssue(null);
     setCurrentView('create');
   };
 
   const handleEditIssue = (issue) => {
+    if (isStakeholderRole(user?.role)) {
+      return;
+    }
+
     setEditingIssue(issue);
     setCurrentView('edit');
   };

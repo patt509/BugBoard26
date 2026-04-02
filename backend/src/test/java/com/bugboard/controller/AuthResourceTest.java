@@ -98,4 +98,21 @@ public class AuthResourceTest {
       assertEquals("PostCond failed: temporary password should be present", "TmpPass9999", payload.get("temporaryPassword"));
       verify(authService).createUser("blank.user@test.com", UserRole.USER, 1L, null);
    }
+
+   /**
+    * TC4: role STAKEHOLDER is accepted and forwarded to service.
+    */
+   @Test
+   @SuppressWarnings("unchecked")
+   public void testCreateUser_TC4_StakeholderRole() {
+      CreateUserRequest request = new CreateUserRequest("stakeholder.user@test.com", null, "STAKEHOLDER");
+      when(authService.createUser("stakeholder.user@test.com", UserRole.STAKEHOLDER, 1L, null)).thenReturn("TmpStake123");
+
+      Response response = authResource.createUser(1L, request);
+
+      assertEquals("PostCond failed: status should be 201", 201, response.getStatus());
+      Map<String, Object> payload = (Map<String, Object>) response.getEntity();
+      assertEquals("PostCond failed: role should match", "STAKEHOLDER", payload.get("role"));
+      verify(authService).createUser("stakeholder.user@test.com", UserRole.STAKEHOLDER, 1L, null);
+   }
 }

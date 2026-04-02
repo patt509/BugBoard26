@@ -8,6 +8,7 @@ import { authService } from '../services/auth.service';
 const ROLE_OPTIONS = [
   { value: 'USER', label: 'Normal user' },
   { value: 'ADMIN', label: 'Administrator' },
+  { value: 'STAKEHOLDER', label: 'Stakeholder (Read-only)' },
 ];
 
 function RoleDropdown({ value, onChange, disabled = false }) {
@@ -152,7 +153,7 @@ function CreateUserAccount({ user, onLogout, onNavigate, isDarkMode, onToggleThe
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Create User</h1>
-              <p className="text-sm text-gray-500">Create a new USER or ADMIN account</p>
+              <p className="text-sm text-gray-500">Create a new USER, ADMIN or STAKEHOLDER account</p>
             </div>
             <div className="flex items-center gap-3">
               <ThemeToggle isDarkMode={isDarkMode} onToggle={onToggleTheme} />

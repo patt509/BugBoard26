@@ -168,7 +168,9 @@ function CreateIssue({
 }) {
    const isEditMode = !!editingIssue;
    const currentPage = 'issues';
-   const isAdminUser = String(user?.role || '').toUpperCase() === 'ADMIN';
+   const normalizedRole = String(user?.role || '').trim().toUpperCase();
+   const isAdminUser = normalizedRole === 'ADMIN';
+   const isStakeholderUser = normalizedRole === 'STAKEHOLDER';
    const [formData, setFormData] = useState({
       title: editingIssue?.title || '',
       type: normalizeIssueType(editingIssue?.type),
@@ -545,6 +547,20 @@ const handleSubmit = async (e) => {
       setLoading(false);
    }
 };
+
+if (isStakeholderUser) {
+   return (
+      <div className="flex h-screen bg-gray-50">
+         <Sidebar currentPage={currentPage} onNavigate={onNavigate} userRole={user?.role} />
+         <main className="flex-1 flex items-center justify-center p-8">
+            <div className="max-w-md rounded-xl border border-gray-200 bg-gray-50 p-6 text-center">
+               <h2 className="text-lg font-semibold text-gray-800">Read-only account</h2>
+               <p className="mt-1 text-sm text-gray-600">Stakeholder users can view issues but cannot create or edit them.</p>
+            </div>
+         </main>
+      </div>
+   );
+}
 
 return (
    <div className="flex h-screen bg-gray-50">
