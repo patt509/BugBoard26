@@ -45,30 +45,25 @@
 \section{Specifica dei Requisiti Software}
 
 \subsection{Glossario}
-Il seguente glossario consolida i termini funzionali e tecnici usati nella traccia e nel codice del progetto.
+Il seguente glossario consolida i termini funzionali e tecnici realmente rilevanti nella traccia e nella codebase corrente.
 
 \noindent{\footnotesize
 \begin{tabularx}{\textwidth}{|l|X|X|}
     \hline
     \textbf{Termine} & \textbf{Definizione operativa} & \textbf{Evidenza nel codice} \\ \hline
     Issue & Segnalazione tracciata in board con titolo, descrizione, tipo, priorità, stato e metadati temporali. & Entità \texttt{Issue}, endpoint \texttt{POST /issues}. \\ \hline
-    Tipo Issue & Classificazione semantica dell'issue (\texttt{BUG}, \texttt{FEATURE}, \texttt{DOCUMENTATION}, \texttt{QUESTION}). & Enum \texttt{IssueType}, validazione in \texttt{IssueService.parseIssueType}. \\ \hline
-    Priorità & Livello di urgenza dell'issue (\texttt{LOW}, \texttt{MEDIUM}, \texttt{HIGH}, \texttt{CRITICAL}). & Enum \texttt{PriorityLevel}, filtri board e dashboard. \\ \hline
-    Stato Issue & Stato di avanzamento (\texttt{TODO}, \texttt{IN\_PROGRESS}, \texttt{RESOLVED}, \texttt{CLOSED}). & Enum \texttt{IssueStatus}, \texttt{IssueStateMachine}. \\ \hline
-    Reporter & Utente che crea l'issue. & Campo \texttt{Issue.reporter}, \texttt{IssueDTO.reporterName}. \\ \hline
-    Assignee & Utente assegnato alla lavorazione dell'issue (opzionale). & Campo \texttt{Issue.assignee}, filtri \texttt{assigneeId}. \\ \hline
-    Duplicate workflow & Regola che consente ad admin di marcare una issue BUG come duplicato di un'altra, chiudendola. & \code{POST /issues/\{id\}/duplicate/\{originalId\}}, \code{IssueService.processDuplicate}. \\ \hline
-    Dashboard Admin & Vista statistiche aggregate per monitorare il carico e lo stato del progetto. & \texttt{GET /issues/admin/dashboard}, \texttt{DashboardStatsDTO}. \\ \hline
-    Utente ADMIN & Utente con privilegi gestionali (creazione utenze, dashboard, duplicate). & Enum \texttt{UserRole.ADMIN}, check in \code{AuthService.validateAdminPrivileges}. \\ \hline
-    Utente USER & Utente operativo autenticato senza privilegi amministrativi. & Enum \texttt{UserRole.USER}. \\ \hline
+    Tipo Issue & Classificazione semantica dell'issue (\texttt{BUG}, \texttt{FEATURE}, \texttt{DOCUMENTATION}, \texttt{QUESTION}). & Enum \texttt{IssueType}, parsing/validazione in \texttt{IssueService}. \\ \hline
+    Assignee & Utente assegnato alla lavorazione di una issue (opzionale). & Campo \texttt{Issue.assignee}, filtro \texttt{assigneeId}, UI create/edit issue. \\ \hline
+    Duplicate workflow & Flusso con cui un ADMIN marca una issue come duplicata di un'altra issue aperta, chiudendo la duplicata. & \code{POST /issues/\{id\}/duplicate/\{originalId\}}, \code{IssueService.processDuplicate}. \\ \hline
+    Dashboard & Vista statistiche aggregate in sola lettura (stato, priorità, andamento e KPI per utente). & \texttt{GET /issues/admin/dashboard}, \texttt{DashboardStatsDTO}. \\ \hline
+    KPI & Indicatori di andamento progetto (es. issue aperte, tempo medio risoluzione, carico per assignee). & Campi \code{issuesAssignedPerUser}, \code{avgResolutionTimeHoursPerUser} in \code{DashboardStatsDTO}. \\ \hline
+    CRUD Commenti & Operazioni Create/Read/Update/Delete sui commenti delle issue con policy autorizzative. & \code{CommentResource} + \code{CommentService} (owner/admin su update/delete). \\ \hline
+    Debounce & Tecnica UI che ritarda l'invio della ricerca durante la digitazione per ridurre chiamate ripetute. & Frontend \code{Issues.jsx}, ricerca con debounce lato client. \\ \hline
     First login & Stato iniziale account che impone la scelta username al primo accesso utile. & Campo \texttt{User.firstLogin}, endpoint \texttt{PUT /auth/profile/username}. \\ \hline
-    DTO & Oggetti di trasferimento dati tra backend e frontend per isolare i contratti API dal modello JPA. & Package \code{backend/src/main/java/com/bugboard/dto}. \\ \hline
-    Service layer & Livello applicativo che centralizza business rules, validazioni e autorizzazioni. & \code{AuthService}, \code{IssueService}, \code{CommentService}. \\ \hline
-    Repository & Livello persistenza basato su JPA/JPQL con query dedicate. & \code{IssueRepository}, \code{UserRepository}, ecc. \\ \hline
-    API-first & Strategia di sviluppo in cui i contratti backend sono consolidati prima dell'allineamento UI. & Hardening endpoint + allineamento service frontend. \\ \hline
-    History & Timeline append-only degli eventi di una issue con attore e timestamp. & Entità \texttt{IssueHistoryEntry}, endpoint \texttt{GET /issues/\{id\}/history}. \\ \hline
-    Allegato & File immagine associato a issue o commento, con vincoli di tipo e dimensione. & \texttt{AttachmentResource}, \texttt{AttachmentService}. \\ \hline
-    Header \texttt{X-User-Id} & Identificativo utente inviato dal frontend per autorizzazione a livello applicativo nell'MVP corrente. & Validazioni in controller/resource e service. \\ \hline
+    Stakeholder (read-only) & Ruolo osservatore: può consultare board e dashboard ma non può modificare issue/commenti/allegati. & Enum \texttt{UserRole.STAKEHOLDER}, check in \code{AuthService.validateWritableUser}. \\ \hline
+    Access token firmato & Token Bearer firmato HMAC-SHA256 con claim utente/sessione/scadenza. & \code{AuthTokenService.issueToken}/\code{verifyToken}. \\ \hline
+    Sessione server-side & Sessione persistita e revocabile associata al token, con TTL e stato attivo/revocato. & Entità \code{AuthSession}, \code{AuthSessionService}, filtro \code{AuthTokenRequestFilter}. \\ \hline
+    Header \texttt{X-User-Id} & Header identitario usato dalle API applicative; viene allineato dal filtro auth a partire dal token valido. & \code{AuthTokenRequestFilter} + resource \code{Auth/Issue/Comment/Attachment}. \\ \hline
 \end{tabularx}
 }
 
@@ -79,31 +74,30 @@ Il diagramma dei casi d'uso è mantenuto in formato sorgente Visual Paradigm nel
 \noindent La modellazione dei casi d'uso tramite Use Case Diagram è prodotta come artefatto grafico esterno (tool CASE), in coerenza con quanto richiesto dalla traccia. In questo capitolo si mantiene il riferimento ai sorgenti e agli artefatti allegati senza duplicare il diagramma in forma testuale estesa.
 
 \subsection{Caratterizzazione Target Utenti}
-Il sistema BugBoard26 è progettato per servire diverse tipologie di utenti,
-ciascuna con competenze, esigenze e modalità d'uso specifiche.
+Il sistema BugBoard26 supporta tre ruoli applicativi effettivi (\texttt{USER}, \texttt{ADMIN}, \texttt{STAKEHOLDER}), con obiettivi e permessi differenziati.
 
-\subsubsection*{1. Sviluppatori e Tester (Utenti Operativi)}
+\subsubsection*{1. Sviluppatori e Tester (Utenti Operativi -- USER)}
 \begin{itemize}
     \item \textbf{Esperienza Informatica:} Elevata; sono abituati a IDE, terminali e sistemi di versioning.
-    \item \textbf{Conoscenza del Dominio:} Media/Alta; comprendono perfettamente il ciclo di vita di una issue.
+    \item \textbf{Conoscenza del Dominio:} Media/Alta; comprendono il ciclo di vita di una issue.
     \item \textbf{Frequenza d'uso:} Alta (uso quotidiano).
-    \item \textbf{Necessità:} Velocità nell'inserimento delle issue e possibilità di allegare prove tecniche come screenshot.
+    \item \textbf{Necessità:} Velocità nell'inserimento/aggiornamento issue, commenti e allegati tecnici.
 \end{itemize}
 
-\subsubsection*{2. Team Leader e Admin (Utenti Gestionali)}
+\subsubsection*{2. Team Leader e Admin (Utenti Gestionali -- ADMIN)}
 \begin{itemize}
     \item \textbf{Esperienza Informatica:} Elevata.
-    \item \textbf{Conoscenza del Dominio:} Massima; hanno la visione globale del progetto e delle priorità.
+    \item \textbf{Conoscenza del Dominio:} Massima; hanno visione globale di carico, priorità e rischi.
     \item \textbf{Frequenza d'uso:} Alta.
-    \item \textbf{Necessità:} Strumenti di supervisione (Dashboard) e gestione dei permessi (rimozione duplicati, ecc\dots).
+    \item \textbf{Necessità:} Supervisione KPI (Dashboard), gestione utenze/ruoli e operazioni ad alto impatto (duplicate, reset password).
 \end{itemize}
 
-\subsubsection*{3. Stakeholder (Utenti Osservatori)}
+\subsubsection*{3. Stakeholder (Utenti Osservatori -- STAKEHOLDER)}
 \begin{itemize}
     \item \textbf{Esperienza Informatica:} Variabile (spesso Bassa/Media).
     \item \textbf{Conoscenza del Dominio:} Bassa/Media; interessati ai progressi macroscopici.
     \item \textbf{Frequenza d'uso:} Bassa (settimanale o mensile).
-    \item \textbf{Necessità:} Una modalità "readonly" semplice che non permetta modifiche accidentali e offra report chiari.
+    \item \textbf{Necessità:} Consultazione semplice di stato progetto e KPI, senza possibilità di modifica.
 \end{itemize}
 
 \subsubsection*{Matrice target--obiettivi--permessi}
@@ -111,45 +105,46 @@ ciascuna con competenze, esigenze e modalità d'uso specifiche.
 \begin{tabularx}{\textwidth}{|l|X|X|X|}
     \hline
     \textbf{Target} & \textbf{Obiettivi primari} & \textbf{Operazioni abilitate (stato attuale)} & \textbf{Rischi UX da mitigare} \\ \hline
-    Sviluppatore / QA & Aprire issue rapidamente, aggiornare stato, commentare con evidenze, cercare issue simili. & Login, creazione issue, modifica issue, commenti, allegati, filtri avanzati, history issue. & Sovraccarico informativo su board grandi; necessità di feedback immediato su errori input/API. \\ \hline
-    Team Leader / Admin & Gestire utenti e ruoli, bilanciare carico, consolidare duplicate, supervisionare KPI. & Tutte le operazioni USER + creazione utenti, dashboard admin, duplicate workflow, reset password utenti. & Rischio azioni ad alto impatto (duplicate/reset): richiesto flusso conferma chiaro e audit leggibile. \\ \hline
-    Stakeholder / Cliente & Visione sintetica dello stato progetto e dell'avanzamento. & Attualmente non esiste profilo readonly dedicato (R15 non attivo). & Necessità di report sintetici e navigazione semplificata senza permessi di modifica. \\ \hline
+    Sviluppatore / QA (\texttt{USER}) & Aprire issue rapidamente, aggiornare stato, commentare con evidenze, cercare issue simili. & Login, creazione/modifica issue, commenti, allegati, filtri avanzati, history issue. & Sovraccarico informativo su board grandi; necessità di feedback immediato su errori input/API. \\ \hline
+    Team Leader / Admin (\texttt{ADMIN}) & Gestire utenti e ruoli, bilanciare carico, consolidare duplicate, supervisionare KPI. & Tutte le operazioni USER + creazione utenti (anche stakeholder), dashboard, duplicate workflow, reset password utenti. & Rischio azioni ad alto impatto (duplicate/reset): richiesto flusso conferma chiaro e audit leggibile. \\ \hline
+    Stakeholder (\texttt{STAKEHOLDER}) & Visione sintetica dello stato progetto e dell'avanzamento. & Accesso in sola lettura a board/dettaglio issue/dashboard; scrittura bloccata su issue, commenti e allegati. & Necessità di report sintetici e navigazione semplificata senza permessi di modifica. \\ \hline
 \end{tabularx}
 }
 
 \subsection{Requisiti Funzionali di Sistema}
-La seguente sezione formalizza i requisiti funzionali assegnati/implementati nel ciclo corrente sulla base della traccia ufficiale (Sezione 3.1 del documento del Committente) e della codebase reale.
+La seguente sezione formalizza i requisiti funzionali assegnati/implementati nel ciclo corrente sulla base della traccia ufficiale e della codebase reale.
 
 \noindent{\footnotesize
 \begin{tabularx}{\textwidth}{|l|X|X|X|}
     \hline
     \textbf{ID} & \textbf{Richiesta del Committente} & \textbf{Evidenza implementativa (codice/API)} & \textbf{Stato} \\ \hline
-    R1 & Autenticazione email/password e creazione utenze da admin con ruolo USER/ADMIN. & \code{POST /auth/login}, \code{POST /auth/admin/users}, \code{AuthService.createUser}. UI: \code{CreateUserAccount.jsx}. & Implementato \\ \hline
+    R1 & Autenticazione e gestione account da admin. & \code{POST /auth/login} (email o username), \code{POST /auth/admin/users} (USER/ADMIN/STAKEHOLDER), \code{AuthService.createUser}. & Implementato \\ \hline
     R2 & Creazione issue con titolo/descrizione, tipologia e priorità opzionale, con allegato immagine gradito. & \code{POST /issues} con validazione tipo/priorità; supporto allegati via \code{POST /attachments/issues/\{issueId\}}. & Implementato \\ \hline
     R3 & Vista riepilogativa con filtri/ordinamenti per parametri rilevanti. & \code{GET /issues/search} con \code{term,status,priority,type,assigneeId}; Specification Pattern in repository; UI filtri custom in \code{Issues.jsx}. & Implementato \\ \hline
-    R4 & Assegnazione bug da admin, notifica assegnatario e visualizzazione bug assegnati. & Assegnazione presente su create/edit issue e filtro per assignee; nessun modulo notifiche in codebase; vincolo ``solo admin assegna'' non imposto rigidamente a livello API. & Parziale \\ \hline
+    R4 & Assegnazione bug da admin, notifica assegnatario e visualizzazione bug assegnati. & Assegnazione presente su create/edit issue e filtro per assignee; UI vincola l'assegnazione agli ADMIN; nessun modulo notifiche in codebase; vincolo "solo admin assegna" non hard-enforced a livello API. & Parziale \\ \hline
     R5 & Sezione commenti associata ai bug, accessibile agli utenti. & Endpoint \code{/issues/\{issueId\}/comments} CRUD, autorizzazione owner/admin su update/delete in \code{CommentService}. & Implementato \\ \hline
-    R7 & Dashboard admin con metriche aggregate, assegnazioni per utente, tempi medi. & \code{GET /issues/admin/dashboard}, \code{IssueService.getDashboardStats}, metriche \code{issuesAssignedPerUser} e \code{avgResolutionTimeHoursPerUser}. & Implementato \\ \hline
+    R7 & Dashboard con metriche aggregate, assegnazioni per utente, tempi medi. & \code{GET /issues/admin/dashboard}, \code{IssueService.getDashboardStats}, metriche \code{issuesAssignedPerUser} e \code{avgResolutionTimeHoursPerUser}; accesso ADMIN/STAKEHOLDER in sola lettura. & Implementato \\ \hline
     R11 & Ricerca bug per parole chiave. & Filtro testuale su titolo/descrizione/reporter in \code{IssueRepository.search}. & Implementato \\ \hline
     R12 & Cronologia modifiche bug con autore e timestamp. & \code{IssueHistoryEntry} con \code{changedBy}/\code{createdAt}, endpoint \code{GET /issues/\{id\}/history}, popolamento da service su eventi principali. & Implementato \\ \hline
-    R15 & - & - \\ \hline
-    R16 & Admin marca bug duplicato di altro bug con chiusura immediata del duplicato. & \code{POST /issues/\{id\}/duplicate/\{originalId\}}, regole dominio in \code{IssueService.processDuplicate} e \code{Issue.markAsDuplicateOf}. & Implementato \\ \hline
+    R15 & Account stakeholder con accesso in sola lettura. & Ruolo \code{UserRole.STAKEHOLDER}; blocco scrittura via \code{AuthService.validateWritableUser}; guard UI su create/edit/commenti/allegati. & Implementato \\ \hline
+    R16 & Admin marca issue duplicata di altra issue con chiusura immediata della duplicata. & \code{POST /issues/\{id\}/duplicate/\{originalId\}}, regole dominio in \code{IssueService.processDuplicate} e \code{Issue.markAsDuplicateOf}; originale deve essere aperta. & Implementato \\ \hline
 \end{tabularx}
 }
 
 \paragraph{Nota di perimetro}
-I requisiti non elencati in tabella (es. R8, R9, R10, R13, R14, R17, R18) non rientrano tra i requisiti obbligatori, oppure risultano, volontariamente, solo parzialmente esplorati. L'evoluzione resta possibile grazie alla struttura modulare backend/frontend.
+I requisiti non elencati in tabella (es. R8, R9, R10, R13, R14, R17, R18) non rientrano tra i requisiti obbligatori del ciclo corrente, oppure sono stati volutamente rimandati. L'evoluzione resta possibile grazie alla struttura modulare backend/frontend.
 
 \subsubsection*{Criteri di accettazione funzionali (sintesi verificabile)}
 \begin{itemize}
-    \item \textbf{R1 (utenze/admin)}: solo un utente ADMIN autenticato può invocare \code{POST /auth/admin/users}; email univoca e valida; ruolo ammesso solo USER/ADMIN; password opzionale (se omessa viene generata server-side e restituita in risposta).
+    \item \textbf{R1 (utenze/admin)}: solo un utente ADMIN autenticato può invocare \code{POST /auth/admin/users}; email univoca e valida; ruolo ammesso USER/ADMIN/STAKEHOLDER; password opzionale (se omessa viene generata server-side e restituita in risposta). Login supporta email o username.
     \item \textbf{R2 (creazione issue)}: \code{POST /issues} richiede titolo/descrizione/tipo validi; priorità opzionale con default di dominio; assignee opzionale risolto per ID o username; supporto allegato immagine tramite endpoint attachment dedicato.
     \item \textbf{R3 + R11 (ricerca e filtri)}: \code{GET /issues/search} accetta combinazioni di \code{term}, \code{status}, \code{priority}, \code{type}, \code{assigneeId}; risultati deterministici, senza side effect; filtri allineati alla UI con debounce.
-    \item \textbf{R4 (assegnazione, parziale)}: assegnazione issue presente nei flussi create/edit e nei filtri; non implementato modulo notifiche; vincolo ``assegnazione solo admin'' non ancora imposto come policy hard a livello API.
+    \item \textbf{R4 (assegnazione, parziale)}: assegnazione issue presente nei flussi create/edit e nei filtri; non implementato modulo notifiche; vincolo "assegnazione solo admin" applicato in UI, ma non ancora imposto come policy hard lato API.
     \item \textbf{R5 (commenti)}: CRUD commenti disponibile su issue; update/delete consentiti solo ad autore commento o admin; allegati commento gestiti separatamente.
-    \item \textbf{R7 (dashboard admin)}: endpoint admin aggrega KPI di stato/priorità, andamento giornaliero, carico aperto per assignee e tempo medio risoluzione per utente.
+    \item \textbf{R7 (dashboard)}: endpoint aggrega KPI di stato/priorità, andamento giornaliero, carico aperto per assignee e tempo medio risoluzione per utente; accessibile in lettura a ADMIN e STAKEHOLDER.
     \item \textbf{R12 (history)}: ogni evento significativo genera una entry append-only con timestamp, titolo evento, descrizione del cambiamento e attore (\texttt{changedBy}).
-    \item \textbf{R16 (duplicate)}: solo admin può marcare duplicate; vietati self-duplicate, issue non BUG e issue gi\`a RESOLVED/CLOSED; la duplicate viene chiusa e collegata all'originale.
+    \item \textbf{R15 (stakeholder)}: ruolo read-only attivo; lo stakeholder può consultare board/dettaglio/dashboard ma non può creare/modificare issue o commenti né gestire allegati.
+    \item \textbf{R16 (duplicate)}: solo admin può marcare duplicate; vietati self-duplicate e originali non aperte (RESOLVED/CLOSED); la duplicate viene chiusa e collegata all'originale.
 \end{itemize}
 
 \subsection{Requisiti di Sistema e Non-Funzionali}
@@ -170,50 +165,51 @@ Questa sezione dettaglia i vincoli architetturali e i requisiti di qualità rich
 \begin{tabularx}{\textwidth}{|l|X|X|X|}
     \hline
     \textbf{Categoria} & \textbf{Requisito qualitativo} & \textbf{Evidenza attuale in codebase} & \textbf{Indicatore / gap} \\ \hline
-    Sicurezza & Hardening input + controllo autorizzazioni su operazioni sensibili. & Hash password (\code{PasswordHasher}), check admin centralizzati, mapping errori uniforme, policy owner/admin su commenti e duplicate admin-only. & Mancano token firmati/session management forte e audit trail persistente cross-risorsa. \\ \hline
+    Sicurezza & Hardening input + controllo autorizzazioni su operazioni sensibili + session management. & Hash password (\code{PasswordHasher}), token Bearer firmati HMAC (\code{AuthTokenService}), sessioni server-side revocabili (\code{AuthSessionService}), filtro auth centralizzato (\code{AuthTokenRequestFilter}), policy owner/admin su commenti e duplicate admin-only. & In produzione è obbligatorio impostare \code{AUTH\_TOKEN\_SECRET}; suggerita rotazione periodica secret e audit trail persistente cross-risorsa. \\ \hline
     Affidabilità & Comportamento prevedibile in errore e in input invalidi (fail-fast). & Validazioni esplicite in resource/service, eccezioni mappate in HTTP coerenti, test negativi su auth/issue/comment. & Estendere regressione E2E su failure modes di infrastruttura (DB down, timeout, retry policy). \\ \hline
-    Usabilità & Ridurre attrito sui flussi frequenti e prevenire errori operatore. & UI con filtri custom, modali guidate, anteprima allegati, first-login obbligatorio username, feedback toast/error contextuali. & Migliorare accessibilità avanzata (WCAG: contrasto sistematico, focus management, ARIA su componenti custom). \\ \hline
+    Usabilità & Ridurre attrito sui flussi frequenti e prevenire errori operatore. & UI con filtri custom e debounce, modali guidate, anteprima allegati, first-login obbligatorio username, feedback toast/error contestuali, profilo stakeholder read-only. & Migliorare accessibilità avanzata (WCAG: contrasto sistematico, focus management, ARIA su componenti custom). \\ \hline
     Performance & Tempi di risposta adeguati in board/search/dashboard con dataset medio. & Debounce 300ms lato client, query aggregate dedicate dashboard, composizione Specification per filtri dinamici. & Definire SLO quantitativi (es. P95 ricerca) e monitorarli in ambiente integrato. \\ \hline
     Manutenibilità & Evoluzione incrementale con basso impatto regressivo. & Separazione layer Resource/Service/Repository/DTO, pattern Specification/State/Builder/DI, suite test service+model. & Aggiungere quality gate statici continui (analisi duplicazioni, code smell, security hotspots). \\ \hline
-    Portabilità \& Deploy & Riproducibilità ambiente e avvio consistente tra macchine. & Composizione frontend/backend/db separati, avvio containerizzato, configurazioni endpoint centralizzate. & Formalizzare pipeline CI/CD con ambienti stage/prod e controlli di configurazione per ambiente. \\ \hline
+    Portabilità \& Deploy & Riproducibilità ambiente e avvio consistente tra macchine. & Composizione frontend/backend/db separati, avvio containerizzato, configurazioni endpoint centralizzate, TTL sessione configurabile via env (\code{AUTH\_ACCESS\_TOKEN\_TTL\_MINUTES}). & Formalizzare pipeline CI/CD con ambienti stage/prod e controlli di configurazione (incluse variabili segrete) per ambiente. \\ \hline
 \end{tabularx}
 }
 
 \subsubsection*{Requisiti non-funzionali formalizzati (RNF)}
 \begin{itemize}
     \item \textbf{RNF\_01 -- Sicurezza credenziali}: nessuna password in chiaro persistita; hashing obbligatorio lato backend.
-    \item \textbf{RNF\_02 -- Coerenza errori API}: per ogni risorsa, errore serializzato con payload JSON uniforme e codice HTTP semantico.
-    \item \textbf{RNF\_03 -- Robustezza input}: ogni endpoint che accetta body/query/path valida precondizioni e rifiuta input non conforme.
-    \item \textbf{RNF\_04 -- Usabilità operativa}: i flussi principali (login, create issue, ricerca, commento, duplicate) devono essere eseguibili senza navigazione multi-pagina ridondante.
-    \item \textbf{RNF\_05 -- Osservabilità minima}: gli eventi amministrativi ad alto impatto sono loggati lato backend.
-    \item \textbf{RNF\_06 -- Modificabilità}: nuova regola di filtro o validazione deve richiedere modifica locale e test associato, senza refactor cross-layer massivo.
+    \item \textbf{RNF\_02 -- Session management}: autenticazione basata su token firmati + sessione server-side revocabile con scadenza; logout invalida la sessione corrente.
+    \item \textbf{RNF\_03 -- Coerenza errori API}: per ogni risorsa, errore serializzato con payload JSON uniforme e codice HTTP semantico.
+    \item \textbf{RNF\_04 -- Robustezza input}: ogni endpoint che accetta body/query/path valida precondizioni e rifiuta input non conforme.
+    \item \textbf{RNF\_05 -- Usabilità operativa}: i flussi principali (login, create/edit issue, ricerca, commento, duplicate) devono essere eseguibili senza navigazione multi-pagina ridondante.
+    \item \textbf{RNF\_06 -- Osservabilità minima}: gli eventi amministrativi ad alto impatto sono loggati lato backend.
+    \item \textbf{RNF\_07 -- Modificabilità}: nuova regola di filtro o validazione deve richiedere modifica locale e test associato, senza refactor cross-layer massivo.
 \end{itemize}
 
 \subsubsection*{Vincoli e assunzioni esplicite}
 \begin{itemize}
     \item Le notifiche evento-driven richieste in R4 e R6 non sono presenti nel perimetro implementato.
-    \item Il modello auth corrente è coerente con MVP API-first, ma non sostituisce un meccanismo token-based completo.
-    \item La modalità readonly stakeholder (R15) non è attiva nel ciclo corrente.
+    \item Il vincolo "solo admin può assegnare assignee" è enforced in UI ma non ancora hard-enforced lato API.
+    \item In ambiente di produzione va impostata una chiave segreta non di default (\code{AUTH\_TOKEN\_SECRET}) e vanno definiti TTL/rotazione in policy operativa.
 \end{itemize}
 
 \subsection{Casi d'Uso: Formalizzazione e Mockup}
 La formalizzazione Cockburn e i mockup UI richiesti dal punto 1.e della traccia sono stati prodotti come artefatti dedicati e mantenuti nei file di progetto esterni (cartelle mockup e sorgenti CASE). In questo capitolo si evita la duplicazione integrale di tali contenuti per mantenere allineamento e singola fonte di verità sugli elaborati grafici.
 
 \subsection{Avanzamento artefatti richiesti dalla traccia (stato corrente)}
-La traccia richiede anche artefatti che in parte vivono in file separati o saranno finalizzati in una consegna successiva. Di seguito la fotografia aggiornata su ciò che è già disponibile ora.
+La tabella seguente riassume lo stato degli artefatti richiesti dalla traccia rispetto alla versione corrente del repository.
 
 \noindent{\footnotesize
 \begin{tabularx}{\textwidth}{|X|X|l|}
     \hline
     \textbf{Artefatto richiesto in traccia} & \textbf{Evidenza disponibile in repository} & \textbf{Stato} \\ \hline
-    Specifica requisiti + target utenti + RNF & Sezione 1 del presente documento (\texttt{main.tex}). & Completato \\ \hline
-    Glossario & Sezione ``Glossario'' del presente documento (appena consolidata). & Completato \\ \hline
+    Specifica requisiti + target utenti + RNF & Sezione 1 del presente documento (\texttt{main.tex}), aggiornata a ruoli \texttt{USER/ADMIN/STAKEHOLDER}, token/session management e stato requisiti implementati. & Completato \\ \hline
+    Glossario & Sezione "Glossario" del presente documento, allineata ai termini tecnici correnti (incl. KPI, CRUD, debounce). & Completato \\ \hline
     Use Case Diagram (sorgente) & \texttt{Documentazione/Primo homework/ProgettoINGSWUseCases.vpp}. & Completato \\ \hline
     Formalizzazione Cockburn + mockup & Artefatti mantenuti in file/cartelle esterni dedicati (non duplicati qui): sorgenti CASE + cartelle mockup \texttt{\#1} e \texttt{\#2}. & Completato \\ \hline
-    Design classi/persistenza & Sezione ``Schema per la persistenza dati e Diagramma delle classi di design''. & Completato \\ \hline
-    Piano test e test automatici & Sezione ``Testing e Verifica'', suite Maven/JaCoCo e tabelle test-case. & Completato \\ \hline
+    Design classi/persistenza & Sezione "Schema per la persistenza dati e Diagramma delle classi di design". & Completato \\ \hline
+    Piano test e test automatici & Sezione "Testing e Verifica", suite Maven/JaCoCo e tabelle test-case. & Completato \\ \hline
     Evidenza versioning/statistiche repo & Non ancora allegata in forma finale in questa versione del documento. & Parziale \\ \hline
-    Report qualità backend (es. SonarQube) & Attualmente presenti quality gate, lint/build/test e coperture JaCoCo; report Sonar dedicato da produrre nel file successivo. & Parziale \\ \hline
+    Report qualità backend (es. SonarQube) & Presenti quality gate locali (lint/build/test) e copertura JaCoCo; report Sonar formalizzato da allegare come artefatto separato di consegna. & Parziale \\ \hline
 \end{tabularx}
 }
 
