@@ -27,6 +27,7 @@ public class AuthService {
    private static final String TEMP_PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
    private static final int TEMP_PASSWORD_LENGTH = 12;
    private static final String USER_NOT_FOUND_MESSAGE = "User not found.";
+   private static final String DASHBOARD_ACCESS_REQUIRED_MESSAGE = "Admin or stakeholder privileges required.";
 
    private final UserRepository userRepository;
    private final PasswordResetRequestRepository resetRequestRepository;
@@ -335,6 +336,19 @@ public class AuthService {
       
       if (!admin.isAdmin()) {
          throw new SecurityException("Admin privileges required.");
+      }
+   }
+
+   public void validateDashboardAccess(Long userId) {
+      if (userId == null) {
+         throw new SecurityException("Authentication required.");
+      }
+
+      User user = userRepository.findById(userId)
+            .orElseThrow(() -> new SecurityException(USER_NOT_FOUND_MESSAGE));
+
+      if (!user.isAdmin() && user.getRole() != UserRole.STAKEHOLDER) {
+         throw new SecurityException(DASHBOARD_ACCESS_REQUIRED_MESSAGE);
       }
    }
 

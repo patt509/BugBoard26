@@ -13,6 +13,7 @@ const ROLE_OPTIONS = [
 
 function RoleDropdown({ value, onChange, disabled = false }) {
   const [open, setOpen] = useState(false);
+  const [openUpward, setOpenUpward] = useState(false);
   const rootRef = useRef(null);
   const selectedOption = ROLE_OPTIONS.find((option) => option.value === value) || ROLE_OPTIONS[0];
 
@@ -31,6 +32,19 @@ function RoleDropdown({ value, onChange, disabled = false }) {
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [open]);
 
+  useEffect(() => {
+    if (!open || !rootRef.current) {
+      return;
+    }
+
+    const rect = rootRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const estimatedMenuHeight = Math.min(240, ROLE_OPTIONS.length * 44 + 12);
+
+    setOpenUpward(spaceBelow < estimatedMenuHeight && spaceAbove > spaceBelow);
+  }, [open]);
+
   return (
     <div ref={rootRef} className="relative min-w-0">
       <button
@@ -44,21 +58,27 @@ function RoleDropdown({ value, onChange, disabled = false }) {
       </button>
 
       {open && !disabled && (
-        <div className="absolute left-0 top-[calc(100%+8px)] z-20 w-full rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl">
-          {ROLE_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => {
-                onChange(option.value);
-                setOpen(false);
-              }}
-              className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100"
-            >
-              <span>{option.label}</span>
-              {value === option.value && <Check className="h-4 w-4 text-blue-600" />}
-            </button>
-          ))}
+        <div
+          className={`absolute left-0 z-20 w-full rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl ${
+            openUpward ? 'bottom-[calc(100%+8px)]' : 'top-[calc(100%+8px)]'
+          }`}
+        >
+          <div className="max-h-60 overflow-y-auto">
+            {ROLE_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100"
+              >
+                <span>{option.label}</span>
+                {value === option.value && <Check className="h-4 w-4 text-blue-600" />}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

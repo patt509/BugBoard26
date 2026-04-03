@@ -5,11 +5,17 @@ function Sidebar({ currentPage, onNavigate, userRole }) {
   const [isOpen, setIsOpen] = useState(false);
   const normalizedRole = String(userRole ?? '').trim().toUpperCase();
   const isAdmin = normalizedRole === 'ADMIN' || normalizedRole === 'ADMINISTRATOR';
+  const isStakeholder = normalizedRole === 'STAKEHOLDER';
+  const canAccessDashboard = isAdmin || isStakeholder;
 
   const menuItems = [
-    ...(isAdmin
+    ...(canAccessDashboard
       ? [
           { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        ]
+      : []),
+    ...(isAdmin
+      ? [
           { id: 'create-user', label: 'Create User', icon: UserPlus },
         ]
       : []),

@@ -38,8 +38,10 @@ import jakarta.ws.rs.core.Response;
  * - POST /issues - Create new issue
  * - PATCH /issues/{id}/status - Update issue status
  * 
- * Admin-only endpoints:
+ * Admin/Stakeholder endpoint (read-only):
  * - GET /issues/admin/dashboard - Real-time statistics dashboard
+ *
+ * Admin-only endpoint:
  * - POST /issues/{id}/duplicate/{originalId} - Mark as duplicate
  */
 @Path("/issues")
@@ -235,18 +237,18 @@ public class IssueResource {
       }
    }
 
-   // ==================== ADMIN-ONLY ENDPOINTS ====================
+   // ==================== DASHBOARD ENDPOINT (ADMIN + STAKEHOLDER) ====================
 
    /**
     * Get real-time dashboard statistics.
-    * Only accessible by administrators.
+    * Accessible by administrators and stakeholders.
     */
    @GET
    @Path("/admin/dashboard")
-   public Response getDashboardStats(@HeaderParam("X-User-Id") Long adminId) {
+   public Response getDashboardStats(@HeaderParam("X-User-Id") Long userId) {
       try {
-         // Validate admin privileges via AuthService
-         authService.validateAdminPrivileges(adminId);
+         // Validate dashboard access via AuthService
+         authService.validateDashboardAccess(userId);
 
          DashboardStatsDTO stats = issueService.getDashboardStats();
          return Response.ok(stats).build();

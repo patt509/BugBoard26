@@ -8,7 +8,7 @@ package com.bugboard.dto;
 public class CreateUserRequest {
    private String email;
    private String password;
-   private String role; // "USER" or "ADMIN"
+   private String role; // "USER", "ADMIN", or "STAKEHOLDER"
 
    public CreateUserRequest() {
    }

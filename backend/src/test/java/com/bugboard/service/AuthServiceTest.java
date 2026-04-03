@@ -784,6 +784,52 @@ public class AuthServiceTest {
 
    /* _________________________________________________________________________ */
 
+   /* Test on validateDashboardAccess method */
+
+   /**
+    * TC1: Success scenario - Admin can access dashboard.
+    * Expected Output: No exception thrown.
+    */
+   @Test
+   public void testValidateDashboardAccess_TC1_AdminAllowed() {
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+
+      authService.validateDashboardAccess(1L);
+   }
+
+   /**
+    * TC2: Success scenario - Stakeholder can access dashboard.
+    * Expected Output: No exception thrown.
+    */
+   @Test
+   public void testValidateDashboardAccess_TC2_StakeholderAllowed() {
+      when(userRepository.findById(3L)).thenReturn(Optional.of(stakeholderUser));
+
+      authService.validateDashboardAccess(3L);
+   }
+
+   /**
+    * TC3: Failure scenario - Null user ID.
+    * Expected Output: SecurityException.
+    */
+   @Test(expected = SecurityException.class)
+   public void testValidateDashboardAccess_TC3_NullUserId() {
+      authService.validateDashboardAccess(null);
+   }
+
+   /**
+    * TC4: Failure scenario - Regular user cannot access dashboard.
+    * Expected Output: SecurityException.
+    */
+   @Test(expected = SecurityException.class)
+   public void testValidateDashboardAccess_TC4_RegularUserForbidden() {
+      when(userRepository.findById(2L)).thenReturn(Optional.of(normalUser));
+
+      authService.validateDashboardAccess(2L);
+   }
+
+   /* _________________________________________________________________________ */
+
    /* Test on validateWritableUser method */
 
    /**

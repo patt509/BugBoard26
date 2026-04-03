@@ -25,6 +25,7 @@ const getInitialTheme = () => {
 
 const isAdminRole = (role) => String(role ?? '').trim().toUpperCase().includes('ADMIN');
 const isStakeholderRole = (role) => String(role ?? '').trim().toUpperCase() === 'STAKEHOLDER';
+const canAccessDashboardRole = (role) => isAdminRole(role) || isStakeholderRole(role);
 
 function App() {
   const [user, setUser] = useState(null);
@@ -73,7 +74,12 @@ function App() {
   }, [clearLocalSession]);
 
   useEffect(() => {
-    if ((currentView === 'dashboard' || currentView === 'create-user') && !isAdminRole(user?.role)) {
+    if (currentView === 'create-user' && !isAdminRole(user?.role)) {
+      setCurrentView('issues');
+      return;
+    }
+
+    if (currentView === 'dashboard' && !canAccessDashboardRole(user?.role)) {
       setCurrentView('issues');
     }
   }, [currentView, user]);
@@ -200,7 +206,7 @@ function App() {
       return;
     }
 
-    if (page === 'dashboard' && isAdminRole(user?.role)) {
+    if (page === 'dashboard' && canAccessDashboardRole(user?.role)) {
       setCurrentView('dashboard');
       setSelectedIssueId(null);
       setEditingIssue(null);
@@ -278,7 +284,7 @@ function App() {
         onToggleTheme={handleToggleTheme}
       />
     );
-  } else if (currentView === 'dashboard' && isAdminRole(user?.role)) {
+  } else if (currentView === 'dashboard' && canAccessDashboardRole(user?.role)) {
     pageContent = (
       <AdminDashboard
         user={user}
