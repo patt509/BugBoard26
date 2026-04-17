@@ -24,3 +24,7 @@ backend/uploads/
 codebase*
 .copilot
 org.*
+
+# Local secrets
+.env
+.env.*

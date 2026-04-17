@@ -27,7 +27,7 @@ services:
       DB_USER: postgres
       DB_PASSWORD: postgres
       BUGBOARD_ATTACHMENTS_DIR: /opt/payara/uploads/attachments
-      AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET}
+      AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:-dev-local-secret-change-me}
       AUTH_ACCESS_TOKEN_TTL_MINUTES: ${AUTH_ACCESS_TOKEN_TTL_MINUTES:-480}
     ports:
       - "8080:8080"
@@ -69,6 +69,37 @@ services:
       postgres_sonar:
         condition: service_healthy
 
+  sonar-scanner:
+    image: maven:3.9-eclipse-temurin-17
+    container_name: bugboard-sonar-scanner
+    working_dir: /workspace/backend
+    environment:
+      SONAR_TOKEN: ${SONAR_TOKEN:-__MISSING_SONAR_TOKEN__}
+    volumes:
+      - ./backend:/workspace/backend
+      - maven_repo:/root/.m2
+    depends_on:
+      - sonarqube
+    networks:
+      - bugboard-network
+    command: >
+      /bin/sh -lc '
+      set -e;
+      echo "Waiting for SonarQube to be ready...";
+      until curl -sSf "http://sonarqube:9000/api/system/status" | grep -q "\"status\":\"UP\""; do
+        sleep 5;
+      done;
+      if [ "$$SONAR_TOKEN" = "__MISSING_SONAR_TOKEN__" ]; then
+        echo "SONAR_TOKEN is missing. Set SONAR_TOKEN in your .env file.";
+        exit 1;
+      fi;
+      mvn -B clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+        -Dsonar.host.url=http://sonarqube:9000 \
+        -Dsonar.projectKey=bugboard-backend \
+        -Dsonar.projectName=bugboard-backend \
+        -Dsonar.token=$$SONAR_TOKEN;
+      '
+
   postgres_sonar:
     image: postgres:15-alpine
     container_name: bugboard-sonar-db
@@ -96,3 +127,4 @@ volumes:
   sonarqube_data:
   sonarqube_logs:
   sonarqube_extensions:
+  maven_repo:
