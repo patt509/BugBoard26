@@ -908,6 +908,47 @@ public class IssueServiceTest {
       issueService.archiveIssue(10L, 1L);
    }
 
+   /**
+    * TC36f: unarchiveIssue succeeds for admins.
+    */
+   @Test
+   public void testUnarchiveIssue_TC36f_AdminCanUnarchive() {
+      Issue issue = spy(new Issue("Issue title to unarchive", "Desc", reporter, IssueType.BUG));
+      issue.archive();
+
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+      when(repository.findById(10L)).thenReturn(issue);
+
+      issueService.unarchiveIssue(10L, 1L);
+
+      assertFalse("PostCond failed: issue should not be archived", issue.isArchived());
+      assertNull("PostCond failed: archivedAt should be null", issue.getArchivedAt());
+      verify(repository).save(issue);
+   }
+
+   /**
+    * TC36g: unarchiveIssue fails when user is not admin.
+    */
+   @Test(expected = SecurityException.class)
+   public void testUnarchiveIssue_TC36g_NonAdminCannotUnarchive() {
+      when(userRepository.findById(2L)).thenReturn(Optional.of(normalUser));
+
+      issueService.unarchiveIssue(10L, 2L);
+   }
+
+   /**
+    * TC36h: unarchiveIssue fails when issue is not archived.
+    */
+   @Test(expected = IllegalStateException.class)
+   public void testUnarchiveIssue_TC36h_NotArchived() {
+      Issue issue = spy(new Issue("Issue not archived", "Desc", reporter, IssueType.BUG));
+
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+      when(repository.findById(10L)).thenReturn(issue);
+
+      issueService.unarchiveIssue(10L, 1L);
+   }
+
    // ==================== getIssueById TESTS ====================
 
    /**
