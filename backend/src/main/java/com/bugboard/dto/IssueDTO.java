@@ -14,6 +14,8 @@ public class IssueDTO {
    private LocalDateTime closedAt;
    private String attachmentPath;
    private Long originalIssueId; // If this issue is a duplicate, reference to original
+   private Boolean archived;
+   private LocalDateTime archivedAt;
    private String type;
    private String assigneeUsername;
    private Long assigneeId;
@@ -33,6 +35,8 @@ public class IssueDTO {
       this.closedAt = builder.closedAt;
       this.attachmentPath = builder.attachmentPath;
       this.originalIssueId = builder.originalIssueId;
+      this.archived = builder.archived;
+      this.archivedAt = builder.archivedAt;
       this.type = builder.type;
       this.assigneeUsername = builder.assigneeUsername;
       this.assigneeId = builder.assigneeId;
@@ -54,6 +58,8 @@ public class IssueDTO {
       private LocalDateTime closedAt;
       private String attachmentPath;
       private Long originalIssueId;
+      private Boolean archived;
+      private LocalDateTime archivedAt;
       private String type;
       private String assigneeUsername;
       private Long assigneeId;
@@ -110,6 +116,16 @@ public class IssueDTO {
 
       public Builder originalIssueId(Long originalIssueId) {
          this.originalIssueId = originalIssueId;
+         return this;
+      }
+
+      public Builder archived(Boolean archived) {
+         this.archived = archived;
+         return this;
+      }
+
+      public Builder archivedAt(LocalDateTime archivedAt) {
+         this.archivedAt = archivedAt;
          return this;
       }
 
@@ -178,6 +194,14 @@ public class IssueDTO {
       return originalIssueId;
    }
 
+   public Boolean getArchived() {
+      return archived;
+   }
+
+   public LocalDateTime getArchivedAt() {
+      return archivedAt;
+   }
+
    public String getType() {
       return type;
    }
@@ -233,6 +257,14 @@ public class IssueDTO {
 
    public void setOriginalIssueId(Long originalIssueId) {
       this.originalIssueId = originalIssueId;
+   }
+
+   public void setArchived(Boolean archived) {
+      this.archived = archived;
+   }
+
+   public void setArchivedAt(LocalDateTime archivedAt) {
+      this.archivedAt = archivedAt;
    }
 
    public void setType(String type) {

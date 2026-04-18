@@ -59,6 +59,9 @@ public class Issue {
    private LocalDateTime createdAt;
    private LocalDateTime updatedAt;
    private LocalDateTime closedAt;
+   @Column(nullable = false)
+   private boolean archived;
+   private LocalDateTime archivedAt;
    private String attachmentPath; // Requisito 7
 
    protected Issue() {
@@ -89,6 +92,7 @@ public class Issue {
       // Initialize default values
       this.status = IssueStatus.TODO;
       this.priority = PriorityLevel.MEDIUM;
+      this.archived = false;
       this.createdAt = LocalDateTime.now();
       this.updatedAt = LocalDateTime.now();
    }
@@ -194,6 +198,24 @@ public class Issue {
       return closedAt;
    }
 
+   public boolean isArchived() {
+      return archived;
+   }
+
+   public void setArchived(boolean archived) {
+      this.archived = archived;
+      if (!archived) {
+         this.archivedAt = null;
+      } else if (this.archivedAt == null) {
+         this.archivedAt = LocalDateTime.now();
+      }
+      this.updatedAt = LocalDateTime.now();
+   }
+
+   public LocalDateTime getArchivedAt() {
+      return archivedAt;
+   }
+
    // 4. OTHER METHODS
    public void markAsDuplicateOf(Issue original) {
       if (original == null) {
@@ -214,5 +236,14 @@ public class Issue {
 
       // Keep track of when the issue was closed
       this.closedAt = LocalDateTime.now();
+   }
+
+   public void archive() {
+      if (this.archived) {
+         throw new IllegalStateException("Issue is already archived.");
+      }
+      this.archived = true;
+      this.archivedAt = LocalDateTime.now();
+      this.updatedAt = LocalDateTime.now();
    }
 }
