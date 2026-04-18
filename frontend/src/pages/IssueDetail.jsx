@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ArrowLeft, Download, Flag, Edit, ChevronDown, Send, AlertCircle, X, CheckCircle, Search, Upload, Paperclip } from 'lucide-react';
+import { ArrowLeft, Archive, Download, Flag, Edit, ChevronDown, Send, AlertCircle, X, CheckCircle, Search, Upload, Paperclip } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import ThemeToggle from '../components/ThemeToggle';
 import UserIdentity from '../components/UserIdentity';
@@ -168,12 +168,13 @@ function IssueDetail({
   onBack,
   onEditIssue,
   onNavigate,
+  listSource = 'issues',
   successMessage,
   onDismissSuccess,
   isDarkMode,
   onToggleTheme
 }) {
-  const currentPage = 'issues';
+  const currentPage = listSource === 'archived' ? 'archived' : 'issues';
   const [issue, setIssue] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
@@ -194,7 +195,9 @@ function IssueDetail({
   const [selectedOriginalIssue, setSelectedOriginalIssue] = useState(null);
   const [duplicateSearchQuery, setDuplicateSearchQuery] = useState('');
   const [flaggingDuplicate, setFlaggingDuplicate] = useState(false);
+  const [archivingIssue, setArchivingIssue] = useState(false);
   const [duplicateSuccess, setDuplicateSuccess] = useState(null);
+  const [archiveSuccess, setArchiveSuccess] = useState(null);
   const [issueHistory, setIssueHistory] = useState([]);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -203,6 +206,7 @@ function IssueDetail({
   const normalizedRole = resolveCurrentUserRole(user).trim().toUpperCase();
   const isAdminUser = normalizedRole.includes('ADMIN');
   const isStakeholderUser = normalizedRole === 'STAKEHOLDER';
+  const issueIsArchived = issue?.archived === true;
   const canWriteIssue = !isStakeholderUser;
 
   useEffect(() => {
@@ -259,13 +263,14 @@ function IssueDetail({
 
   // Auto-dismiss duplicate success message
   useEffect(() => {
-    if (duplicateSuccess) {
+    if (duplicateSuccess || archiveSuccess) {
       const timer = setTimeout(() => {
         setDuplicateSuccess(null);
+        setArchiveSuccess(null);
       }, 4000);
       return () => clearTimeout(timer);
     }
-  }, [duplicateSuccess]);
+  }, [archiveSuccess, duplicateSuccess]);
 
   useEffect(() => {
     if (!previewAttachment) {
@@ -361,7 +366,7 @@ function IssueDetail({
   const handleSubmitComment = async (e) => {
     e.preventDefault();
     if (!canWriteIssue) {
-      setError("Stakeholder accounts are read-only.");
+      setError('Stakeholder accounts are read-only.');
       return;
     }
     if (!newComment.trim()) return;
@@ -439,9 +444,46 @@ function IssueDetail({
     }
   };
 
+  const handleArchiveIssue = async () => {
+    if (!isAdminUser || !issue) {
+      return;
+    }
+
+    if (currentUserId == null) {
+      setError('User not authenticated. Please login again.');
+      return;
+    }
+
+    const action = issueIsArchived ? 'unarchive' : 'archive';
+
+    try {
+      setArchivingIssue(true);
+
+      if (issueIsArchived) {
+        await issueService.unarchive(issue.id, currentUserId);
+      } else {
+        await issueService.archive(issue.id, currentUserId);
+      }
+
+      setShowDuplicateModal(false);
+      duplicateCandidatesCacheRef.current = null;
+      setArchiveSuccess({
+        issueId: issue.id,
+        issueTitle: issue.title,
+        action
+      });
+      await fetchIssueData();
+    } catch (err) {
+      console.error('Error ' + action + 'ing issue:', err);
+      setError(err.message || (issueIsArchived ? 'Failed to unarchive issue' : 'Failed to archive issue'));
+    } finally {
+      setArchivingIssue(false);
+    }
+  };
+
   // Handle Flag as Duplicate button click
   const handleFlagDuplicateClick = async () => {
-    if (!isAdminUser) {
+    if (!isAdminUser || issueIsArchived) {
       return;
     }
 
@@ -670,6 +712,13 @@ function IssueDetail({
               <div className="relative">
                 <h1 className="text-2xl font-bold text-gray-900">
                   Issue #{issue?.id}: {issue?.title}
+                  {issueIsArchived && (
+                    <span
+                      className={`ml-3 inline-flex items-center rounded-full px-2.5 py-0.5 align-middle text-xs font-semibold uppercase tracking-wide ${isDarkMode ? 'border border-slate-300 bg-slate-200 text-slate-900' : 'bg-slate-200 text-slate-700'}`}
+                    >
+                      Archived
+                    </span>
+                  )}
                 </h1>
                 {/* DUPLICATE Stamp Overlay on Title */}
                 {issue?.originalIssueId && (
@@ -724,12 +773,21 @@ function IssueDetail({
                 </button>
                 <button
                   onClick={handleFlagDuplicateClick}
-                  disabled={!isAdminUser}
-                  title={!isAdminUser ? 'Only admins can flag duplicates' : 'Flag this issue as duplicate'}
+                  disabled={!isAdminUser || issueIsArchived}
+                  title={!isAdminUser ? 'Only admins can flag duplicates' : (issueIsArchived ? 'Archived issues cannot be flagged as duplicate' : 'Flag this issue as duplicate')}
                   className="flex items-center gap-2 rounded-lg border border-gray-300 bg-transparent px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Flag className="w-4 h-4" />
                   Flag as Duplicate
+                </button>
+                <button
+                  onClick={handleArchiveIssue}
+                  disabled={!isAdminUser || archivingIssue}
+                  title={!isAdminUser ? 'Only admins can archive/unarchive issues' : (issueIsArchived ? 'Remove issue from archive and restore it to main board' : 'Archive issue')}
+                  className="flex items-center gap-2 rounded-lg border border-gray-300 bg-transparent px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Archive className="w-4 h-4" />
+                  {archivingIssue ? (issueIsArchived ? 'Unarchiving...' : 'Archiving...') : (issueIsArchived ? 'Unarchive Issue' : 'Archive Issue')}
                 </button>
 
                 {/* Status Dropdown */}
@@ -1065,6 +1123,15 @@ function IssueDetail({
                     </span>
                   </div>
 
+                  {issueIsArchived && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500">Archived</span>
+                      <span className="text-sm text-gray-900" title={formatDateTime(issue?.archivedAt || issue?.updatedAt)}>
+                        {formatTimeAgo(issue?.archivedAt || issue?.updatedAt)}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Original Issue (if duplicate) */}
                   {issue?.originalIssueId && (
                     <div className="flex items-center justify-between">
@@ -1095,7 +1162,7 @@ function IssueDetail({
         </div>
 
         {/* Overlay Notifications */}
-        {(duplicateSuccess || successMessage || (error && issue)) && (
+        {(duplicateSuccess || archiveSuccess || successMessage || (error && issue)) && (
           <div className="pointer-events-none fixed inset-x-0 top-6 z-50 flex flex-col items-center gap-3 px-4">
             {duplicateSuccess && (
               <div className="pointer-events-auto w-full max-w-3xl animate-toast-down rounded-lg border border-green-300 bg-green-100 px-4 py-3 shadow-lg">
@@ -1106,6 +1173,23 @@ function IssueDetail({
                   </span>
                   <button
                     onClick={() => setDuplicateSuccess(null)}
+                    className="text-green-600 hover:text-green-800"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {archiveSuccess && (
+              <div className="pointer-events-auto w-full max-w-3xl animate-toast-down rounded-lg border border-green-300 bg-green-100 px-4 py-3 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <span className="flex-1 text-green-800 font-medium">
+                    Issue #{archiveSuccess.issueId} '{archiveSuccess.issueTitle}' {archiveSuccess.action === 'unarchive' ? 'restored to the main board successfully.' : 'archived successfully.'}
+                  </span>
+                  <button
+                    onClick={() => setArchiveSuccess(null)}
                     className="text-green-600 hover:text-green-800"
                   >
                     <X className="h-5 w-5" />

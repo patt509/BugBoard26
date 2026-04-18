@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bug, LayoutDashboard, ListTodo, Menu, UserPlus, X } from 'lucide-react';
+import { Archive, Bug, LayoutDashboard, ListTodo, Menu, UserPlus, X } from 'lucide-react';
 
 function Sidebar({ currentPage, onNavigate, userRole }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -19,7 +19,8 @@ function Sidebar({ currentPage, onNavigate, userRole }) {
           { id: 'create-user', label: 'Create User', icon: UserPlus },
         ]
       : []),
-    { id: 'issues', label: 'Issues', icon: ListTodo }
+    { id: 'issues', label: 'Issues', icon: ListTodo },
+    { id: 'archived', label: 'Archived', icon: Archive }
   ];
 
   const handleNavigate = (pageId) => {

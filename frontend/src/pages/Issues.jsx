@@ -766,7 +766,7 @@ function Issues({
                       <tr 
                         key={issue.id} 
                         className={`cursor-pointer transition-colors ${rowClassName}`}
-                        onClick={() => onIssueClick && onIssueClick(issue.id)}
+                        onClick={() => onIssueClick && onIssueClick(issue.id, 'issues')}
                       >
                         <td className={`px-6 py-4 whitespace-nowrap border-l-4 text-sm font-medium ${
                           isCompletedIssue ? 'border-l-slate-700 text-slate-700' : 'border-l-transparent text-gray-900'

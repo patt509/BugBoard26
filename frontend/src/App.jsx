@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Login from './pages/Login';
 import Issues from './pages/Issues';
+import ArchivedIssues from './pages/ArchivedIssues';
 import CreateIssue from './pages/CreateIssue';
 import IssueDetail from './pages/IssueDetail';
 import AdminDashboard from './pages/AdminDashboard';
@@ -31,6 +32,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentView, setCurrentView] = useState('issues');
+  const [issueListView, setIssueListView] = useState('issues');
   const [selectedIssueId, setSelectedIssueId] = useState(null);
   const [editingIssue, setEditingIssue] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
@@ -43,6 +45,7 @@ function App() {
     localStorage.removeItem('accessTokenExpiresAt');
     setUser(null);
     setCurrentView('issues');
+    setIssueListView('issues');
     setSelectedIssueId(null);
     setEditingIssue(null);
   }, []);
@@ -189,18 +192,34 @@ function App() {
   };
 
   const handleIssueClick = (issueId) => {
+    setIssueListView('issues');
+    setSelectedIssueId(issueId);
+    setCurrentView('detail');
+  };
+
+  const handleArchivedIssueClick = (issueId) => {
+    setIssueListView('archived');
     setSelectedIssueId(issueId);
     setCurrentView('detail');
   };
 
   const handleBackFromDetail = () => {
     setSelectedIssueId(null);
-    setCurrentView('issues');
+    setCurrentView(issueListView === 'archived' ? 'archived' : 'issues');
   };
 
   const handleSidebarNavigate = (page) => {
     if (page === 'issues') {
       setCurrentView('issues');
+      setIssueListView('issues');
+      setSelectedIssueId(null);
+      setEditingIssue(null);
+      return;
+    }
+
+    if (page === 'archived') {
+      setCurrentView('archived');
+      setIssueListView('archived');
       setSelectedIssueId(null);
       setEditingIssue(null);
       return;
@@ -278,8 +297,20 @@ function App() {
         onBack={handleBackFromDetail}
         onEditIssue={handleEditIssue}
         onNavigate={handleSidebarNavigate}
+        listSource={issueListView}
         successMessage={successMessage}
         onDismissSuccess={() => setSuccessMessage(null)}
+        isDarkMode={theme === 'dark'}
+        onToggleTheme={handleToggleTheme}
+      />
+    );
+  } else if (currentView === 'archived') {
+    pageContent = (
+      <ArchivedIssues
+        user={user}
+        onLogout={handleLogout}
+        onIssueClick={handleArchivedIssueClick}
+        onNavigate={handleSidebarNavigate}
         isDarkMode={theme === 'dark'}
         onToggleTheme={handleToggleTheme}
       />
