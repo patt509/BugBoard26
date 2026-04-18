@@ -34,6 +34,7 @@ import jakarta.ws.rs.core.Response;
  * Public endpoints (all authenticated users):
  * - GET /issues - View all issues on the board
  * - GET /issues/search - Search with filters
+ * - GET /issues/archived - View archived issues in dedicated page
  * - GET /issues/{id} - View single issue details
  * - POST /issues - Create new issue
  * - PATCH /issues/{id}/status - Update issue status
@@ -42,6 +43,7 @@ import jakarta.ws.rs.core.Response;
  * - GET /issues/admin/dashboard - Real-time statistics dashboard
  *
  * Admin-only endpoint:
+ * - POST /issues/{id}/archive - Archive an issue
  * - POST /issues/{id}/duplicate/{originalId} - Mark as duplicate
  */
 @Path("/issues")
@@ -75,6 +77,21 @@ public class IssueResource {
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error retrieving all issues", e);
          return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error retrieving issues");
+      }
+   }
+
+   /**
+    * Get archived issues for dedicated archive page.
+    */
+   @GET
+   @Path("/archived")
+   public Response getArchivedIssues() {
+      try {
+         List<IssueDTO> issues = issueService.getArchivedIssues();
+         return Response.ok(issues).build();
+      } catch (Exception e) {
+         logger.log(Level.SEVERE, "Error retrieving archived issues", e);
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error retrieving archived issues");
       }
    }
 
@@ -290,6 +307,32 @@ public class IssueResource {
                "Error processing duplicate request for duplicateId=%d, originalId=%d",
                duplicateId, originalId), e);
          return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
+      }
+   }
+
+   /**
+    * Archive an issue.
+    * Only accessible by administrators.
+    */
+   @POST
+   @Path("/{id}/archive")
+   public Response archiveIssue(
+         @HeaderParam("X-User-Id") Long adminId,
+         @PathParam("id") Long id) {
+      try {
+         issueService.archiveIssue(id, adminId);
+         return Response.ok(Map.of(
+               MESSAGE_KEY, "Issue archived successfully",
+               "id", id)).build();
+      } catch (SecurityException e) {
+         return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
+      } catch (IllegalArgumentException e) {
+         return ApiResponses.error(Response.Status.NOT_FOUND, e.getMessage());
+      } catch (IllegalStateException e) {
+         return ApiResponses.error(Response.Status.CONFLICT, e.getMessage());
+      } catch (Exception e) {
+         logger.log(Level.SEVERE, "Error archiving issue", e);
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error archiving issue");
       }
    }
 
