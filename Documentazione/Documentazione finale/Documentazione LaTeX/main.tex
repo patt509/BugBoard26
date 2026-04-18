@@ -211,7 +211,8 @@ La tabella seguente riassume lo stato degli artefatti richiesti dalla traccia ri
     Design classi/persistenza & Sezione "Schema per la persistenza dati e Diagramma delle classi di design". & Completato \\ \hline
     Piano test e test automatici & Sezione "Testing e Verifica", suite Maven/JaCoCo e tabelle test-case. & Completato \\ \hline
     Evidenza versioning/statistiche repo & Non ancora allegata in forma finale in questa versione del documento. & Parziale \\ \hline
-    Report qualità backend (es. SonarQube) & Presenti quality gate locali (lint/build/test) e copertura JaCoCo; report Sonar formalizzato da allegare come artefatto separato di consegna. & Parziale \\ \hline
+    Report qualità backend (es. SonarQube) & Pipeline SonarQube locale via Docker Compose (
+    \code{sonarqube}, \code{postgres\_sonar}, \code{sonar-scanner}), con report pubblicato su \texttt{http://localhost:9000} (project key \code{bugboard-backend}); procedura documentata nella sezione "Quality Gate Finale". & Completato \\ \hline
 \end{tabularx}
 }
 
@@ -1031,6 +1032,8 @@ La suite di test è stata progettata seguendo un approccio di \textbf{White Box 
     \item \textbf{Maven}: Build tool utilizzato per compilazione, esecuzione dei test e gestione delle dipendenze. I test vengono eseguiti durante la fase di build con il plugin Surefire.
     
     \item \textbf{JaCoCo (Java Code Coverage)}: Tool per misurare la copertura di codice durante l'esecuzione dei test. Genera report dettagliati (in formato HTML) indicando quali linee di codice e rami decisionali sono stati testati.
+
+    \item \textbf{SonarQube}: Piattaforma di analisi statica del codice usata come quality gate addizionale su backend, eseguita in locale tramite i servizi Docker Compose \code{sonarqube}/\code{postgres\_sonar}/\code{sonar-scanner}.
 \end{itemize}
 
 \subsubsection{Strategie di Progettazione dei Test}
@@ -1100,7 +1103,20 @@ Per la regressione finale del ciclo hardening+MVP sono stati eseguiti i seguenti
     \item \textbf{Backend unit test}: \code{docker run ... maven:3.9.11-eclipse-temurin-21 mvn -q test} $\rightarrow$ \textbf{PASS} (\code{tests=161, failures=0, errors=0, skipped=0}).
     \item \textbf{Frontend build produzione}: \code{docker run ... node:20 npm run build} $\rightarrow$ \textbf{PASS}.
     \item \textbf{Frontend lint}: \code{docker run ... node:20 npm run lint} $\rightarrow$ \textbf{PASS}.
+    \item \textbf{Backend static analysis (SonarQube)}: gate disponibile tramite servizio \code{sonar-scanner}, avviabile con \code{docker compose up sonar-scanner --force-recreate} (richiede \code{SONAR\_TOKEN}), con pubblicazione su \texttt{http://localhost:9000} nel progetto \code{bugboard-backend}.
 \end{itemize}
+
+\paragraph{Setup operativo SonarQube (locale)}
+La catena SonarQube è completamente containerizzata e integrata nel file \code{docker-compose.yml}.\
+Configurazione consigliata:
+\begin{enumerate}
+    \item Avviare una prima volta i servizi SonarQube e database dedicato: \code{docker compose up -d sonarqube postgres\_sonar}.
+    \item Accedere a \texttt{http://localhost:9000} (login iniziale \texttt{admin/admin}) e generare un token personale in \texttt{My Account -> Security}.
+    \item Inserire in \code{.env} almeno le variabili: \code{SONAR\_TOKEN}, \code{AUTH\_TOKEN\_SECRET}, \code{AUTH\_ACCESS\_TOKEN\_TTL\_MINUTES}.
+    \item Eseguire lo stack completo con \code{docker compose up --build} oppure rilanciare solo l'analisi con \code{docker compose up sonar-scanner --force-recreate}.
+\end{enumerate}
+
+\noindent Se \code{SONAR\_TOKEN} non è valorizzato, il servizio \code{sonar-scanner} termina con errore esplicito e non pubblica alcuna analisi.
 
 \noindent Nota di compatibilità emersa in verifica: una prima esecuzione backend su immagine Java 24 ha evidenziato incompatibilità strumentali (\texttt{ByteBuddy/JaCoCo} su class file major version 68). Il gate ufficiale del progetto è stato quindi fissato su runtime \texttt{Temurin 21}, coerente con toolchain test attuale.
 
