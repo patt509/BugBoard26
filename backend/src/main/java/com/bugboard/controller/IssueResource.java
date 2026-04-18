@@ -44,6 +44,7 @@ import jakarta.ws.rs.core.Response;
  *
  * Admin-only endpoint:
  * - POST /issues/{id}/archive - Archive an issue
+ * - POST /issues/{id}/unarchive - Remove issue archiving
  * - POST /issues/{id}/duplicate/{originalId} - Mark as duplicate
  */
 @Path("/issues")
@@ -333,6 +334,33 @@ public class IssueResource {
       } catch (Exception e) {
          logger.log(Level.SEVERE, "Error archiving issue", e);
          return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error archiving issue");
+      }
+   }
+
+
+   /**
+    * Unarchive an issue and restore it to the main board.
+    * Only accessible by administrators.
+    */
+   @POST
+   @Path("/{id}/unarchive")
+   public Response unarchiveIssue(
+         @HeaderParam("X-User-Id") Long adminId,
+         @PathParam("id") Long id) {
+      try {
+         issueService.unarchiveIssue(id, adminId);
+         return Response.ok(Map.of(
+               MESSAGE_KEY, "Issue unarchived successfully",
+               "id", id)).build();
+      } catch (SecurityException e) {
+         return ApiResponses.error(Response.Status.FORBIDDEN, e.getMessage());
+      } catch (IllegalArgumentException e) {
+         return ApiResponses.error(Response.Status.NOT_FOUND, e.getMessage());
+      } catch (IllegalStateException e) {
+         return ApiResponses.error(Response.Status.CONFLICT, e.getMessage());
+      } catch (Exception e) {
+         logger.log(Level.SEVERE, "Error unarchiving issue", e);
+         return ApiResponses.error(Response.Status.INTERNAL_SERVER_ERROR, "Error unarchiving issue");
       }
    }
 

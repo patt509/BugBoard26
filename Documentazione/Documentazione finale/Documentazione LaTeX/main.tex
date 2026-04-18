@@ -126,13 +126,14 @@ La seguente sezione formalizza i requisiti funzionali assegnati/implementati nel
     R7 & Dashboard con metriche aggregate, assegnazioni per utente, tempi medi. & \code{GET /issues/admin/dashboard}, \code{IssueService.getDashboardStats}, metriche \code{issuesAssignedPerUser} e \code{avgResolutionTimeHoursPerUser}; accesso ADMIN/STAKEHOLDER in sola lettura. & Implementato \\ \hline
     R11 & Ricerca bug per parole chiave. & Filtro testuale su titolo/descrizione/reporter in \code{IssueRepository.search}. & Implementato \\ \hline
     R12 & Cronologia modifiche bug con autore e timestamp. & \code{IssueHistoryEntry} con \code{changedBy}/\code{createdAt}, endpoint \code{GET /issues/\{id\}/history}, popolamento da service su eventi principali. & Implementato \\ \hline
+    R13 & Archiviazione bug: rimozione dalle liste principali e consultazione su pagina dedicata; solo admin può archiviare. & \code{POST /issues/\{id\}/archive} (admin-only), \code{GET /issues/archived}, flag \code{Issue.archived} + \code{archivedAt}, vista frontend dedicata "Archived Issues". & Implementato \\ \hline
     R15 & Account stakeholder con accesso in sola lettura. & Ruolo \code{UserRole.STAKEHOLDER}; blocco scrittura via \code{AuthService.validateWritableUser}; guard UI su create/edit/commenti/allegati. & Implementato \\ \hline
     R16 & Admin marca issue duplicata di altra issue con chiusura immediata della duplicata. & \code{POST /issues/\{id\}/duplicate/\{originalId\}}, regole dominio in \code{IssueService.processDuplicate} e \code{Issue.markAsDuplicateOf}; originale deve essere aperta. & Implementato \\ \hline
 \end{tabularx}
 }
 
 \paragraph{Nota di perimetro}
-I requisiti non elencati in tabella (es. R8, R9, R10, R13, R14, R17, R18) non rientrano tra i requisiti obbligatori del ciclo corrente, oppure sono stati volutamente rimandati. L'evoluzione resta possibile grazie alla struttura modulare backend/frontend.
+I requisiti non elencati in tabella (es. R8, R9, R10, R14, R17, R18) non rientrano tra i requisiti obbligatori del ciclo corrente, oppure sono stati volutamente rimandati. L'evoluzione resta possibile grazie alla struttura modulare backend/frontend.
 
 \subsubsection*{Criteri di accettazione funzionali (sintesi verificabile)}
 \begin{itemize}
@@ -143,6 +144,7 @@ I requisiti non elencati in tabella (es. R8, R9, R10, R13, R14, R17, R18) non ri
     \item \textbf{R5 (commenti)}: CRUD commenti disponibile su issue; update/delete consentiti solo ad autore commento o admin; allegati commento gestiti separatamente.
     \item \textbf{R7 (dashboard)}: endpoint aggrega KPI di stato/priorità, andamento giornaliero, carico aperto per assignee e tempo medio risoluzione per utente; accessibile in lettura a ADMIN e STAKEHOLDER.
     \item \textbf{R12 (history)}: ogni evento significativo genera una entry append-only con timestamp, titolo evento, descrizione del cambiamento e attore (\texttt{changedBy}).
+    \item \textbf{R13 (archiviazione)}: solo ADMIN può archiviare una issue via \code{POST /issues/\{id\}/archive}; la issue viene esclusa da board/search principali e resa consultabile nella vista dedicata \textit{Archived Issues} tramite \code{GET /issues/archived}.
     \item \textbf{R15 (stakeholder)}: ruolo read-only attivo; lo stakeholder può consultare board/dettaglio/dashboard ma non può creare/modificare issue o commenti né gestire allegati.
     \item \textbf{R16 (duplicate)}: solo admin può marcare duplicate; vietati self-duplicate e originali non aperte (RESOLVED/CLOSED); la duplicate viene chiusa e collegata all'originale.
 \end{itemize}
@@ -334,10 +336,11 @@ Nel ciclo corrente è stata adottata una strategia \textbf{API-first}: prima con
     R3 & Ricerca e filtri composabili lato repository/service + UI con debounce 300ms & Coperto end-to-end \\ \hline
     R7 & Dashboard admin con metriche aggregate e carico per assegnatario (\texttt{issuesAssignedPerUser}) & Coperto end-to-end \\ \hline
     R11 & Ricerca keyword su titolo/descrizione/reporter con filtri opzionali completi & Coperto end-to-end \\ \hline
+    R13 & Archiviazione issue admin-only + vista dedicata archiviati separata dalla board principale & Coperto end-to-end \\ \hline
     R16 & Workflow duplicate con chiusura immediata e controlli di autorizzazione (admin-only in UI/API) & Coperto end-to-end \\ \hline
 \end{tabularx}
 
-\subsection{Evidenze API-First per R1-R2-R3-R7-R11-R16}
+\subsection{Evidenze API-First per R1-R2-R3-R7-R11-R13-R16}
 La seguente matrice collega i requisiti obbligatori agli endpoint e alle regole implementate nel backend dopo l'attività di hardening.
 
 \begin{tabularx}{\textwidth}{|l|X|X|}
@@ -348,7 +351,8 @@ La seguente matrice collega i requisiti obbligatori agli endpoint e alle regole 
     R3 & \code{GET /issues/search}: filtri opzionali combinabili (\texttt{term}, \texttt{status}, \texttt{priority}, \texttt{type}, \texttt{assigneeId}) con validazione input. & Test su ricerca con combinazioni multiple e query normalizzata (trim), risposta deterministica. \\ \hline
     R7 & \code{GET /issues/admin/dashboard}: metriche aggregate e \texttt{issuesAssignedPerUser} con contratto stabile per la UI admin. & Test \code{IssueServiceTest} su popolamento mappa per assegnatario e dati giornalieri dashboard. \\ \hline
     R11 & Ricerca keyword su titolo, descrizione e reporter tramite query JPQL dinamica con ordinamento stabile. & Test su filtro testuale e regressione sui filtri composti. \\ \hline
-    R16 & \code{POST /issues/\{id\}/duplicate/\{originalId\}}: solo admin, ID distinti, issue esistenti e vincolo tipo BUG per entrambe le issue. & Test \code{IssueServiceTest} su successo, permessi, self-duplicate, issue chiuse/risolte e tipi non BUG. \\ \hline
+    R13 & \code{POST /issues/\{id\}/archive}: solo admin; \code{GET /issues/archived}: lista dedicata; board/search principali escludono \code{archived=true}. & Test \code{IssueServiceTest} su archiviazione admin-only, caso already-archived e recupero lista archiviati. \\ \hline
+    R16 & \code{POST /issues/\{id\}/duplicate/\{originalId\}}: solo admin, ID distinti, issue esistenti e originale aperta (non CLOSED/RESOLVED). & Test \code{IssueServiceTest} su successo, permessi, self-duplicate, issue chiuse/risolte e tipi non BUG. \\ \hline
 \end{tabularx}
 
 L'approccio API-first riduce regressioni frontend durante i refactor: la UI viene allineata a contratti backend già consolidati, mentre le funzionalità extra (commenti, allegati, reset password) restano operative con controlli di regressione dedicati.
@@ -359,7 +363,8 @@ Nel ciclo corrente è stato completato anche l'allineamento frontend ai contratt
     \item \textbf{R2}: la UI Create/Edit Issue usa utenti assegnabili caricati da \code{GET /auth/users/assignable} e invia \texttt{assigneeId} nel payload di creazione.
     \item \textbf{R3/R11}: la pagina Issues applica debounce di 300ms e invia filtri completi \code{term,status,priority,type,assigneeId} verso \code{GET /issues/search}.
     \item \textbf{R7}: la Dashboard Admin visualizza la metrica \texttt{issuesAssignedPerUser} oltre alle distribuzioni per stato/priorità.
-    \item \textbf{R16}: il pulsante ``Flag as Duplicate'' è esposto solo ad admin lato UI, con allineamento ai vincoli backend (solo BUG non chiuse/risolte).
+    \item \textbf{R13}: la UI espone la pagina dedicata ``Archived Issues'' e il bottone ``Archive Issue'' in dettaglio issue solo per ADMIN.
+    \item \textbf{R16}: il pulsante ``Flag as Duplicate'' è esposto solo ad admin lato UI, con allineamento ai vincoli backend (originale aperta, duplicata chiusa automaticamente).
 \end{itemize}
 
 \noindent Sono stati inoltre allineati i campi DTO visualizzati in dettaglio issue (\texttt{assigneeUsername} al posto di alias legacy), riducendo mismatch tra risposta REST e rendering frontend.

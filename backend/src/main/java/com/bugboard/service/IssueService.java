@@ -307,6 +307,25 @@ public class IssueService {
       recordHistoryEntry(issue, "Issue archived", "Issue archived and moved out of main board.",
             resolveHistoryActor(adminId, admin));
    }
+   @Transactional
+   public void unarchiveIssue(Long issueId, Long adminId) {
+      if (adminId == null) {
+         throw new SecurityException("Authentication required.");
+      }
+
+      User admin = userRepository.findById(adminId)
+            .orElseThrow(() -> new SecurityException(USER_NOT_FOUND_MESSAGE));
+
+      if (!admin.isAdmin()) {
+         throw new SecurityException("Only administrators can unarchive issues.");
+      }
+
+      Issue issue = requireIssue(issueId);
+      issue.unarchive();
+      repository.save(issue);
+      recordHistoryEntry(issue, "Issue unarchived", "Issue restored to the main board.",
+            resolveHistoryActor(adminId, admin));
+   }
 
    // ==================== DUPLICATE MANAGEMENT (ADMIN ONLY) ====================
 

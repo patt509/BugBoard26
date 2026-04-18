@@ -246,4 +246,13 @@ public class Issue {
       this.archivedAt = LocalDateTime.now();
       this.updatedAt = LocalDateTime.now();
    }
+
+   public void unarchive() {
+      if (!this.archived) {
+         throw new IllegalStateException("Issue is not archived.");
+      }
+      this.archived = false;
+      this.archivedAt = null;
+      this.updatedAt = LocalDateTime.now();
+   }
 }
