@@ -59,6 +59,14 @@ export const issueService = {
   },
 
   /**
+   * Get archived issues
+   * @returns {Promise<Array>} List of archived issues
+   */
+  getArchived() {
+    return httpClient.get(API_ENDPOINTS.ISSUES_ARCHIVED);
+  },
+
+  /**
    * Get issue by ID
    * @param {number} id - Issue ID
    * @returns {Promise<Object>} Issue data
@@ -152,6 +160,30 @@ export const issueService = {
    */
   flagAsDuplicate(duplicateId, originalId, adminId) {
     return httpClient.post(API_ENDPOINTS.ISSUE_FLAG_DUPLICATE(duplicateId, originalId), null, {
+      headers: resolveAuthHeaders(adminId, { required: true })
+    });
+  },
+
+  /**
+   * Archive an issue (Admin only)
+   * @param {number} id - Issue ID
+   * @param {number|string} adminId - Admin user ID
+   * @returns {Promise<Object>} Response with message
+   */
+  archive(id, adminId) {
+    return httpClient.post(API_ENDPOINTS.ISSUE_ARCHIVE(id), null, {
+      headers: resolveAuthHeaders(adminId, { required: true })
+    });
+  },
+
+  /**
+   * Unarchive an issue (Admin only)
+   * @param {number} id - Issue ID
+   * @param {number|string} adminId - Admin user ID
+   * @returns {Promise<Object>} Response with message
+   */
+  unarchive(id, adminId) {
+    return httpClient.post(API_ENDPOINTS.ISSUE_UNARCHIVE(id), null, {
       headers: resolveAuthHeaders(adminId, { required: true })
     });
   },

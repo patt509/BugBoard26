@@ -16,11 +16,14 @@ export const API_ENDPOINTS = {
   
   // Issues
   ISSUES: '/issues',
+  ISSUES_ARCHIVED: '/issues/archived',
   ISSUES_BY_ID: (id) => `/issues/${id}`,
   ISSUE_HISTORY: (id) => `/issues/${id}/history`,
   ISSUES_SEARCH: '/issues/search',
   ISSUES_ADMIN_DASHBOARD: '/issues/admin/dashboard',
   ISSUE_STATUS: (id) => `/issues/${id}/status`,
+  ISSUE_ARCHIVE: (id) => `/issues/${id}/archive`,
+  ISSUE_UNARCHIVE: (id) => `/issues/${id}/unarchive`,
   ISSUE_FLAG_DUPLICATE: (duplicateId, originalId) => `/issues/${duplicateId}/duplicate/${originalId}`,
   
   // Comments
