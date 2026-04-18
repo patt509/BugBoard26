@@ -32,6 +32,7 @@ public class IssueService {
 
    private static final Logger logger = Logger.getLogger(IssueService.class.getName());
    private static final String ISSUE_NOT_FOUND_MESSAGE = "Issue not found";
+   private static final String USER_NOT_FOUND_MESSAGE = "User not found.";
 
    private final IssueRepository repository;
    private final IssueHistoryRepository issueHistoryRepository;
@@ -238,6 +239,14 @@ public class IssueService {
    }
 
    /**
+    * Get all archived issues for the dedicated archive page.
+    */
+   public List<IssueDTO> getArchivedIssues() {
+      List<Issue> issues = repository.findArchived();
+      return convertToDTO(issues);
+   }
+
+   /**
     * Search issues with optional filters.
     * Available to all authenticated users.
     */
@@ -277,6 +286,26 @@ public class IssueService {
                   entry.getDescription(),
                   entry.getChangedBy()))
             .toList();
+   }
+
+   @Transactional
+   public void archiveIssue(Long issueId, Long adminId) {
+      if (adminId == null) {
+         throw new SecurityException("Authentication required.");
+      }
+
+      User admin = userRepository.findById(adminId)
+            .orElseThrow(() -> new SecurityException(USER_NOT_FOUND_MESSAGE));
+
+      if (!admin.isAdmin()) {
+         throw new SecurityException("Only administrators can archive issues.");
+      }
+
+      Issue issue = requireIssue(issueId);
+      issue.archive();
+      repository.save(issue);
+      recordHistoryEntry(issue, "Issue archived", "Issue archived and moved out of main board.",
+            resolveHistoryActor(adminId, admin));
    }
 
    // ==================== DUPLICATE MANAGEMENT (ADMIN ONLY) ====================
@@ -406,6 +435,8 @@ public class IssueService {
             .closedAt(issue.getClosedAt())
             .attachmentPath(issue.getAttachmentPath())
             .originalIssueId(issue.getOriginalIssueId())
+            .archived(issue.isArchived())
+            .archivedAt(issue.getArchivedAt())
             .build();
    }
 

@@ -853,6 +853,61 @@ public class IssueServiceTest {
       assertEquals("PostCond failed: should return 2 DTOs", 2, result.size());
    }
 
+   /**
+    * TC36b: getArchivedIssues returns archived issues.
+    */
+   @Test
+   public void testGetArchivedIssues_TC36b_ReturnsArchivedList() {
+      Issue archivedIssue = spy(new Issue("Archived issue title long", "Desc", reporter, IssueType.BUG));
+      archivedIssue.archive();
+      when(repository.findArchived()).thenReturn(List.of(archivedIssue));
+
+      List<IssueDTO> result = issueService.getArchivedIssues();
+
+      assertEquals("PostCond failed: should return 1 archived DTO", 1, result.size());
+      assertTrue("PostCond failed: archived flag should be true", Boolean.TRUE.equals(result.get(0).getArchived()));
+   }
+
+   /**
+    * TC36c: archiveIssue succeeds for admins.
+    */
+   @Test
+   public void testArchiveIssue_TC36c_AdminCanArchive() {
+      Issue issue = spy(new Issue("Issue title to archive", "Desc", reporter, IssueType.BUG));
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+      when(repository.findById(10L)).thenReturn(issue);
+
+      issueService.archiveIssue(10L, 1L);
+
+      assertTrue("PostCond failed: issue should be archived", issue.isArchived());
+      assertNotNull("PostCond failed: archivedAt should be set", issue.getArchivedAt());
+      verify(repository).save(issue);
+   }
+
+   /**
+    * TC36d: archiveIssue fails when user is not admin.
+    */
+   @Test(expected = SecurityException.class)
+   public void testArchiveIssue_TC36d_NonAdminCannotArchive() {
+      when(userRepository.findById(2L)).thenReturn(Optional.of(normalUser));
+
+      issueService.archiveIssue(10L, 2L);
+   }
+
+   /**
+    * TC36e: archiveIssue fails when issue is already archived.
+    */
+   @Test(expected = IllegalStateException.class)
+   public void testArchiveIssue_TC36e_AlreadyArchived() {
+      Issue issue = spy(new Issue("Issue already archived", "Desc", reporter, IssueType.BUG));
+      issue.archive();
+
+      when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+      when(repository.findById(10L)).thenReturn(issue);
+
+      issueService.archiveIssue(10L, 1L);
+   }
+
    // ==================== getIssueById TESTS ====================
 
    /**

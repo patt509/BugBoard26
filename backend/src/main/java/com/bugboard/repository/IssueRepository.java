@@ -44,7 +44,19 @@ public class IssueRepository {
             "SELECT DISTINCT i FROM Issue i " +
                   FETCH_REPORTER_CLAUSE +
                   FETCH_ASSIGNEE_CLAUSE +
+                  "WHERE COALESCE(i.archived, false) = false " +
                   "ORDER BY i.createdAt DESC, i.id DESC",
+            Issue.class)
+            .getResultList();
+   }
+
+   public List<Issue> findArchived() {
+      return em.createQuery(
+            "SELECT DISTINCT i FROM Issue i " +
+                  FETCH_REPORTER_CLAUSE +
+                  FETCH_ASSIGNEE_CLAUSE +
+                  "WHERE COALESCE(i.archived, false) = true " +
+                  "ORDER BY i.archivedAt DESC, i.updatedAt DESC, i.id DESC",
             Issue.class)
             .getResultList();
    }
@@ -68,9 +80,10 @@ public class IssueRepository {
    // Dynamic filtering and search of issues (Requisito 3)
    public List<Issue> search(String term, PriorityLevel priority, IssueStatus status, IssueType type, Long assigneeId) {
       StringBuilder jpql = new StringBuilder(
-            "SELECT DISTINCT i FROM Issue i " +
+                  "SELECT DISTINCT i FROM Issue i " +
                   "LEFT JOIN FETCH i.reporter reporter " +
-                  "LEFT JOIN FETCH i.assignee assignee");
+                  "LEFT JOIN FETCH i.assignee assignee " +
+                  "WHERE COALESCE(i.archived, false) = false");
 
       IssueQueryContext queryContext = new IssueQueryContext();
       IssueSpecification filters = IssueSpecifications.allOf(
@@ -82,7 +95,7 @@ public class IssueRepository {
       filters.apply(queryContext);
 
       if (!queryContext.getPredicates().isEmpty()) {
-         jpql.append(" WHERE ")
+         jpql.append(" AND ")
                .append(String.join(" AND ", queryContext.getPredicates()));
       }
 
